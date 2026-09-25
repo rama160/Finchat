@@ -42,3 +42,6 @@ User dapat bekerja tanpa Flutter lokal. GitHub Actions adalah environment canoni
 
 ## Dokumentasi
 `Ai start here.md` → master context → PRD → architecture → phases → AI contract → implementation status → changelog.
+
+## Phase 3 parser requirement
+Indonesian monetary input must support both formal and informal notation. At minimum the local parser recognizes `25 rb`, `25 ribu`, `25k`, `Rp25.000`, `Rp 25.000`, `1 juta`, `1,5 juta`, `1.5jt`, `2m`, and larger grouped numbers. Multiple monetary expressions in one text input must be eligible for multiple transaction extraction. The parser remains offline-first; AI is fallback only after local parsing and validation cannot resolve the input.

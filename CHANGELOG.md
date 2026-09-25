@@ -53,3 +53,18 @@ Phase 2 remains active. Next: persistent secure session, local DB, migrations, r
 - **Result:** Pending GitHub Actions verification.
 - **Status:** Fixed in source package; CI verification pending.
 
+
+## 0.2.0 — 2026-09-25 — Phase 3 Transaction Engine foundation
+
+- **Type:** feature
+- **Component:** local transaction parsing / amount recognition
+- **Previous behavior:** Phase 2 only contained transaction domain contracts; no production local parser existed.
+- **Change:** added `MoneyAmountParser` and `LocalTransactionParser`.
+- **Amount formats:** `25 rb`, `25 ribu`, `25k`, `Rp 25.000`, `Rp25.000`, `1 juta`, `1,5 juta`, `1.5jt`, `2m`, and grouped Indonesian amounts such as `1.250.000`.
+- **Multi-transaction:** one text input can yield multiple parsed transactions when multiple money expressions are present.
+- **Reason:** Indonesian users commonly write monetary amounts using informal shorthand; parser behavior must be deterministic and offline-first before AI fallback.
+- **Impact:** transaction text input now has a local parsing foundation and test coverage for common amount representations.
+- **Migration:** none.
+- **Tests:** added unit tests for money normalization and local transaction parsing.
+- **Result:** pending GitHub Actions verification.
+- **Status:** in progress — Phase 3 foundation.
