@@ -13,19 +13,23 @@ class AppRouter {
         routerDelegate: _Delegate(sessionManager),
         routeInformationParser: const _Parser(),
         routeInformationProvider: PlatformRouteInformationProvider(
-          initialRouteInformation: const RouteInformation(location: '/'),
+          initialRouteInformation: RouteInformation(uri: Uri.parse('/')),
         ),
       );
 }
 
 class _Parser extends RouteInformationParser<Object> {
   const _Parser();
+
   @override
-  Future<Object> parseRouteInformation(RouteInformation routeInformation) async =>
-      routeInformation.location ?? '/';
+  Future<Object> parseRouteInformation(
+    RouteInformation routeInformation,
+  ) async =>
+      routeInformation.uri.toString();
 }
 
-class _Delegate extends RouterDelegate<Object> with ChangeNotifier, PopNavigatorRouterDelegateMixin<Object> {
+class _Delegate extends RouterDelegate<Object>
+    with ChangeNotifier, PopNavigatorRouterDelegateMixin<Object> {
   _Delegate(this.sessionManager) {
     sessionManager.addListener(notifyListeners);
   }
@@ -38,15 +42,26 @@ class _Delegate extends RouterDelegate<Object> with ChangeNotifier, PopNavigator
   @override
   Widget build(BuildContext context) {
     if (!sessionManager.initialized) {
-      return const Navigator(pages: [MaterialPage(child: SplashScreen())], onPopPage: _pop);
+      return const Navigator(
+        pages: [MaterialPage(child: SplashScreen())],
+        onDidRemovePage: _onDidRemovePage,
+      );
     }
+
     final page = sessionManager.isAuthenticated
         ? const MaterialPage(child: ChatScreen())
         : const MaterialPage(child: LoginScreen());
-    return Navigator(pages: [page], onPopPage: _pop);
+
+    return Navigator(
+      pages: [page],
+      onDidRemovePage: _onDidRemovePage,
+    );
   }
 
-  static bool _pop(Route<dynamic> route, dynamic result) => route.didPop(result);
+  static void _onDidRemovePage(Page<dynamic> page) {
+    // The current page is derived from SessionManager state. There is no
+    // separate navigation stack to mutate when the root page is removed.
+  }
 
   @override
   Future<void> setNewRoutePath(Object configuration) async {}

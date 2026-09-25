@@ -40,3 +40,16 @@ Implementation prepared; real CI result remains the source of truth after push.
 
 ### Status
 Phase 2 remains active. Next: persistent secure session, local DB, migrations, real repositories.
+## 0.1.0+2 — 2026-09-25
+
+- **Type:** Fix / compatibility
+- **Component:** `lib/presentation/navigation/app_router.dart`
+- **Previous problem:** GitHub Actions `flutter analyze` failed because the router used deprecated `RouteInformation.location` and `Navigator.onPopPage`, plus a null-aware expression that could never execute.
+- **Exact change:** Migrated route information handling to `RouteInformation.uri`; replaced `Navigator.onPopPage` with `Navigator.onDidRemovePage`; removed the obsolete null-aware expression.
+- **Reason:** Current Flutter stable analysis treats these deprecated APIs as analyzer issues, and the CI workflow is configured to fail when analysis reports issues.
+- **Impact:** The router remains functionally equivalent for the current single-root-page navigation model while using the current Flutter navigation APIs.
+- **Migration:** No database or user-data migration required. Replace the router file and rerun GitHub Actions.
+- **Tests:** `flutter analyze` is expected to be clean in GitHub Actions; local Flutter SDK is not available in the authoring environment.
+- **Result:** Pending GitHub Actions verification.
+- **Status:** Fixed in source package; CI verification pending.
+

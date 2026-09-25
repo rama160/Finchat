@@ -32,3 +32,7 @@
 
 ## Handoff
 Do not ask the user to repeat the project requirements. Inspect the repository and continue from the first incomplete item above.
+### Latest CI Fix — 2026-09-25
+
+GitHub Actions reported five analyzer issues in `lib/presentation/navigation/app_router.dart`. The router was updated to use `RouteInformation.uri` and `Navigator.onDidRemovePage` instead of deprecated APIs. The dead null-aware expression was also removed. The next required verification is a fresh GitHub Actions run.
+
