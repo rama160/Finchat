@@ -1,3 +1,13 @@
+# Phase 4 — AI fallback foundation
+
+- **Status:** implementation started after Phase 3B fixed testing succeeded.
+- Added a provider-agnostic AI category fallback contract.
+- Added validation for AI category existence and confidence.
+- Added transaction intelligence orchestration with local-first parsing and category learning.
+- AI receives locally parsed transaction facts and may only suggest a category.
+- Added unit tests covering valid, invalid, low-confidence, local-only, and fallback paths.
+- No external AI provider or API key is introduced yet.
+
 # Changelog
 
 ## 0.3.2 - 2026-09-26 - Phase 3B CI lint fix

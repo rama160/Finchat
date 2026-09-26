@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 3B — Local Database, Transaction Repository & Category Learning**
+**Phase 4 — AI Fallback (provider-agnostic foundation)**
 
 ## Completed
 
@@ -20,10 +20,22 @@
 
 ## Verification
 
-The Phase 3B package initially reached GitHub Actions but `flutter analyze` failed on 7 analyzer issues. A CI-only correction package now removes those issues without changing runtime behavior. The corrected package is prepared for GitHub Actions verification. The local environment used to assemble the package does not contain the Flutter SDK, so no local `flutter analyze`, `flutter test`, or APK build is claimed here.
+Phase 3B fixed package was tested successfully by the project owner. The database, repository, category-learning, and analyzer correction milestone is therefore treated as passed for the transition into Phase 4.
 
-## Next Phase
+The local environment used to assemble this package does not contain the Flutter SDK, so no local `flutter analyze`, `flutter test`, or APK build is claimed here. GitHub Actions remains the canonical CI verification environment.
 
-**Phase 4 — AI Fallback**, after this database/repository/category milestone passes GitHub Actions with the corrected analyzer-clean package.
+## Phase 4 Progress
+
+- Added provider-agnostic `AiCategoryProvider` contract.
+- Added `AiCategoryFallback` validation boundary.
+- AI suggestions require an existing local category and minimum confidence.
+- Added `TransactionIntelligenceService` so local parsing and category learning remain first.
+- AI is triggered only when local category resolution is not confident enough.
+- AI receives the locally parsed amount/type/description; it does not create transaction records.
+- Added unit tests for accepted, rejected, low-confidence, local-only, and AI-fallback paths.
+
+## Next Step
+
+Run the complete Phase 4 test/analyze workflow in GitHub Actions. Only after that passes should a real AI provider adapter be introduced.
 
 AI must remain fallback-only. It must never bypass local validation or write directly to the database.
