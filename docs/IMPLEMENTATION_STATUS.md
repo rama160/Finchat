@@ -20,10 +20,10 @@
 
 ## Verification
 
-The package is prepared for GitHub Actions verification. The local environment used to assemble the package does not contain the Flutter SDK, so no local `flutter analyze`, `flutter test`, or APK build is claimed here.
+The Phase 3B package initially reached GitHub Actions but `flutter analyze` failed on 7 analyzer issues. A CI-only correction package now removes those issues without changing runtime behavior. The corrected package is prepared for GitHub Actions verification. The local environment used to assemble the package does not contain the Flutter SDK, so no local `flutter analyze`, `flutter test`, or APK build is claimed here.
 
 ## Next Phase
 
-**Phase 4 — AI Fallback**, after this database/repository/category milestone passes GitHub Actions.
+**Phase 4 — AI Fallback**, after this database/repository/category milestone passes GitHub Actions with the corrected analyzer-clean package.
 
 AI must remain fallback-only. It must never bypass local validation or write directly to the database.

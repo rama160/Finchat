@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-import 'package:finchat/data/local/database_schema.dart';
 import 'package:finchat/data/local/finchat_database.dart';
 import 'package:finchat/data/repositories/sqlite_category_repository.dart';
 import 'package:finchat/data/repositories/sqlite_transaction_repository.dart';

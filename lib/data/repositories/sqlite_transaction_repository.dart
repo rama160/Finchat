@@ -20,6 +20,7 @@ class SqliteTransactionRepository implements TransactionRepository {
     return rows.map(_fromRow).toList();
   }
 
+  @override
   Future<List<TransactionEntity>> getByUser(String userId) async {
     final db = await database.database;
     final rows = await db.query(
@@ -31,6 +32,7 @@ class SqliteTransactionRepository implements TransactionRepository {
     return rows.map(_fromRow).toList();
   }
 
+  @override
   Future<TransactionEntity?> getById(String id) async {
     final db = await database.database;
     final rows = await db.query('transactions', where: 'id = ?', whereArgs: [id], limit: 1);
@@ -38,6 +40,7 @@ class SqliteTransactionRepository implements TransactionRepository {
     return _fromRow(rows.first);
   }
 
+  @override
   Future<List<TransactionEntity>> getByDateRange({
     required String userId,
     required DateTime start,
@@ -53,6 +56,7 @@ class SqliteTransactionRepository implements TransactionRepository {
     return rows.map(_fromRow).toList();
   }
 
+  @override
   Future<List<TransactionEntity>> getByCategory({required String userId, required String categoryId}) async {
     final db = await database.database;
     final rows = await db.query(
@@ -70,6 +74,7 @@ class SqliteTransactionRepository implements TransactionRepository {
     await db.insert('transactions', _toRow(transaction), conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
+  @override
   Future<void> update(TransactionEntity transaction) => save(transaction);
 
   @override

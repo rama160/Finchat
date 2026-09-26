@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.2 - 2026-09-26 - Phase 3B CI lint fix
+
+- **Type:** fix / CI compatibility
+- **Component:** `finchat_database.dart`, `sqlite_transaction_repository.dart`, database tests
+- **Previous behavior:** GitHub Actions `flutter analyze` reported one `prefer_initializing_formals` issue, five missing `@override` annotations, and one unused test import, causing the analyze step to exit with code 1.
+- **Exact change:** changed the database path constructor parameter to an initializing formal; added `@override` to all repository methods implementing the repository contract; removed the unused `database_schema.dart` test import.
+- **Reason:** FinChat CI treats analyzer issues as a failed verification step.
+- **Impact:** no runtime/database behavior changes; only analyzer-compliance corrections.
+- **Migration:** none.
+- **Tests:** GitHub Actions should rerun `flutter analyze`, `flutter test`, and the Android build.
+- **Result:** pending GitHub Actions verification.
+- **Status:** ready for CI.
+
 ## 0.1.0-phase2-v2 — 2026-09-25
 
 ### Type
