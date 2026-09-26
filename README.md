@@ -40,3 +40,7 @@ Baca berurutan:
 ## Status
 
 Phase 2 — Flutter Foundation. Foundation UI dan CI sudah disiapkan. Persistent secure session, database lokal, migration, repository nyata, dan verifikasi Android masih menjadi pekerjaan berikutnya.
+
+## Local Data Architecture
+
+FinChat uses SQLite as its offline-first local source of truth. Application code accesses transactions and category learning through repositories. Category corrections are persisted per user and recorded in category history. AI is a fallback and must not write directly to SQLite.

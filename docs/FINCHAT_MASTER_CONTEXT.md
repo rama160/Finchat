@@ -45,3 +45,9 @@ User dapat bekerja tanpa Flutter lokal. GitHub Actions adalah environment canoni
 
 ## Phase 3 parser requirement
 Indonesian monetary input must support both formal and informal notation. At minimum the local parser recognizes `25 rb`, `25 ribu`, `25k`, `Rp25.000`, `Rp 25.000`, `1 juta`, `1,5 juta`, `1.5jt`, `2m`, and larger grouped numbers. Multiple monetary expressions in one text input must be eligible for multiple transaction extraction. The parser remains offline-first; AI is fallback only after local parsing and validation cannot resolve the input.
+
+## Local Database and Category Learning
+
+SQLite is the local source of truth. The database contains users, categories, transactions, category mappings, category history, and app settings. Transactions are accessed through repositories rather than directly from presentation code. Transaction deletion is soft-delete so future synchronization can preserve deletion state.
+
+Category learning is local and user-specific. A correction such as `cabe -> Belanja Dapur` is stored as a normalized mapping with source, confidence, usage count, and timestamps. Each correction also creates a category-history record. Resolution priority favors user corrections/mappings before fallback rules or AI. AI must never silently override a confirmed user mapping.

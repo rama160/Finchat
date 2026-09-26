@@ -1,44 +1,29 @@
-# Implementation Status
+# FinChat Implementation Status
 
-## Current phase
-**Phase 3 — Transaction Engine**
+## Current Phase
 
-## Phase 2 result
-- GitHub Actions analyze: PASSED.
-- GitHub Actions tests: PASSED.
-- Android release build: PASSED.
-- GitHub-only build workflow is operational.
+**Phase 3B — Local Database, Transaction Repository & Category Learning**
 
-## Phase 3 completed in this increment
-- Added deterministic offline `MoneyAmountParser`.
-- Added deterministic offline `LocalTransactionParser` foundation.
-- Added recognition for Indonesian amount shorthand: `25 rb`, `25 ribu`, `25k`, `Rp25.000`, `Rp 25.000`, `1 juta`, `1,5 juta`, `1.5jt`, `2m`, `miliar`, and grouped numeric values.
-- Added multi-transaction extraction from a single text input containing multiple money expressions.
-- Added initial transaction type/category heuristics.
-- Added unit tests for amount normalization and parser behavior.
+## Completed
 
-## Known temporary state
-- Session storage is still in-memory and is NOT production-ready.
-- Local database is not implemented yet.
-- Transaction repository is still a contract/in-memory foundation only.
-- Category learning/history is not implemented yet.
-- Date/time extraction is not implemented yet.
-- AI fallback is not implemented yet.
+- Phase 1 — Product definition and repository foundation.
+- Phase 2 — Flutter foundation; GitHub Actions analyze/test/Android build passed.
+- Phase 3 — Local transaction parser; Indonesian Rupiah shorthand is supported (`25 rb`, `25 ribu`, `25k`, `1,5 juta`, etc.).
+- SQLite local database foundation using `sqflite`.
+- Versioned database schema with non-destructive upgrade hook.
+- Local tables for users, categories, transactions, category mappings, category history, and app settings.
+- System category seed data.
+- Transaction repository with CRUD, date-range, user, category queries, and soft delete.
+- Category mapping repository with usage count and correction history.
+- Category learning service with normalization, exact/token mapping lookup, user-correction priority, and fallback category support.
+- SQLite FFI tests so the database/repositories are testable in GitHub Actions without an Android emulator.
 
-## Exact next tasks
-1. Replace temporary session storage with secure persistent storage.
-2. Add local database and migration foundation.
-3. Add persistent transaction repository.
-4. Expand parser for dates, relative dates, transaction type, and category context.
-5. Implement category history/learning with user corrections taking highest priority.
-6. Add validation and confidence/review states.
-7. Connect Chat input to the transaction application service.
-8. Run GitHub Actions and fix all actual analyzer/test/build issues.
-9. Update this file and `CHANGELOG.md` after each meaningful change.
+## Verification
 
-## Parser rules
-- Local parser is always attempted before AI.
-- Monetary shorthand must be interpreted deterministically.
-- Never invent an amount when no valid amount expression exists.
-- Multiple monetary expressions in one input may represent multiple transactions and must be preserved for review/validation.
-- Ambiguous inputs must remain reviewable instead of being silently committed as fact.
+The package is prepared for GitHub Actions verification. The local environment used to assemble the package does not contain the Flutter SDK, so no local `flutter analyze`, `flutter test`, or APK build is claimed here.
+
+## Next Phase
+
+**Phase 4 — AI Fallback**, after this database/repository/category milestone passes GitHub Actions.
+
+AI must remain fallback-only. It must never bypass local validation or write directly to the database.

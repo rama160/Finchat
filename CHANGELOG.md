@@ -68,3 +68,16 @@ Phase 2 remains active. Next: persistent secure session, local DB, migrations, r
 - **Tests:** added unit tests for money normalization and local transaction parsing.
 - **Result:** pending GitHub Actions verification.
 - **Status:** in progress — Phase 3 foundation.
+
+## 0.3.1 - 2026-09-26 - Phase 3B Local Database, Repository, and Category Learning
+
+- **Type:** feature / architecture
+- **Component:** local SQLite database, transaction repository, category repository, category learning
+- **Previous behavior:** Phase 3 had a working local parser, but parsed transactions did not yet have a persistent local database, repository-backed CRUD, or persistent user-specific category corrections.
+- **Change:** added SQLite schema version 1 with users, categories, transactions, category_mappings, category_history, and app_settings; added seeded system categories; added transaction CRUD/query repository with soft delete; added category mapping/history repository and category learning service.
+- **Reason:** FinChat is offline-first and must keep local data as the source of truth. Category consistency requires persistent user-specific learning before AI fallback is introduced.
+- **Impact:** transactions and category preferences now have a defined persistence boundary. AI can later consume validated repository data without becoming the database owner.
+- **Migration:** new installations create schema version 1. Future schema changes must use `onUpgrade` and must not destructively recreate user data.
+- **Tests:** added SQLite repository/category tests using `sqflite_common_ffi` for CI-friendly database verification.
+- **Result:** ready for GitHub Actions verification.
+- **Status:** in progress until GitHub Actions passes; then Phase 3B is complete and Phase 4 AI Fallback can begin.
