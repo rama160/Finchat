@@ -6,10 +6,9 @@ import '../../domain/ocr/receipt_ocr.dart';
 
 class ReceiptOcrService {
   const ReceiptOcrService({
-    required ReceiptImagePreprocessor preprocessor,
-    required ReceiptOcrProvider provider,
-  })  : _preprocessor = preprocessor,
-        _provider = provider;
+    required this._preprocessor,
+    required this._provider,
+  });
 
   final ReceiptImagePreprocessor _preprocessor;
   final ReceiptOcrProvider _provider;

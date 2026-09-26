@@ -4,9 +4,9 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 
-import '../../../lib/application/ocr/receipt_ocr_service.dart';
-import '../../../lib/data/ocr/image_receipt_preprocessor.dart';
-import '../../../lib/domain/ocr/receipt_ocr.dart';
+import 'package:finchat/application/ocr/receipt_ocr_service.dart';
+import 'package:finchat/data/ocr/image_receipt_preprocessor.dart';
+import 'package:finchat/domain/ocr/receipt_ocr.dart';
 
 class _FakeReceiptOcrProvider implements ReceiptOcrProvider {
   String? receivedPath;

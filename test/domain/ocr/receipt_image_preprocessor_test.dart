@@ -3,8 +3,8 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 
-import '../../../lib/data/ocr/image_receipt_preprocessor.dart';
-import '../../../lib/domain/ocr/receipt_image_preprocessor.dart';
+import 'package:finchat/data/ocr/image_receipt_preprocessor.dart';
+import 'package:finchat/domain/ocr/receipt_image_preprocessor.dart';
 
 void main() {
   test('preprocesses a receipt image into OCR-friendly JPEG bytes', () async {
