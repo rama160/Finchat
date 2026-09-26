@@ -16,7 +16,13 @@ class ImageReceiptPreprocessor implements ReceiptImagePreprocessor {
       throw const FormatException('Receipt image is empty.');
     }
 
-    final decoded = img.decodeImage(input);
+    img.Image? decoded;
+    try {
+      decoded = img.decodeImage(input);
+    } catch (_) {
+      throw const FormatException('Receipt image format is not supported.');
+    }
+
     if (decoded == null) {
       throw const FormatException('Receipt image format is not supported.');
     }
