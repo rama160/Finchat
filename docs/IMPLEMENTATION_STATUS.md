@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 7 — Reports & Analytics**
+**Phase 8 — PDF Export**
 
 ## Completed
 
@@ -26,10 +26,20 @@
 - Added report navigation from the main FinChat screen.
 - Added automated tests for grouping, type/category separation, date boundaries, and month/year boundaries.
 
+## Phase 8 Progress
+
+- Added `ReportPdfService` to generate A4 PDF reports from the existing `ReportSummary`.
+- PDF includes period, income, expense, balance, transaction count, and grouped transaction details.
+- Grouped details preserve the transaction count and combined amount from Phase 7.
+- Added PDF export/share action to the report screen.
+- Added automated PDF generation and filename tests.
+
 ## Verification
+
+Phase 7 was verified by the project owner with `flutter analyze` showing no issues and `flutter test` passing 32 tests. Phase 8 changes require GitHub Actions verification before being treated as passed.
 
 Phase 6 was verified by the project owner with `flutter analyze` showing no issues and `flutter test` passing 28 tests. Phase 7 changes still require GitHub Actions verification before being treated as passed.
 
 ## Next Step
 
-Run the Phase 7 `flutter analyze` and `flutter test` workflow in GitHub Actions. Only after the new report implementation passes should Phase 7 be marked complete and Phase 8 PDF Export begin.
+Run the Phase 8 `flutter analyze` and `flutter test` workflow in GitHub Actions. Only after the PDF implementation passes should Phase 8 be marked complete and Phase 9 Backup + Google Drive Sync begin.

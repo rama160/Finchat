@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:printing/printing.dart';
 
+import '../../application/reports/report_pdf_service.dart';
 import '../../application/reports/report_service.dart';
 import '../../data/local/finchat_database.dart';
 import '../../data/repositories/sqlite_category_repository.dart';
@@ -20,6 +22,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
   late final TabController _tabController;
   late final FinChatDatabase _database;
   late final ReportService _reportService;
+  late final ReportPdfService _reportPdfService;
 
   DateTime _selectedDay = _day(DateTime.now());
   DateTimeRange _selectedRange = _currentWeek(DateTime.now());
@@ -31,6 +34,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _database = FinChatDatabase();
+    _reportPdfService = ReportPdfService();
     _reportService = ReportService(
       transactions: SqliteTransactionRepository(_database),
       categories: SqliteCategoryRepository(_database),
@@ -62,6 +66,22 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         ),
     };
     if (mounted) setState(() => _reportFuture = future);
+  }
+
+  Future<void> _exportPdf(ReportSummary report) async {
+    final title = switch (_tabController.index) {
+      0 => 'Laporan Harian',
+      1 => 'Laporan Rentang',
+      _ => 'Laporan Bulanan',
+    };
+    final bytes = await _reportPdfService.generate(
+      report: report,
+      reportTitle: title,
+    );
+    await Printing.sharePdf(
+      bytes: bytes,
+      filename: reportPdfFileName(title, report.start),
+    );
   }
 
   Future<void> _pickDay() async {
@@ -141,7 +161,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 }
                 final report = snapshot.data;
                 if (report == null) return const SizedBox.shrink();
-                return _ReportBody(report: report);
+                return _ReportBody(report: report, onExport: () => _exportPdf(report));
               },
             ),
           ),
@@ -202,9 +222,10 @@ class _PeriodSelector extends StatelessWidget {
 }
 
 class _ReportBody extends StatelessWidget {
-  const _ReportBody({required this.report});
+  const _ReportBody({required this.report, required this.onExport});
 
   final ReportSummary report;
+  final VoidCallback onExport;
 
   @override
   Widget build(BuildContext context) {
@@ -227,7 +248,18 @@ class _ReportBody extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        Text('Detail transaksi', style: Theme.of(context).textTheme.titleLarge),
+        Row(
+          children: [
+            Expanded(
+              child: Text('Detail transaksi', style: Theme.of(context).textTheme.titleLarge),
+            ),
+            FilledButton.icon(
+              onPressed: onExport,
+              icon: const Icon(Icons.picture_as_pdf),
+              label: const Text('PDF'),
+            ),
+          ],
+        ),
         const SizedBox(height: 8),
         if (report.groups.isEmpty)
           const Card(child: ListTile(title: Text('Belum ada transaksi pada periode ini.')))

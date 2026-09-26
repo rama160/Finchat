@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Phase 8 — PDF Export
+
+- Added `pdf` and `printing` dependencies for PDF generation and platform sharing.
+- Added A4 PDF report generation from Phase 7 report data.
+- PDF includes summary totals, transaction count, and grouped transaction details with occurrence count.
+- Added PDF export action to the report screen.
+- Added automated PDF generation and filename tests.
+
+
+## Unreleased
+
 ### Phase 7 — Reports & Analytics
 
 - Added report domain models for summaries and grouped transaction details.
