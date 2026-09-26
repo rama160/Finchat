@@ -28,6 +28,28 @@ jobs:
           if [ ! -d android ]; then
             flutter create --platforms=android --project-name finchat --org com.finchat --no-pub .
           fi
+      - name: Configure Android speech permissions
+        shell: bash
+        run: |
+          python3 - <<'PYCFG'
+          from pathlib import Path
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          text = manifest.read_text()
+          permissions = [
+              '<uses-permission android:name="android.permission.RECORD_AUDIO"/>',
+              '<uses-permission android:name="android.permission.INTERNET"/>',
+              '<uses-permission android:name="android.permission.BLUETOOTH"/>',
+              '<uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>',
+              '<uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>',
+          ]
+          for permission in permissions:
+              if permission not in text:
+                  text = text.replace("\n    <application", "\n    " + permission + "\n    <application", 1)
+          query = """<queries>\n        <intent>\n            <action android:name="android.speech.RecognitionService" />\n        </intent>\n    </queries>"""
+          if '<queries>' not in text:
+              text = text.replace("\n    <application", "\n    " + query + "\n    <application", 1)
+          manifest.write_text(text)
+          PYCFG
       - name: Build release APK
         run: flutter build apk --release
       - name: Upload APK
