@@ -1,4 +1,3 @@
-import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import 'package:finchat/domain/speech/speech_recognition.dart';
@@ -49,10 +48,12 @@ class SpeechToTextProvider implements SpeechRecognitionProvider {
     Duration? pauseFor,
   }) async {
     await _speech.listen(
-      localeId: localeId,
-      listenFor: listenFor,
-      pauseFor: pauseFor,
-      partialResults: true,
+      listenOptions: stt.SpeechListenOptions(
+        localeId: localeId,
+        listenFor: listenFor,
+        pauseFor: pauseFor,
+        partialResults: true,
+      ),
       onResult: (result) => onResult(
         SpeechRecognitionResult(
           text: result.recognizedWords,
