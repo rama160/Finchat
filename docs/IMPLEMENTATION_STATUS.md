@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 4 — AI Fallback (provider-agnostic foundation)**
+**Phase 5 — Receipt/OCR & Image Preprocessing**
 
 ## Completed
 
@@ -24,7 +24,7 @@ Phase 3B fixed package was tested successfully by the project owner. The databas
 
 The local environment used to assemble this package does not contain the Flutter SDK, so no local `flutter analyze`, `flutter test`, or APK build is claimed here. GitHub Actions remains the canonical CI verification environment.
 
-## Phase 4 Progress
+## Phase 4 Completed
 
 - Added provider-agnostic `AiCategoryProvider` contract.
 - Added `AiCategoryFallback` validation boundary.
@@ -34,8 +34,16 @@ The local environment used to assemble this package does not contain the Flutter
 - AI receives the locally parsed amount/type/description; it does not create transaction records.
 - Added unit tests for accepted, rejected, low-confidence, local-only, and AI-fallback paths.
 
+## Phase 5 Progress
+
+- Added a provider-agnostic receipt OCR contract.
+- Added an Android/iOS ML Kit text-recognition adapter using the Latin script.
+- Added receipt image preprocessing: EXIF orientation, bounded resize, grayscale, controlled contrast, and JPEG encoding.
+- Added an OCR application service that preprocesses image bytes, writes a temporary working image, invokes OCR, and cleans the temporary file.
+- Added CI-safe unit tests for preprocessing and the OCR service boundary without requiring an Android emulator or live ML Kit recognition.
+
 ## Next Step
 
-Run the complete Phase 4 test/analyze workflow in GitHub Actions. Only after that passes should a real AI provider adapter be introduced.
+Run the complete Phase 5 analyze/test workflow in GitHub Actions. Real-device OCR verification should be performed after CI passes. Only after Phase 5 is verified should Phase 6 Voice Input begin.
 
-AI must remain fallback-only. It must never bypass local validation or write directly to the database.
+OCR output remains untrusted until application validation and must not write directly to the database.

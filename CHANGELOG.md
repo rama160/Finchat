@@ -1,3 +1,13 @@
+# Phase 5 — Receipt/OCR & image preprocessing
+
+- **Status:** implementation started after Phase 4 fixed testing succeeded.
+- Added provider-agnostic receipt OCR contracts.
+- Added ML Kit Latin-script OCR adapter for Android/iOS. ML Kit Text Recognition is mobile-only and supports Latin text; the current package is `google_mlkit_text_recognition` 0.17.1.
+- Added image preprocessing using the Dart `image` package: orientation correction, maximum-width resize, grayscale, controlled contrast, and JPEG output.
+- Added an application service that keeps OCR temporary-file handling outside the provider.
+- Added CI-safe unit tests for preprocessing and the OCR service boundary.
+- OCR output is still untrusted and must be validated before entering the transaction pipeline.
+
 # Phase 4 — AI fallback foundation
 
 - **Status:** implementation started after Phase 3B fixed testing succeeded.

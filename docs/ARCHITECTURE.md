@@ -8,6 +8,12 @@
 
 Supporting services: OCR, image preprocessing, AI, speech, PDF, backup, sync, update.
 
+OCR rules:
+- Receipt OCR is an extraction service, not a transaction source of truth.
+- OCR output is raw/untrusted text until application validation and local transaction parsing.
+- Image preprocessing must not write transactions or categories.
+- The concrete OCR provider is isolated behind a domain contract so ML Kit can be replaced without changing the transaction engine.
+
 ## Rules
 - Local DB is source of truth.
 - Repositories isolate persistence.
