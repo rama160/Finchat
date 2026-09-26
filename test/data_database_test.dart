@@ -25,6 +25,18 @@ void main() {
 
   tearDown(() => database.close());
 
+  Future<void> seedTestUser() async {
+    final now = DateTime(2026, 9, 26, 8).millisecondsSinceEpoch;
+    final db = await database.database;
+    await db.insert('users', {
+      'id': 'user-1',
+      'email': 'test@example.com',
+      'display_name': 'Test',
+      'created_at': now,
+      'updated_at': now,
+    });
+  }
+
   test('creates schema and seeds system categories', () async {
     final result = await categories.getCategories();
     expect(result.map((e) => e.id), containsAll(<String>['makanan', 'belanja_dapur', 'lainnya']));
@@ -66,6 +78,7 @@ void main() {
   });
 
   test('learns user category corrections and preserves history', () async {
+    await seedTestUser();
     await categories.learnMapping(
       userId: 'user-1',
       keyword: 'Cabe',
@@ -88,6 +101,7 @@ void main() {
   });
 
   test('category learning resolves exact user mapping before fallback', () async {
+    await seedTestUser();
     await categories.learnMapping(
       userId: 'user-1',
       keyword: 'cabe',

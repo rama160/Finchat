@@ -80,7 +80,7 @@ class SqliteCategoryRepository implements CategoryRepository {
       );
 
       await txn.insert('category_history', {
-        'id': '${id}_$now',
+        'id': '${id}_${now}_$usage',
         'user_id': userId,
         'transaction_id': null,
         'keyword': normalized,
