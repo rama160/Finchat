@@ -28,11 +28,12 @@ class TransactionIntelligenceService {
         fallbackCategoryId: local.categoryId,
       );
 
+      final resolvedCategory = learnedCategory ?? local.categoryId;
       final localIsConfident = local.confidence >= aiTriggerConfidence &&
-          learnedCategory != 'lainnya';
+          resolvedCategory != 'lainnya';
 
       if (localIsConfident) {
-        results.add(IntelligentTransaction.fromLocal(local, learnedCategory));
+        results.add(IntelligentTransaction.fromLocal(local, resolvedCategory));
         continue;
       }
 
@@ -45,7 +46,7 @@ class TransactionIntelligenceService {
               ? TransactionType.income
               : TransactionType.expense,
           amount: local.amount,
-          localCategoryId: learnedCategory ?? local.categoryId,
+          localCategoryId: resolvedCategory,
         ),
       );
 
@@ -53,7 +54,7 @@ class TransactionIntelligenceService {
         results.add(
           IntelligentTransaction.fromLocal(
             local,
-            learnedCategory,
+            resolvedCategory,
             processedBy: ProcessedBy.manual,
           ),
         );
