@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../main.dart';
+import 'report_screen.dart';
 
 class ChatScreen extends StatelessWidget {
   const ChatScreen({super.key});
@@ -12,6 +13,17 @@ class ChatScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('FinChat'),
         actions: [
+          IconButton(
+            onPressed: session == null
+                ? null
+                : () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ReportScreen(userId: session.userId),
+                      ),
+                    ),
+            tooltip: 'Laporan',
+            icon: const Icon(Icons.analytics_outlined),
+          ),
           IconButton(
             onPressed: SessionScope.of(context).logout,
             tooltip: 'Keluar',
