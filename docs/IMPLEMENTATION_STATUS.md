@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 8 — PDF Export**
+**Phase 9 — Backup & Google Drive Sync**
 
 ## Completed
 
@@ -34,12 +34,22 @@
 - Added PDF export/share action to the report screen.
 - Added automated PDF generation and filename tests.
 
+## Phase 9 Progress
+
+- Added versioned JSON backup snapshots for all local SQLite tables.
+- Added local export and restore services with transactional restore.
+- Added a provider-agnostic cloud backup contract.
+- Added Google Drive API provider using the private `appDataFolder` for FinChat backup data.
+- Cloud backup replaces the existing FinChat backup file instead of creating uncontrolled duplicates.
+- Added automated tests for backup serialization, local restore, provider requirements, and fake cloud backup flow.
+- Google OAuth/account wiring is intentionally kept separate from the backup engine so credentials are never hardcoded into the repository.
+
 ## Verification
 
-Phase 7 was verified by the project owner with `flutter analyze` showing no issues and `flutter test` passing 32 tests. Phase 8 changes require GitHub Actions verification before being treated as passed.
+Phase 8 was verified by the project owner with `flutter analyze` showing no issues and `flutter test` passing 35 tests. Phase 9 changes require GitHub Actions verification before being treated as passed.
 
-Phase 6 was verified by the project owner with `flutter analyze` showing no issues and `flutter test` passing 28 tests. Phase 7 changes still require GitHub Actions verification before being treated as passed.
+Phase 6 was verified by the project owner with `flutter analyze` showing no issues and `flutter test` passing 28 tests.
 
 ## Next Step
 
-Run the Phase 8 `flutter analyze` and `flutter test` workflow in GitHub Actions. Only after the PDF implementation passes should Phase 8 be marked complete and Phase 9 Backup + Google Drive Sync begin.
+Run the Phase 9 `flutter analyze` and `flutter test` workflow in GitHub Actions. Only after these pass should Phase 9 be marked complete. Android release build remains outside the current phase gate.

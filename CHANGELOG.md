@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Phase 9 — Backup & Google Drive Sync
+
+- Added versioned JSON backup snapshots for all local SQLite tables.
+- Added transactional local restore and provider-agnostic cloud backup flow.
+- Added Google Drive `appDataFolder` provider for a private FinChat backup file.
+- Added backup serialization, restore, and fake cloud provider tests.
+
 ### Phase 8 — PDF Export
 
 - Added `pdf` and `printing` dependencies for PDF generation and platform sharing.
@@ -9,9 +16,6 @@
 - PDF includes summary totals, transaction count, and grouped transaction details with occurrence count.
 - Added PDF export action to the report screen.
 - Added automated PDF generation and filename tests.
-
-
-## Unreleased
 
 ### Phase 7 — Reports & Analytics
 
