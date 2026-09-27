@@ -81,3 +81,12 @@ Run GitHub Actions for `flutter pub get`, `flutter analyze`, `flutter test`, and
 ### Phase 11.2 OCR test correction
 - Fixed receipt quantity-line parsing so the final monetary value is persisted as the transaction amount while the full item description remains intact.
 - No database schema change and no change to the OCR provider/preprocessing flow.
+
+
+## Device testing policy
+
+The project owner intentionally wants camera, microphone, permission, OCR, voice and other physical-device tests deferred until all Phase 11 vertical slices are implemented. Do not mark device acceptance complete early.
+
+## Phase 11.3 Voice
+
+Voice input is now wired into the chat composer. It uses `SpeechToTextProvider` + `VoiceInputService`, locale `id_ID`, the existing transaction intelligence pipeline, and SQLite persistence with `InputSource.voice`. CI must verify analyze/tests/build; physical microphone testing is reserved for final Phase 11 QA.

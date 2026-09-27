@@ -135,3 +135,10 @@ The first end-to-end vertical slice is now connected: text composer -> parser/in
 - Persistence: only reviewed transactions are saved through the existing SQLite repository.
 - Learning: category corrections are recorded after review.
 - Remaining acceptance: full analyze/tests, release APK, real-device camera/gallery permissions, poor-image and malformed-receipt scenarios.
+
+
+## Phase 11.3 Voice audit update
+
+The voice vertical slice is now integrated into the existing chat transaction flow. The microphone action initializes the existing speech adapter, requests/uses Indonesian speech recognition, captures transcript state, and sends the transcript through `TransactionIntelligenceService` before SQLite persistence. The implementation records `InputSource.voice` and does not create a parallel persistence path.
+
+Acceptance deliberately remains split: automated source/test verification is a CI responsibility, while microphone permission, actual speech recognition quality, interruption behavior, and device UX are deferred to the final Phase 11 device QA cycle.

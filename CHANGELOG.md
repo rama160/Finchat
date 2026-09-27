@@ -1,3 +1,12 @@
+# Phase 11.3 — Voice transaction integration
+
+- Added microphone input to the existing transaction composer.
+- Indonesian speech recognition uses the existing `speech_to_text` adapter and `VoiceInputService`.
+- Voice transcripts reuse `TransactionIntelligenceService`, local parsing, category learning, and AI fallback rules.
+- Persisted voice transactions use `InputSource.voice`.
+- Added UI state notifications to `VoiceInputService` and test coverage for locale/state propagation.
+- Physical-device microphone testing is deferred to the final Phase 11 QA cycle by design.
+
 # Changelog
 
 ## Phase 11.2 — Receipt/OCR integration started

@@ -12,7 +12,7 @@ The Phase 11.1 immediate-save transaction flow remains the current feature basel
 
 ## Current Phase
 
-**Phase 11.1 — Transaction End-to-End**
+**Phase 11 — End-to-End Integration (11.3 Voice active)**
 
 ## Verification baseline
 
@@ -48,7 +48,7 @@ This document distinguishes **technical baseline completion** from **full PRD en
 
 GitHub Actions verification is reported successful by the project owner, including `flutter analyze`, `flutter test`, and `flutter build apk --release`. Phase 10 is therefore complete.
 
-## Phase 11.2 Receipt/OCR — in progress
+## Phase 11.2 Receipt/OCR — test verified
 
 Implemented baseline integration:
 - Camera/gallery image selection via `image_picker`.
@@ -59,7 +59,7 @@ Implemented baseline integration:
 - Category corrections from OCR review are fed back to `CategoryLearningService`.
 - OCR transactions persist with `InputSource.camera` or `InputSource.attachment`.
 
-Verification status: parser/service/widget source changes implemented; full Flutter analyze, test suite, release build, and physical-device OCR verification remain to be run by GitHub Actions/device.
+Verification status: project owner reports Phase 11.2 OCR tests successful. Physical-device OCR verification is intentionally deferred until the final Phase 11 QA cycle. Fresh full analyze/release verification remains a CI gate.
 
 ## Phase 11.1 implemented in this package
 
@@ -118,7 +118,7 @@ The Android R8 configuration workflow now checks for `android/app/build.gradle` 
 The normal text transaction flow now saves parsed transactions immediately. The transaction list provides explicit Edit/Delete buttons and horizontal gestures: swipe right to edit and swipe left to delete. Editing preserves the transaction identity and records category corrections in the local learning service.
 
 
-### Phase 11.2 Receipt/OCR — in progress
+### Phase 11.2 Receipt/OCR — test verified
 
 Implemented baseline integration:
 - Camera/gallery image selection via `image_picker`.
@@ -129,9 +129,23 @@ Implemented baseline integration:
 - Category corrections from OCR review are fed back to `CategoryLearningService`.
 - OCR transactions persist with `InputSource.camera` or `InputSource.attachment`.
 
-Verification status: parser/service/widget source changes implemented; full Flutter analyze, test suite, release build, and physical-device OCR verification remain to be run by GitHub Actions/device.
+Verification status: project owner reports Phase 11.2 OCR tests successful. Physical-device OCR verification is intentionally deferred until the final Phase 11 QA cycle. Fresh full analyze/release verification remains a CI gate.
 
 
 ### Phase 11.2 OCR test correction
 - Fixed receipt quantity-line parsing so the final monetary value is persisted as the transaction amount while the full item description remains intact.
 - No database schema change and no change to the OCR provider/preprocessing flow.
+
+
+## Phase 11.3 Voice transaction integration — implemented
+
+- Added microphone control to the existing chat composer.
+- Uses the existing `SpeechToTextProvider` and `VoiceInputService`; no second speech pipeline was introduced.
+- Uses `id_ID`, 30-second listening window and 3-second pause window.
+- Transcript is processed by the same `TransactionIntelligenceService` used by text input.
+- Multi-transaction voice input therefore reuses the existing local parser and category-learning behavior.
+- Voice transactions are persisted with `InputSource.voice`.
+- `VoiceInputService` now supports an optional UI change callback for live state/transcript updates.
+- Added test coverage for callback notifications and locale propagation.
+
+Verification status: source implemented; local Flutter execution is unavailable in the current build workspace, so GitHub Actions must verify `flutter analyze`, full `flutter test`, and release build. Physical-device microphone testing is intentionally deferred to final Phase 11 QA.

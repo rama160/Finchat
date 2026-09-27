@@ -7,13 +7,13 @@
 3. Transaction Engine — **parser baseline completed**.
 3B. Local Database + Transaction Repository + Category Learning — **completed baseline**.
 4. AI Fallback — **service/contract baseline completed**; real provider and financial Q&A remain backlog.
-5. Receipt/OCR & image preprocessing — **service/adapter baseline completed**; camera/file UI and receipt line-item parser remain backlog.
-6. Voice input — **service/adapter baseline completed**; UI/device acceptance remains backlog.
+5. Receipt/OCR & image preprocessing — **technical baseline completed**; Phase 11.2 vertical integration is implemented and test-verified.
+6. Voice input — **technical baseline completed**; Phase 11.3 UI integration is implemented, with device acceptance deferred to final Phase 11 QA.
 7. Reports and analytics — **report baseline completed**; required charts/interactive details remain backlog.
 8. PDF export — **baseline completed**.
 9. Backup & Google Drive sync — **backup provider baseline completed**; OAuth/automatic setup/UI/sync UX remain backlog.
-10. Update & Release — **current**.
-11. QA & End-to-End Integration — next.
+10. Update & Release — **completed**.
+11. QA & End-to-End Integration — **active**.
 12. Production Hardening — future.
 
 ## Phase 10 — Update & Release
@@ -68,3 +68,18 @@ GitHub Actions remains the canonical CI environment because the project is inten
 ### Phase 11.2 Receipt/OCR — ACTIVE
 
 The vertical slice now connects camera/gallery input to the existing preprocessing and ML Kit OCR services, parses multiple receipt line items, presents a review/edit screen, learns category corrections, and persists reviewed transactions to SQLite. Device permission/error handling and release/device verification remain acceptance work.
+
+
+## Phase 11.3 — Voice transaction integration — ACTIVE
+
+Implemented vertical integration:
+- microphone button in the transaction composer;
+- Indonesian `id_ID` speech recognition;
+- listening/stopping/error state feedback;
+- transcript routed through the same `TransactionIntelligenceService` as text input;
+- multi-transaction voice input supported by the existing parser;
+- voice transactions persist with `InputSource.voice`;
+- voice service now exposes change notifications for UI state;
+- service test verifies UI notifications and Indonesian locale propagation.
+
+Device microphone permission and physical-device acceptance are intentionally deferred until the final Phase 11 end-to-end test cycle.

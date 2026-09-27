@@ -1,9 +1,10 @@
 import 'package:finchat/domain/speech/speech_recognition.dart';
 
 class VoiceInputService {
-  VoiceInputService(this._provider);
+  VoiceInputService(this._provider, {void Function()? onChanged}) : _onChanged = onChanged;
 
   final SpeechRecognitionProvider _provider;
+  final void Function()? _onChanged;
 
   SpeechSessionStatus _status = SpeechSessionStatus.idle;
   String _transcript = '';
@@ -14,17 +15,28 @@ class VoiceInputService {
   double? get confidence => _confidence;
   bool get isListening => _status == SpeechSessionStatus.listening;
 
+  void _notifyChanged() => _onChanged?.call();
+
   Future<bool> initialize() async {
     _status = SpeechSessionStatus.initializing;
+    _notifyChanged();
     final available = await _provider.initialize(
-      onStatus: (status) => _status = status,
-      onError: (error) => _status = SpeechSessionStatus.error,
+      onStatus: (status) {
+        _status = status;
+        _notifyChanged();
+      },
+      onError: (error) {
+        _status = SpeechSessionStatus.error;
+        _notifyChanged();
+      },
     );
     if (!available) {
       _status = SpeechSessionStatus.error;
+      _notifyChanged();
       return false;
     }
     _status = SpeechSessionStatus.ready;
+    _notifyChanged();
     return true;
   }
 
@@ -41,6 +53,7 @@ class VoiceInputService {
     _transcript = '';
     _confidence = null;
     _status = SpeechSessionStatus.listening;
+    _notifyChanged();
 
     await _provider.listen(
       localeId: localeId,
@@ -52,6 +65,7 @@ class VoiceInputService {
         if (result.isFinal) {
           _status = SpeechSessionStatus.stopped;
         }
+        _notifyChanged();
       },
     );
   }
@@ -59,8 +73,10 @@ class VoiceInputService {
   Future<void> stopListening() async {
     if (!isListening) return;
     _status = SpeechSessionStatus.stopping;
+    _notifyChanged();
     await _provider.stop();
     _status = SpeechSessionStatus.stopped;
+    _notifyChanged();
   }
 
   Future<void> cancel() async {
@@ -68,5 +84,6 @@ class VoiceInputService {
     _transcript = '';
     _confidence = null;
     _status = SpeechSessionStatus.stopped;
+    _notifyChanged();
   }
 }

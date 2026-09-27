@@ -6,6 +6,7 @@ class FakeSpeechProvider implements SpeechRecognitionProvider {
   int listenCalls = 0;
   int stopCalls = 0;
   int cancelCalls = 0;
+  String? localeId;
   late void Function(SpeechRecognitionResult result) onResult;
 
   @override
@@ -25,6 +26,7 @@ class FakeSpeechProvider implements SpeechRecognitionProvider {
     Duration? pauseFor,
   }) async {
     listenCalls++;
+    this.localeId = localeId;
     this.onResult = onResult;
     onResult(const SpeechRecognitionResult(text: 'beli makan 25 ribu', isFinal: false, confidence: 0.82));
     onResult(const SpeechRecognitionResult(text: 'beli makan 25 ribu', isFinal: true, confidence: 0.91));
@@ -38,6 +40,19 @@ class FakeSpeechProvider implements SpeechRecognitionProvider {
 }
 
 void main() {
+  test('notifies UI and keeps Indonesian locale through the provider', () async {
+    final provider = FakeSpeechProvider();
+    var changes = 0;
+    final service = VoiceInputService(provider, onChanged: () => changes++);
+
+    expect(await service.initialize(), isTrue);
+    await service.startListening(localeId: 'id_ID');
+
+    expect(provider.localeId, 'id_ID');
+    expect(changes, greaterThan(0));
+    expect(service.status, SpeechSessionStatus.stopped);
+  });
+
   test('initializes and captures final transcript', () async {
     final provider = FakeSpeechProvider();
     final service = VoiceInputService(provider);

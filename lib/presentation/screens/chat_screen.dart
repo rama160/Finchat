@@ -12,6 +12,9 @@ import '../../data/ocr/image_receipt_preprocessor.dart';
 import '../../data/ocr/mlkit_receipt_ocr_provider.dart';
 import '../../data/repositories/sqlite_category_repository.dart';
 import '../../data/repositories/sqlite_transaction_repository.dart';
+import '../../application/speech/voice_input_service.dart';
+import '../../data/speech/speech_to_text_provider.dart';
+import '../../domain/speech/speech_recognition.dart';
 import '../../domain/ai/ai_category_fallback.dart';
 import '../../domain/entities/transaction_entity.dart';
 import '../../domain/entities/category_entity.dart';
@@ -36,9 +39,11 @@ class _ChatScreenState extends State<ChatScreen> {
   late final SqliteCategoryRepository _categories;
   late final CategoryLearningService _learning;
   late final TransactionIntelligenceService _intelligence;
+  late final VoiceInputService _voice;
 
   List<TransactionEntity> _items = const [];
   bool _processing = false;
+  bool _voiceConsumePending = false;
 
   @override
   void initState() {
@@ -53,6 +58,19 @@ class _ChatScreenState extends State<ChatScreen> {
         provider: _NoOpAiCategoryProvider(),
         categoryExists: (id) => _categories.getById(id).then((value) => value != null),
       ),
+    );
+    _voice = VoiceInputService(
+      SpeechToTextProvider(),
+      onChanged: () {
+        if (!mounted) return;
+        setState(() {});
+        if (_voice.status == SpeechSessionStatus.stopped &&
+            _voice.transcript.trim().isNotEmpty &&
+            !_voiceConsumePending) {
+          _voiceConsumePending = true;
+          Future<void>.microtask(_consumeVoiceTranscript);
+        }
+      },
     );
     _loadTransactions();
   }
@@ -72,51 +90,123 @@ class _ChatScreenState extends State<ChatScreen> {
     if (mounted) setState(() => _items = items);
   }
 
-  Future<void> _processAndSave() async {
+  Future<void> _saveIntelligentResults({
+    required String input,
+    required InputSource source,
+    required String successMessage,
+  }) async {
     final session = SessionScope.of(context).session;
-    final input = _inputController.text.trim();
-    if (session == null || input.isEmpty || _processing) return;
+    if (session == null) return;
+
+    await _database.ensureUser(userId: session.userId, email: session.email);
+    final results = await _intelligence.process(userId: session.userId, input: input);
+    if (results.isEmpty) {
+      throw StateError('Transaksi belum dikenali.');
+    }
+
+    final now = DateTime.now();
+    for (var index = 0; index < results.length; index++) {
+      final item = results[index];
+      await _transactions.save(TransactionEntity(
+        id: '${session.userId}_${now.microsecondsSinceEpoch}_${source.name}_$index',
+        userId: session.userId,
+        type: item.type == ParsedTransactionType.income ? TransactionType.income : TransactionType.expense,
+        amount: item.amount,
+        description: item.description,
+        categoryId: item.categoryId,
+        transactionDate: DateTime(now.year, now.month, now.day),
+        inputSource: source,
+        processedBy: item.processedBy,
+        confidence: item.confidence,
+        createdAt: now,
+        updatedAt: now,
+      ));
+    }
+    await _loadTransactions();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(successMessage.replaceFirst('{count}', '${results.length}'))));
+    }
+  }
+
+  Future<void> _consumeVoiceTranscript() async {
+    final input = _voice.transcript.trim();
+    if (input.isEmpty || !mounted) {
+      _voiceConsumePending = false;
+      return;
+    }
 
     setState(() => _processing = true);
     try {
-      await _database.ensureUser(userId: session.userId, email: session.email);
-      final results = await _intelligence.process(userId: session.userId, input: input);
-      if (results.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Transaksi belum dikenali. Contoh: nasi 25rb dan bensin 50k.')),
-          );
-        }
-        return;
-      }
-
-      final now = DateTime.now();
-      for (var index = 0; index < results.length; index++) {
-        final item = results[index];
-        await _transactions.save(TransactionEntity(
-          id: '${session.userId}_${now.microsecondsSinceEpoch}_$index',
-          userId: session.userId,
-          type: item.type == ParsedTransactionType.income ? TransactionType.income : TransactionType.expense,
-          amount: item.amount,
-          description: item.description,
-          categoryId: item.categoryId,
-          transactionDate: DateTime(now.year, now.month, now.day),
-          inputSource: InputSource.text,
-          processedBy: item.processedBy,
-          confidence: item.confidence,
-          createdAt: now,
-          updatedAt: now,
-        ));
-      }
-      _inputController.clear();
-      await _loadTransactions();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${results.length} transaksi langsung tersimpan.')),
+      await _saveIntelligentResults(
+        input: input,
+        source: InputSource.voice,
+        successMessage: '{count} transaksi dari suara tersimpan.',
       );
     } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memproses suara: $error')),
+        );
+      }
+    } finally {
+      await _voice.cancel();
+      _voiceConsumePending = false;
+      if (mounted) setState(() => _processing = false);
+    }
+  }
+
+  Future<void> _toggleVoice() async {
+    if (_processing) return;
+    if (_voice.isListening) {
+      await _voice.stopListening();
+      return;
+    }
+
+    try {
+      if (_voice.status != SpeechSessionStatus.ready &&
+          _voice.status != SpeechSessionStatus.stopped) {
+        final available = await _voice.initialize();
+        if (!available) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Pengenalan suara tidak tersedia atau izin mikrofon belum diberikan.')),
+            );
+          }
+          return;
+        }
+      }
+      await _voice.startListening(
+        localeId: 'id_ID',
+        listenFor: const Duration(seconds: 30),
+        pauseFor: const Duration(seconds: 3),
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memulai suara: $error')),
+        );
+      }
+    }
+  }
+
+  Future<void> _processAndSave() async {
+    final input = _inputController.text.trim();
+    if (input.isEmpty || _processing) return;
+
+    setState(() => _processing = true);
+    try {
+      await _saveIntelligentResults(
+        input: input,
+        source: InputSource.text,
+        successMessage: '{count} transaksi langsung tersimpan.',
+      );
+      _inputController.clear();
+    } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal menyimpan transaksi: $error')));
+      final message = error is StateError && error.message == 'Transaksi belum dikenali.'
+          ? 'Transaksi belum dikenali. Contoh: nasi 25rb dan bensin 50k.'
+          : 'Gagal menyimpan transaksi: $error';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) setState(() => _processing = false);
     }
@@ -348,7 +438,14 @@ class _ChatScreenState extends State<ChatScreen> {
                       },
                     ),
             ),
-            _Composer(controller: _inputController, busy: _processing, onSubmit: _processAndSave, onReceipt: _chooseReceiptSource),
+            _Composer(
+              controller: _inputController,
+              busy: _processing,
+              listening: _voice.isListening,
+              onSubmit: _processAndSave,
+              onReceipt: _chooseReceiptSource,
+              onVoice: _toggleVoice,
+            ),
           ],
         ),
       ),
@@ -518,11 +615,13 @@ class _EmptyChat extends StatelessWidget {
 }
 
 class _Composer extends StatelessWidget {
-  const _Composer({required this.controller, required this.busy, required this.onSubmit, required this.onReceipt});
+  const _Composer({required this.controller, required this.busy, required this.listening, required this.onSubmit, required this.onReceipt, required this.onVoice});
   final TextEditingController controller;
   final bool busy;
+  final bool listening;
   final VoidCallback onSubmit;
   final VoidCallback onReceipt;
+  final VoidCallback onVoice;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -544,8 +643,13 @@ class _Composer extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 4),
+            IconButton.filled(
+              onPressed: busy ? null : onVoice,
+              icon: Icon(listening ? Icons.stop : Icons.mic_none),
+              tooltip: listening ? 'Hentikan suara' : 'Input suara',
+            ),
             IconButton(
-              onPressed: busy ? null : onReceipt,
+              onPressed: busy || listening ? null : onReceipt,
               icon: const Icon(Icons.attach_file),
               tooltip: 'Tambah struk',
             ),
