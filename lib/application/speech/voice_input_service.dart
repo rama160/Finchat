@@ -1,7 +1,7 @@
 import 'package:finchat/domain/speech/speech_recognition.dart';
 
 class VoiceInputService {
-  VoiceInputService(this._provider, {void Function()? onChanged}) : _onChanged = onChanged;
+  VoiceInputService(this._provider, {this._onChanged});
 
   final SpeechRecognitionProvider _provider;
   final void Function()? _onChanged;
