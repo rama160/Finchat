@@ -76,3 +76,8 @@ Phase 11.1 transaction flow remains the baseline and should not be regressed. Ph
 
 ### Verification still required
 Run GitHub Actions for `flutter pub get`, `flutter analyze`, `flutter test`, and release build. Then verify camera/gallery permission, clear and blurred receipts, multi-item receipts, review edits, category learning, and saved transaction history on a real Android device.
+
+
+### Phase 11.2 OCR test correction
+- Fixed receipt quantity-line parsing so the final monetary value is persisted as the transaction amount while the full item description remains intact.
+- No database schema change and no change to the OCR provider/preprocessing flow.

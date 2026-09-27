@@ -211,3 +211,8 @@ Every meaningful future change must record:
 - Example: `Beli nasi 25rb dan bensin 50k` is parsed into two transactions and both are immediately stored.
 - Verification: GitHub Actions must run `flutter analyze`, `flutter test`, and `flutter build apk --release`.
 - Status: Ready for CI verification.
+
+
+### Phase 11.2 OCR test correction
+- Fixed receipt quantity-line parsing so the final monetary value is persisted as the transaction amount while the full item description remains intact.
+- No database schema change and no change to the OCR provider/preprocessing flow.

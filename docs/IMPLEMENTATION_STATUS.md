@@ -130,3 +130,8 @@ Implemented baseline integration:
 - OCR transactions persist with `InputSource.camera` or `InputSource.attachment`.
 
 Verification status: parser/service/widget source changes implemented; full Flutter analyze, test suite, release build, and physical-device OCR verification remain to be run by GitHub Actions/device.
+
+
+### Phase 11.2 OCR test correction
+- Fixed receipt quantity-line parsing so the final monetary value is persisted as the transaction amount while the full item description remains intact.
+- No database schema change and no change to the OCR provider/preprocessing flow.

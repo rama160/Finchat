@@ -23,7 +23,16 @@ class ReceiptTransactionParser {
 
       final parsed = LocalTransactionParser().parse('$description ${amountMatch.raw}');
       if (parsed.isEmpty) continue;
-      results.add(parsed.first);
+      final base = parsed.first;
+      results.add(
+        ParsedTransaction(
+          amount: amountMatch.amount,
+          description: description,
+          type: base.type,
+          categoryId: base.categoryId,
+          confidence: base.confidence,
+        ),
+      );
     }
     return results;
   }
