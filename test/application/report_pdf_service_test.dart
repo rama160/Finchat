@@ -26,6 +26,8 @@ void main() {
           totalAmount: 35000,
         ),
       ],
+      transactions: const [],
+      categories: const [],
     );
   }
 

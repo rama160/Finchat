@@ -12,7 +12,7 @@ void main() {
   test('parses category JSON from an OpenAI-compatible response', () async {
     final storage = _FakeStore();
     final client = MockClient((request) async => http.Response(jsonEncode({'choices':[{'message':{'content':'{"category_id":"makanan","confidence":0.91}'}}]}),200));
-    final config = AiSecureConfigService(storage: storage);
+    final config = AiSecureConfigService(store: storage);
     await config.save(apiKey:'test', endpoint:'https://example.com/v1/chat/completions', model:'test-model', enabled:true);
     final provider = OpenAiCompatibleAiProvider(config: config, client: client);
     final result = await provider.suggestCategory(const AiCategoryRequest(userId:'u', originalText:'nasi 20rb', description:'nasi', type:TransactionType.expense, amount:20000, localCategoryId:'lainnya'));
@@ -22,7 +22,7 @@ void main() {
 
   test('returns null when AI is disabled', () async {
     final storage = _FakeStore();
-    final config = AiSecureConfigService(storage: storage);
+    final config = AiSecureConfigService(store: storage);
     await config.save(apiKey:'', endpoint:'https://example.com', model:'x', enabled:false);
     final provider = OpenAiCompatibleAiProvider(config: config, client: MockClient((_) async => http.Response('{}',200)));
     final result = await provider.suggestCategory(const AiCategoryRequest(userId:'u', originalText:'x', description:'x', type:TransactionType.expense, amount:1, localCategoryId:'lainnya'));

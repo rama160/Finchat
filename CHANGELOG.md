@@ -254,3 +254,11 @@ Every meaningful future change must record:
 - Added integration-test shell for authenticated application shell.
 - Added Windows `RUN_PHASE_11_QA.bat` for analyze/test/release build sequence.
 - Device verification remains explicitly pending.
+
+## Phase 11 — CI analyzer correction after 11.4–11.7 merge
+- Fixed the Phase 11 end-to-end integration test by importing `flutter/material.dart` for `TextField`.
+- Removed the unused Google Drive API import from `GoogleDriveAuthService`.
+- Corrected three unbalanced widget expressions in `report_screen.dart` without changing report behavior.
+- Updated `ReportPdfService` tests for the current `ReportSummary` contract (`transactions` and `categories`).
+- Updated OpenAI-compatible provider tests to use the current `AiSecureConfigService(store: ...)` parameter.
+- Status: source corrections prepared; GitHub Actions `flutter analyze`, full test suite, and release build remain the verification gate.

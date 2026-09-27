@@ -170,3 +170,6 @@ Acceptance deliberately remains split: automated source/test verification is a C
 - QA covers all Phase 11.1–11.6 vertical slices, permissions, malformed/offline states, release build and Android device verification.
 - No production schema change introduced by QA tooling.
 - Phase 12 remains blocked until Phase 11 product acceptance.
+
+### Phase 11 CI stabilization note
+The cumulative 11.4–11.7 package required analyzer corrections after merge. The corrections are limited to syntax/import cleanup and test alignment with already-existing production contracts. They do not change the Phase 11 feature scope or SQLite schema. Fresh GitHub Actions analyze/test/release verification remains pending.

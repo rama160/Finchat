@@ -100,3 +100,6 @@ Implemented QA tooling and matrix covering fresh install, session, text/OCR/voic
 
 ## Phase 12 gate
 Phase 12 starts only after Phase 11 has Analyze verified, Tests verified, Release build verified, Device verified, and Product accepted evidence.
+
+### Phase 11 CI correction
+After the 11.4–11.7 cumulative merge, analyzer cleanup was required for integration imports, an unused Drive import, report-screen syntax, and tests aligned to the current report/AI contracts. This is a CI stabilization step; feature scope is unchanged.

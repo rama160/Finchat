@@ -175,3 +175,6 @@ Verification status: source implemented; local Flutter execution is unavailable 
 - Automated verification: pending user CI/device execution.
 - Device verification: intentionally not claimed.
 - Product acceptance: pending user confirmation after device test.
+
+### Phase 11 CI analyzer correction — prepared
+The merged 11.4–11.7 package had nine analyzer issues caused by integration/test drift and three malformed widget expressions. The source has been corrected without changing the production report, backup, or AI contracts. GitHub Actions must re-run `flutter analyze`, the full test suite, and the release build before product/device acceptance.

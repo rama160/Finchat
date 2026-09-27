@@ -181,7 +181,37 @@ class _Metric extends StatelessWidget {
   final String label, value;
   final IconData icon;
   @override
-  Widget build(BuildContext context) => SizedBox(width: 155, child: Card(color: Theme.of(context).colorScheme.surfaceContainerHighest, child: Padding(padding: const EdgeInsets.all(10), child: Row(children: [Icon(icon, size: 20), const SizedBox(width: 8), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: Theme.of(context).textTheme.labelMedium), Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold))]))])));
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 155,
+      child: Card(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Row(
+            children: [
+              Icon(icon, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: Theme.of(context).textTheme.labelMedium),
+                    Text(
+                      value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _InsightCard extends StatelessWidget {
@@ -232,9 +262,48 @@ class _GroupList extends StatelessWidget {
   Widget build(BuildContext context) => Card(child: Column(children: [const ListTile(title: Text('Detail transaksi', style: TextStyle(fontWeight: FontWeight.bold))), ...report.groups.take(30).map((group) => ListTile(leading: Icon(group.type == TransactionType.income ? Icons.arrow_downward : Icons.arrow_upward), title: Text(group.description), subtitle: Text('${group.categoryName} • ${group.transactionCount} transaksi'), trailing: Text(_money(group.totalAmount)), onTap: () => _showGroupDetails(context, group, report.transactions)))]));
 }
 
-void _showGroupDetails(BuildContext context, ReportTransactionGroup group, List<TransactionEntity> transactions) {
-  final items = transactions.where((item) => item.type == group.type && item.categoryId == group.categoryId && item.description.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ') == group.description.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ')).toList();
-  showModalBottomSheet<void>(context: context, showDragHandle: true, builder: (context) => SafeArea(child: ListView(padding: const EdgeInsets.all(16), children: [Text(group.description, style: Theme.of(context).textTheme.titleLarge), Text('${group.categoryName} • ${_money(group.totalAmount)}'), const Divider(), ...items.map((item) => ListTile(title: Text(_money(item.amount)), subtitle: Text(_date(item.transactionDate)))])));
+void _showGroupDetails(
+  BuildContext context,
+  ReportTransactionGroup group,
+  List<TransactionEntity> transactions,
+) {
+  final normalizedGroupDescription = group.description
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'\s+'), ' ');
+  final items = transactions
+      .where(
+        (item) =>
+            item.type == group.type &&
+            item.categoryId == group.categoryId &&
+            item.description.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ') ==
+                normalizedGroupDescription,
+      )
+      .toList();
+
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (context) => SafeArea(
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Text(
+            group.description,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          Text('${group.categoryName} • ${_money(group.totalAmount)}'),
+          const Divider(),
+          ...items.map(
+            (item) => ListTile(
+              title: Text(_money(item.amount)),
+              subtitle: Text(_date(item.transactionDate)),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _ErrorState extends StatelessWidget {
@@ -242,7 +311,28 @@ class _ErrorState extends StatelessWidget {
   final String message;
   final VoidCallback? onRetry;
   @override
-  Widget build(BuildContext context) => Center(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.error_outline, size: 42), const SizedBox(height: 10), Text(message, textAlign: TextAlign.center), if (onRetry != null) ...[const SizedBox(height: 12), FilledButton(onPressed: onRetry, child: const Text('Coba lagi'))]]));
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, size: 42),
+            const SizedBox(height: 10),
+            Text(message, textAlign: TextAlign.center),
+            if (onRetry != null) ...[
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: onRetry,
+                child: const Text('Coba lagi'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 String _percent(double value, double total) => total == 0 ? '0%' : '${(value / total * 100).toStringAsFixed(1)}%';

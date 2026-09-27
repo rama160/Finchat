@@ -103,3 +103,6 @@ AI is integrated behind existing contracts. Local parser and category learning r
 
 ### Phase 11.7
 Phase 11 feature integration is packaged. The final status must remain pending until analyze, tests, release APK build, and the real Android device matrix are executed.
+
+### Latest CI stabilization
+The cumulative Phase 11 package has received a source-level analyzer correction for the 11.4–11.7 merge: integration-test Flutter import, unused Drive import, report-screen syntax, ReportSummary test arguments, and AI secure-config test parameter names. No production data model or feature contract was intentionally changed. The next gate is a fresh GitHub Actions `flutter analyze`, full `flutter test`, and release APK build.
