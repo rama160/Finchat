@@ -63,3 +63,8 @@ Close the product-level gaps identified by `docs/ROADMAP_AUDIT.md`:
 A phase may contain carry-over remediation from an earlier phase when the missing work blocks the current release goal. Every such remediation must be explicitly documented instead of silently rewriting the historical phase status.
 
 GitHub Actions remains the canonical CI environment because the project is intentionally buildable without a local Flutter installation.
+
+
+### Phase 11.2 Receipt/OCR — ACTIVE
+
+The vertical slice now connects camera/gallery input to the existing preprocessing and ML Kit OCR services, parses multiple receipt line items, presents a review/edit screen, learns category corrections, and persists reviewed transactions to SQLite. Device permission/error handling and release/device verification remain acceptance work.

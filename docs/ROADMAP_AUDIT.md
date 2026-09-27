@@ -125,3 +125,13 @@ A phase is not considered product-complete merely because `flutter analyze` and 
 ## Phase 11.1 progress
 
 The first end-to-end vertical slice is now connected: text composer -> parser/intelligence -> editable review -> SQLite transaction repository. Multiple transactions are supported in one input, and user category corrections are persisted as local mappings/history. Voice, receipt, reports visualization/drill-down, backup UI and financial Q&A remain subsequent Phase 11 work.
+
+
+## Phase 11.2 Receipt/OCR progress
+- Existing OCR technical baseline reused; no duplicate OCR provider created.
+- UI entry point: receipt attachment action in the chat composer.
+- Sources: camera and gallery.
+- Review gate: OCR results are not written directly to SQLite; they pass through review first.
+- Persistence: only reviewed transactions are saved through the existing SQLite repository.
+- Learning: category corrections are recorded after review.
+- Remaining acceptance: full analyze/tests, release APK, real-device camera/gallery permissions, poor-image and malformed-receipt scenarios.

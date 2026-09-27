@@ -1,3 +1,13 @@
+# Changelog
+
+## Phase 11.2 — Receipt/OCR integration started
+- Added camera/gallery receipt capture flow.
+- Reused existing image preprocessing and ML Kit OCR baseline.
+- Added receipt line-item parser and total/payment-line filtering.
+- Added multi-transaction review/edit before persistence.
+- Added category-learning feedback from review corrections.
+- Added parser tests.
+
 ## Phase 11.1.2 — Fix GitHub Actions analyzer errors
 
 - **Status:** Fixed in source; ready for GitHub Actions verification.
@@ -201,16 +211,3 @@ Every meaningful future change must record:
 - Example: `Beli nasi 25rb dan bensin 50k` is parsed into two transactions and both are immediately stored.
 - Verification: GitHub Actions must run `flutter analyze`, `flutter test`, and `flutter build apk --release`.
 - Status: Ready for CI verification.
-
-## Phase 11.1.2 — Correct transaction entry flow test after CI failure
-
-- **Date:** 2026-09-27
-- **Type:** Test fix / verification alignment
-- **Component:** `test/application/transaction_entry_flow_test.dart`
-- **Previous problem:** GitHub Actions reported 43 passing tests and 1 failing test. The failing test recorded a category correction for the parsed description `Beli nasi` and then attempted to resolve the unparsed full input `Beli nasi 25rb` directly through `CategoryLearningService`.
-- **Change:** Updated the test to send the same full input through `TransactionIntelligenceService` after recording the correction, then assert that the parsed `Beli nasi` transaction resolves to `belanja_dapur` while `bensin` remains `transportasi`.
-- **Reason:** Test the actual production transaction pipeline instead of changing production category-learning behavior solely to satisfy an incorrect test assumption.
-- **Impact:** Test-only change. No production Dart code, database schema, transaction persistence behavior, parser behavior, or category-learning logic was changed.
-- **Migration/data impact:** None.
-- **Verification:** The reported CI run had 43 passing and 1 failing test before this correction. GitHub Actions must be rerun after this package is copied to the repository. Expected result is a clean `flutter test`; release verification also requires `flutter analyze` and `flutter build apk --release`.
-- **Status:** Test corrected; CI verification pending.

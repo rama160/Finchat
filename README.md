@@ -49,3 +49,7 @@ SQLite adalah local source of truth. Transaksi diakses melalui repository. Categ
 
 ### Android CI build note
 The GitHub workflow supports both legacy Groovy (`build.gradle`) and modern Kotlin (`build.gradle.kts`) Android templates when applying ML Kit R8 rules.
+
+
+### Current Phase 11.2 progress
+Receipt/OCR integration is in progress. Camera/gallery input, existing OCR preprocessing + ML Kit, receipt line-item parsing, review/edit, category learning, and SQLite persistence are connected. Full CI and device verification are still required before marking the slice complete.

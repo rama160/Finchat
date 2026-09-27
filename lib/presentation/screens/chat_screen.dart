@@ -1,8 +1,15 @@
-import 'package:flutter/material.dart';
+import 'dart:io';
 
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+
+import '../../application/ocr/receipt_ocr_service.dart';
+import '../../application/ocr/receipt_transaction_parser.dart';
 import '../../application/transactions/transaction_intelligence_service.dart';
 import '../../application/transactions/local_transaction_parser.dart';
 import '../../data/local/finchat_database.dart';
+import '../../data/ocr/image_receipt_preprocessor.dart';
+import '../../data/ocr/mlkit_receipt_ocr_provider.dart';
 import '../../data/repositories/sqlite_category_repository.dart';
 import '../../data/repositories/sqlite_transaction_repository.dart';
 import '../../domain/ai/ai_category_fallback.dart';
@@ -10,6 +17,7 @@ import '../../domain/entities/transaction_entity.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/services/category_learning_service.dart';
 import '../../main.dart';
+import 'receipt_review_screen.dart';
 import 'report_screen.dart';
 import 'settings_screen.dart';
 
@@ -22,6 +30,7 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final _inputController = TextEditingController();
+  final ImagePicker _imagePicker = ImagePicker();
   late final FinChatDatabase _database;
   late final SqliteTransactionRepository _transactions;
   late final SqliteCategoryRepository _categories;
@@ -111,6 +120,142 @@ class _ChatScreenState extends State<ChatScreen> {
     } finally {
       if (mounted) setState(() => _processing = false);
     }
+  }
+
+  Future<void> _scanReceipt(ImageSource source) async {
+    final session = SessionScope.of(context).session;
+    if (session == null || _processing) return;
+
+    setState(() => _processing = true);
+    MlKitReceiptOcrProvider? provider;
+    try {
+      final picked = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 95,
+        maxWidth: 2400,
+      );
+      if (picked == null) return;
+
+      await _database.ensureUser(userId: session.userId, email: session.email);
+      provider = MlKitReceiptOcrProvider();
+      final ocr = ReceiptOcrService(
+        preprocessor: const ImageReceiptPreprocessor(),
+        provider: provider,
+      );
+      final result = await ocr.processImageBytes(
+        imageBytes: await picked.readAsBytes(),
+        workingImagePath: '${Directory.systemTemp.path}/finchat_receipt_${DateTime.now().microsecondsSinceEpoch}.jpg',
+      );
+
+      if (!result.hasText) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Teks struk tidak terbaca. Coba foto lebih jelas.')));
+        }
+        return;
+      }
+
+      final parsed = const ReceiptTransactionParser().parse(result.rawText);
+      if (parsed.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Belum ada item transaksi yang dapat dikenali dari struk.')));
+        }
+        return;
+      }
+
+      final reviewItems = <ReceiptReviewItem>[];
+      for (final item in parsed) {
+        final parserInput = '${item.description} ${_parserMoney(item.amount)}';
+        final intelligent = await _intelligence.process(userId: session.userId, input: parserInput);
+        final resolved = intelligent.isEmpty ? null : intelligent.first;
+        if (resolved == null) continue;
+        reviewItems.add(
+          ReceiptReviewItem(
+            description: resolved.description,
+            amount: resolved.amount,
+            type: resolved.type == ParsedTransactionType.income ? TransactionType.income : TransactionType.expense,
+            categoryId: resolved.categoryId,
+            processedBy: resolved.processedBy,
+            confidence: resolved.confidence,
+          ),
+        );
+      }
+
+      if (!mounted) return;
+      final categories = await _categories.getCategories();
+      if (!mounted) return;
+      final reviewed = await Navigator.of(context).push<List<ReceiptReviewItem>>(
+        MaterialPageRoute(
+          builder: (_) => ReceiptReviewScreen(items: reviewItems, categories: categories),
+        ),
+      );
+      if (reviewed == null || reviewed.isEmpty) return;
+
+      final now = DateTime.now();
+      for (var index = 0; index < reviewed.length; index++) {
+        final item = reviewed[index];
+        await _transactions.save(TransactionEntity(
+          id: '${session.userId}_${now.microsecondsSinceEpoch}_ocr_$index',
+          userId: session.userId,
+          type: item.type,
+          amount: item.amount,
+          description: item.description,
+          categoryId: item.categoryId,
+          transactionDate: DateTime(now.year, now.month, now.day),
+          inputSource: source == ImageSource.camera ? InputSource.camera : InputSource.attachment,
+          processedBy: item.processedBy,
+          confidence: item.confidence,
+          createdAt: now,
+          updatedAt: now,
+        ));
+      }
+
+      for (var index = 0; index < reviewed.length && index < reviewItems.length; index++) {
+        final original = reviewItems[index];
+        final item = reviewed[index];
+        if (original.categoryId != item.categoryId) {
+          await _learning.recordCorrection(
+            userId: session.userId,
+            text: item.description,
+            categoryId: item.categoryId,
+          );
+        }
+      }
+      await _loadTransactions();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${reviewed.length} transaksi dari struk tersimpan.')));
+      }
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal membaca struk: $error')));
+    } finally {
+      await provider?.close();
+      if (mounted) setState(() => _processing = false);
+    }
+  }
+
+  Future<void> _chooseReceiptSource() async {
+    if (_processing) return;
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined),
+              title: const Text('Foto struk dengan kamera'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Pilih struk dari galeri'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source != null) await _scanReceipt(source);
   }
 
   Future<void> _editTransaction(TransactionEntity transaction) async {
@@ -203,7 +348,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       },
                     ),
             ),
-            _Composer(controller: _inputController, busy: _processing, onSubmit: _processAndSave),
+            _Composer(controller: _inputController, busy: _processing, onSubmit: _processAndSave, onReceipt: _chooseReceiptSource),
           ],
         ),
       ),
@@ -373,10 +518,11 @@ class _EmptyChat extends StatelessWidget {
 }
 
 class _Composer extends StatelessWidget {
-  const _Composer({required this.controller, required this.busy, required this.onSubmit});
+  const _Composer({required this.controller, required this.busy, required this.onSubmit, required this.onReceipt});
   final TextEditingController controller;
   final bool busy;
   final VoidCallback onSubmit;
+  final VoidCallback onReceipt;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -397,7 +543,12 @@ class _Composer extends StatelessWidget {
                 onSubmitted: (_) => onSubmit(),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 4),
+            IconButton(
+              onPressed: busy ? null : onReceipt,
+              icon: const Icon(Icons.attach_file),
+              tooltip: 'Tambah struk',
+            ),
             IconButton.filled(
               onPressed: busy ? null : onSubmit,
               icon: busy
@@ -416,4 +567,5 @@ class _NoOpAiCategoryProvider implements AiCategoryProvider {
 }
 
 String _money(double value) => 'Rp ${value.toStringAsFixed(0).replaceAllMapped(RegExp(r'(?=(\d{3})+(?!\d))'), (m) => '.') }';
+String _parserMoney(double value) => 'Rp ${value.toStringAsFixed(0).replaceAllMapped(RegExp(r'(?=(\d{3})+(?!\d))'), (m) => '.') }';
 String _date(DateTime value) => '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';
