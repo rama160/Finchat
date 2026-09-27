@@ -12,11 +12,7 @@ void main() {
   Future<FinChatDatabase> openDatabase() async {
     final database = FinChatDatabase(
       factory: databaseFactoryFfi,
-<<<<<<< HEAD
       _databasePath: ':memory:',
-=======
-       databasePath: ':memory:',
->>>>>>> origin/main
     );
     await database.database;
     return database;

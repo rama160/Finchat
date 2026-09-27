@@ -27,7 +27,6 @@ Menyediakan aplikasi keuangan pribadi yang mudah digunakan, offline-first, denga
 - Build Android tidak membutuhkan Flutter di komputer user.
 - Uploader Windows tidak menghapus history remote.
 - Divergent initial history ditangani dengan merge aman atau berhenti pada conflict.
-<<<<<<< HEAD
 
 ## Phase 10 acceptance
 
@@ -40,5 +39,3 @@ Menyediakan aplikasi keuangan pribadi yang mudah digunakan, offline-first, denga
 ## Product-completion rule
 
 A technical phase may be marked as a baseline when its contracts/services/tests pass, but the original product acceptance criteria remain open until the corresponding UI/device/end-to-end behavior is implemented. See `docs/ROADMAP_AUDIT.md`.
-=======
->>>>>>> origin/main

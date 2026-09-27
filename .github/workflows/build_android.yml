@@ -28,7 +28,6 @@ jobs:
           if [ ! -d android ]; then
             flutter create --platforms=android --project-name finchat --org com.finchat --no-pub .
           fi
-<<<<<<< HEAD
       - name: Configure Android security storage
         shell: bash
         run: |
@@ -45,8 +44,6 @@ jobs:
               text = text.replace("<application", "<application android:allowBackup=\"false\"", 1) if "android:allowBackup" not in text else text
               manifest.write_text(text)
           PYCFG
-=======
->>>>>>> origin/main
       - name: Configure Android speech permissions
         shell: bash
         run: |
