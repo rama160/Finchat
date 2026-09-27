@@ -21,7 +21,7 @@ class ReceiptTransactionParser {
           .trim();
       if (description.isEmpty) continue;
 
-      final parsed = LocalTransactionParser().parse('${description} ${amountMatch.raw}');
+      final parsed = LocalTransactionParser().parse('$description ${amountMatch.raw}');
       if (parsed.isEmpty) continue;
       results.add(parsed.first);
     }
