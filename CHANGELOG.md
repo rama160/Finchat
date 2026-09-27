@@ -138,3 +138,18 @@ Every meaningful future change must record:
 - **Impact:** No schema, migration, repository, backup, or runtime behavior change.
 - **Tests:** GitHub Actions must rerun `flutter analyze`, `flutter test`, and Android build after this change.
 - **Status:** Ready for CI verification.
+
+
+## Phase 10.3 — Release Build Fix: ML Kit R8 Optional Languages
+
+- **Date:** 2026-09-27
+- **Type:** Fix
+- **Component:** Android release workflow, ML Kit OCR
+- **Previous problem:** GitHub Actions passed `flutter pub get`, `flutter analyze`, and `flutter test`, but `flutter build apk --release` failed at `:app:minifyReleaseWithR8` because R8 reported missing optional ML Kit Chinese, Devanagari, Japanese and Korean recognizer classes.
+- **Change:** Added targeted R8 `-dontwarn` rules for the four optional non-Latin ML Kit language packages and made both Android build/release workflows copy those rules into the generated Android project before the release build.
+- **Reason:** FinChat's current receipt OCR provider explicitly defaults to `TextRecognitionScript.latin`, which is appropriate for Indonesian receipts. Bundling all four optional language packages would increase APK size unnecessarily.
+- **Impact:** Release R8 can ignore absent optional language classes while retaining Latin OCR. No transaction parser, database, schema, backup, or user-data behavior changes.
+- **Migration:** None.
+- **Tests:** GitHub Actions must rerun `flutter analyze`, `flutter test`, and `flutter build apk --release`. Local Flutter verification is not available in this environment.
+- **Future note:** If FinChat later enables Chinese, Devanagari, Japanese or Korean OCR, replace the corresponding `-dontwarn` treatment with the official ML Kit language dependency for that script.
+- **Status:** Ready for CI verification.

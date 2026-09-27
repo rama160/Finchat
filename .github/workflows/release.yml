@@ -28,6 +28,25 @@ jobs:
           if [ ! -d android ]; then
             flutter create --platforms=android --project-name finchat --org com.finchat --no-pub .
           fi
+      - name: Configure Android R8 rules for ML Kit optional languages
+        shell: bash
+        run: |
+          python3 - <<'PYCFG'
+          from pathlib import Path
+          rules = Path("tooling/android/proguard-rules.pro")
+          target = Path("android/app/proguard-rules.pro")
+          target.write_text(rules.read_text())
+          gradle = Path("android/app/build.gradle")
+          text = gradle.read_text()
+          if "proguard-rules.pro" not in text:
+              marker = "release {"
+              replacement = "release {\n            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'"
+              if marker in text:
+                  text = text.replace(marker, replacement, 1)
+              else:
+                  raise SystemExit("Could not locate release build type in android/app/build.gradle")
+              gradle.write_text(text)
+          PYCFG
       - name: Configure Android security storage
         shell: bash
         run: |

@@ -69,3 +69,7 @@ The database constructor now accepts the public `databasePath` named parameter a
 
 ### Phase 10.2 CI fix
 `FinChatDatabase` now uses `this.databasePath` as an initializing formal. This removes the remaining `prefer_initializing_formals` analyzer issue without changing database behavior.
+
+
+### Phase 10.3 CI fix
+The release build failed only during R8 because `google_mlkit_text_recognition` references optional non-Latin language classes that are not bundled by default. FinChat currently constructs the OCR recognizer with the Latin script, so the Android workflows now install targeted R8 `-dontwarn` rules for the four optional language namespaces before building. This avoids adding unnecessary ML Kit language binaries to the APK.
