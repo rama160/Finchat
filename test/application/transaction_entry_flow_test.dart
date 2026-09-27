@@ -72,12 +72,13 @@ void main() {
       categoryId: 'belanja_dapur',
     );
 
-    final resolved = await learning.resolve(
+    final resolvedDrafts = await service.process(
       userId: 'user-1',
-      text: 'Beli nasi 25rb',
-      fallbackCategoryId: 'lainnya',
+      input: 'Beli nasi 25rb dan bensin 50k',
     );
-    expect(resolved, 'belanja_dapur');
+    expect(resolvedDrafts, hasLength(2));
+    expect(resolvedDrafts[0].categoryId, 'belanja_dapur');
+    expect(resolvedDrafts[1].categoryId, 'transportasi');
     expect(await transactions.getByUser('user-1'), hasLength(1));
   });
 }
