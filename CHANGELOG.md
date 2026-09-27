@@ -129,3 +129,12 @@ Every meaningful future change must record:
 - **Migration:** None.
 - **Tests:** Pending GitHub Actions verification.
 - **Status:** Ready for CI.
+
+## Phase 10.2 — Analyzer Fix: Initializing Formal
+
+- **Previous problem:** CI reported `prefer_initializing_formals` for the `FinChatDatabase` constructor because the public `databasePath` parameter was copied into a separate private field.
+- **Change:** `databasePath` is now an initializing formal (`this.databasePath`) and the database path lookup uses that field directly.
+- **Reason:** Satisfy the analyzer without changing database behavior or the public constructor callsite.
+- **Impact:** No schema, migration, repository, backup, or runtime behavior change.
+- **Tests:** GitHub Actions must rerun `flutter analyze`, `flutter test`, and Android build after this change.
+- **Status:** Ready for CI verification.

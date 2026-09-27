@@ -66,3 +66,6 @@ Any future meaningful change must update this file and `CHANGELOG.md`, plus any 
 
 ### Phase 10.1 CI fix
 The database constructor now accepts the public `databasePath` named parameter and backup tests use that public API. This resolves the analyzer error without changing database behavior.
+
+### Phase 10.2 CI fix
+`FinChatDatabase` now uses `this.databasePath` as an initializing formal. This removes the remaining `prefer_initializing_formals` analyzer issue without changing database behavior.

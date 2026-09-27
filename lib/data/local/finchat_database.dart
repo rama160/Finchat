@@ -4,17 +4,16 @@ import 'package:path/path.dart' as path;
 import 'database_schema.dart';
 
 class FinChatDatabase {
-  FinChatDatabase({DatabaseFactory? factory, String? databasePath})
-      : _factory = factory ?? databaseFactory,
-        _databasePath = databasePath;
+  FinChatDatabase({DatabaseFactory? factory, this.databasePath})
+      : _factory = factory ?? databaseFactory;
 
   final DatabaseFactory _factory;
-  final String? _databasePath;
+  final String? databasePath;
   Database? _database;
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    final dbPath = _databasePath ?? path.join(await getDatabasesPath(), FinChatDatabaseSchema.databaseName);
+    final dbPath = databasePath ?? path.join(await getDatabasesPath(), FinChatDatabaseSchema.databaseName);
     _database = await _factory.openDatabase(
       dbPath,
       options: OpenDatabaseOptions(
