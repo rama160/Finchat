@@ -35,6 +35,7 @@ class ReportService {
     var incomeCount = 0;
     var expenseCount = 0;
     final grouped = <String, _MutableGroup>{};
+    final categoryGrouped = <String, _MutableCategory>{};
 
     for (final transaction in items) {
       if (transaction.type == TransactionType.income) {
@@ -61,25 +62,49 @@ class ReportService {
         existing.transactionCount++;
         existing.totalAmount += transaction.amount;
       }
+
+      final categoryKey = '${transaction.type.name}|${transaction.categoryId}';
+      final category = categoryGrouped[categoryKey];
+      if (category == null) {
+        categoryGrouped[categoryKey] = _MutableCategory(
+          categoryId: transaction.categoryId,
+          categoryName: categoryNames[transaction.categoryId] ?? transaction.categoryId,
+          type: transaction.type,
+          transactionCount: 1,
+          totalAmount: transaction.amount,
+        );
+      } else {
+        category.transactionCount++;
+        category.totalAmount += transaction.amount;
+      }
     }
 
     final resultGroups = grouped.values
-        .map(
-          (group) => ReportTransactionGroup(
-            type: group.type,
-            categoryId: group.categoryId,
-            categoryName: group.categoryName,
-            description: group.description,
-            transactionCount: group.transactionCount,
-            totalAmount: group.totalAmount,
-          ),
-        )
+        .map((group) => ReportTransactionGroup(
+              type: group.type,
+              categoryId: group.categoryId,
+              categoryName: group.categoryName,
+              description: group.description,
+              transactionCount: group.transactionCount,
+              totalAmount: group.totalAmount,
+            ))
         .toList()
       ..sort((a, b) {
         final amount = b.totalAmount.compareTo(a.totalAmount);
         if (amount != 0) return amount;
         return a.description.toLowerCase().compareTo(b.description.toLowerCase());
       });
+
+    final resultCategories = categoryGrouped.values
+        .map((item) => ReportCategorySummary(
+              categoryId: item.categoryId,
+              categoryName: item.categoryName,
+              type: item.type,
+              transactionCount: item.transactionCount,
+              totalAmount: item.totalAmount,
+            ))
+        .toList()
+      ..sort((a, b) => b.totalAmount.compareTo(a.totalAmount));
 
     return ReportSummary(
       start: normalizedStart,
@@ -89,6 +114,8 @@ class ReportService {
       incomeCount: incomeCount,
       expenseCount: expenseCount,
       groups: List.unmodifiable(resultGroups),
+      transactions: List.unmodifiable(items),
+      categories: List.unmodifiable(resultCategories),
     );
   }
 
@@ -97,52 +124,37 @@ class ReportService {
     return generate(userId: userId, start: start, endExclusive: start.add(const Duration(days: 1)));
   }
 
-  Future<ReportSummary> forRange({
-    required String userId,
-    required DateTime start,
-    required DateTime end,
-  }) {
+  Future<ReportSummary> forRange({required String userId, required DateTime start, required DateTime end}) {
     final normalizedStart = _day(start);
     final normalizedEnd = _day(end);
-    return generate(
-      userId: userId,
-      start: normalizedStart,
-      endExclusive: normalizedEnd.add(const Duration(days: 1)),
-    );
+    return generate(userId: userId, start: normalizedStart, endExclusive: normalizedEnd.add(const Duration(days: 1)));
   }
 
-  Future<ReportSummary> forMonth({
-    required String userId,
-    required int year,
-    required int month,
-  }) {
-    if (month < 1 || month > 12) {
-      throw ArgumentError.value(month, 'month', 'Must be between 1 and 12.');
-    }
+  Future<ReportSummary> forMonth({required String userId, required int year, required int month}) {
+    if (month < 1 || month > 12) throw ArgumentError.value(month, 'month', 'Must be between 1 and 12.');
     final start = DateTime(year, month);
     return generate(userId: userId, start: start, endExclusive: DateTime(year, month + 1));
   }
 
-  static String _normalizeDescription(String value) =>
-      value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
-
+  static String _normalizeDescription(String value) => value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
   static DateTime _day(DateTime value) => DateTime(value.year, value.month, value.day);
 }
 
 class _MutableGroup {
-  _MutableGroup({
-    required this.type,
-    required this.categoryId,
-    required this.categoryName,
-    required this.description,
-    required this.transactionCount,
-    required this.totalAmount,
-  });
-
+  _MutableGroup({required this.type, required this.categoryId, required this.categoryName, required this.description, required this.transactionCount, required this.totalAmount});
   final TransactionType type;
   final String categoryId;
   final String categoryName;
   final String description;
+  int transactionCount;
+  double totalAmount;
+}
+
+class _MutableCategory {
+  _MutableCategory({required this.categoryId, required this.categoryName, required this.type, required this.transactionCount, required this.totalAmount});
+  final String categoryId;
+  final String categoryName;
+  final TransactionType type;
   int transactionCount;
   double totalAmount;
 }

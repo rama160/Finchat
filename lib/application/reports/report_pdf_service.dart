@@ -32,6 +32,8 @@ class ReportPdfService {
           _period(report),
           pw.SizedBox(height: 12),
           _summary(report),
+          pw.SizedBox(height: 14),
+          _categorySummary(report),
           pw.SizedBox(height: 18),
           pw.Text(
             'Detail Transaksi',
@@ -119,6 +121,25 @@ class ReportPdfService {
             ),
           )
           .toList(),
+    );
+  }
+
+  pw.Widget _categorySummary(ReportSummary report) {
+    final items = report.expenseCategories;
+    if (items.isEmpty) return pw.Text('Kategori pengeluaran: tidak ada data.');
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text('Ringkasan Kategori', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+        pw.SizedBox(height: 6),
+        pw.TableHelper.fromTextArray(
+          border: pw.TableBorder.all(width: .5),
+          headerStyle: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+          cellStyle: const pw.TextStyle(fontSize: 8),
+          headers: const ['Kategori', 'Jumlah Transaksi', 'Total'],
+          data: items.map((item) => [item.categoryName, '${item.transactionCount}x', _money(item.totalAmount)]).toList(),
+        ),
+      ],
     );
   }
 

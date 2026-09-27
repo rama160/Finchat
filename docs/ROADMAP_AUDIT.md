@@ -142,3 +142,31 @@ The first end-to-end vertical slice is now connected: text composer -> parser/in
 The voice vertical slice is now integrated into the existing chat transaction flow. The microphone action initializes the existing speech adapter, requests/uses Indonesian speech recognition, captures transcript state, and sends the transcript through `TransactionIntelligenceService` before SQLite persistence. The implementation records `InputSource.voice` and does not create a parallel persistence path.
 
 Acceptance deliberately remains split: automated source/test verification is a CI responsibility, while microphone permission, actual speech recognition quality, interruption behavior, and device UX are deferred to the final Phase 11 device QA cycle.
+
+
+### Phase 11.4 audit
+- Scope: Reports/PDF integration.
+- SQLite schema: unchanged.
+- Existing report date/range/month selectors preserved.
+- Added category/count summaries, insight, drill-down, empty/loading/error handling and PDF category summary.
+- Device verification remains pending for Phase 11.7.
+
+
+### Phase 11.5 audit
+- Existing BackupService and GoogleDriveBackupProvider retained and wired into user-facing UI.
+- Google authentication uses the current google_sign_in authorization model and an official bridge to googleapis.
+- No SQLite schema change; automatic-backup preference uses existing app_settings.
+- Device OAuth/Drive verification deferred to Phase 11.7.
+
+
+### Phase 11.6 audit
+- Existing AiCategoryProvider/AiCategoryFallback contracts retained.
+- AI provider is concrete but opt-in and safe when unconfigured.
+- Q&A uses ReportService-computed totals and transaction data; AI does not write to SQLite.
+- Secure credentials are kept outside SQLite.
+
+
+### Phase 11.7 audit
+- QA covers all Phase 11.1–11.6 vertical slices, permissions, malformed/offline states, release build and Android device verification.
+- No production schema change introduced by QA tooling.
+- Phase 12 remains blocked until Phase 11 product acceptance.

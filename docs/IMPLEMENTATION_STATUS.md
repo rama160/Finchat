@@ -149,3 +149,29 @@ Verification status: project owner reports Phase 11.2 OCR tests successful. Phys
 - Added test coverage for callback notifications and locale propagation.
 
 Verification status: source implemented; local Flutter execution is unavailable in the current build workspace, so GitHub Actions must verify `flutter analyze`, full `flutter test`, and release build. Physical-device microphone testing is intentionally deferred to final Phase 11 QA.
+
+
+## Phase 11.4 Reports/PDF
+- Implemented: report category aggregation, transaction detail payload, visual category/count summaries, insight card, drill-down, empty/loading/error UX, enhanced PDF category summary.
+- Verification: static implementation complete; Flutter analyze/test execution requires the user CI environment because Flutter SDK is not installed in this build workspace.
+- Device verification: deferred to Phase 11.7 as requested.
+
+
+## Phase 11.5 Backup/Google Drive
+- Implemented: local JSON export/import, destructive restore confirmation, Google Sign-In authorization, Drive appDataFolder provider wiring, status/error UX, automatic-backup preference persistence.
+- Verification: static implementation complete; Flutter analyze/test execution requires the user CI environment.
+- Device OAuth/Drive verification: deferred to Phase 11.7.
+
+
+## Phase 11.6 AI
+- Implemented: OpenAI-compatible provider adapter, secure API configuration, local-first fallback wiring, financial Q&A service/screen, malformed/offline response fallback.
+- API key is stored through flutter_secure_storage, not SQLite.
+- Verification: static implementation complete; Flutter analyze/test execution requires the user CI environment.
+- Device/network verification: deferred to Phase 11.7.
+
+
+## Phase 11.7 End-to-End QA
+- Implemented: integration-test shell, final E2E matrix, Windows QA runner, completion-level definitions.
+- Automated verification: pending user CI/device execution.
+- Device verification: intentionally not claimed.
+- Product acceptance: pending user confirmation after device test.

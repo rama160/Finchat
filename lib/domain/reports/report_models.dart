@@ -18,6 +18,22 @@ class ReportTransactionGroup {
   final double totalAmount;
 }
 
+class ReportCategorySummary {
+  const ReportCategorySummary({
+    required this.categoryId,
+    required this.categoryName,
+    required this.type,
+    required this.transactionCount,
+    required this.totalAmount,
+  });
+
+  final String categoryId;
+  final String categoryName;
+  final TransactionType type;
+  final int transactionCount;
+  final double totalAmount;
+}
+
 class ReportSummary {
   const ReportSummary({
     required this.start,
@@ -27,6 +43,8 @@ class ReportSummary {
     required this.incomeCount,
     required this.expenseCount,
     required this.groups,
+    required this.transactions,
+    required this.categories,
   });
 
   final DateTime start;
@@ -36,7 +54,13 @@ class ReportSummary {
   final int incomeCount;
   final int expenseCount;
   final List<ReportTransactionGroup> groups;
+  final List<TransactionEntity> transactions;
+  final List<ReportCategorySummary> categories;
 
   double get balance => incomeTotal - expenseTotal;
   int get transactionCount => incomeCount + expenseCount;
+
+  List<ReportCategorySummary> get expenseCategories => categories
+      .where((item) => item.type == TransactionType.expense)
+      .toList(growable: false);
 }

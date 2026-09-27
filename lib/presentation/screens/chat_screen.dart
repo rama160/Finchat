@@ -19,6 +19,7 @@ import '../../domain/ai/ai_category_fallback.dart';
 import '../../domain/entities/transaction_entity.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/services/category_learning_service.dart';
+import '../../data/ai/openai_compatible_ai_provider.dart';
 import '../../main.dart';
 import 'receipt_review_screen.dart';
 import 'report_screen.dart';
@@ -55,7 +56,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _intelligence = TransactionIntelligenceService(
       categoryLearning: _learning,
       aiFallback: AiCategoryFallback(
-        provider: _NoOpAiCategoryProvider(),
+        provider: OpenAiCompatibleAiProvider(),
         categoryExists: (id) => _categories.getById(id).then((value) => value != null),
       ),
     );
@@ -665,10 +666,6 @@ class _Composer extends StatelessWidget {
       );
 }
 
-class _NoOpAiCategoryProvider implements AiCategoryProvider {
-  @override
-  Future<AiCategorySuggestion?> suggestCategory(AiCategoryRequest request) async => null;
-}
 
 String _money(double value) => 'Rp ${value.toStringAsFixed(0).replaceAllMapped(RegExp(r'(?=(\d{3})+(?!\d))'), (m) => '.') }';
 String _parserMoney(double value) => 'Rp ${value.toStringAsFixed(0).replaceAllMapped(RegExp(r'(?=(\d{3})+(?!\d))'), (m) => '.') }';

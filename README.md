@@ -53,3 +53,16 @@ The GitHub workflow supports both legacy Groovy (`build.gradle`) and modern Kotl
 
 ### Current Phase 11.2 progress
 Receipt/OCR integration is in progress. Camera/gallery input, existing OCR preprocessing + ML Kit, receipt line-item parsing, review/edit, category learning, and SQLite persistence are connected. Full CI and device verification are still required before marking the slice complete.
+
+
+### Phase 11.4
+Reports/PDF now includes summary metrics, category distribution, transaction count, insight, drill-down, empty/loading/error states, and category details in exported PDF.
+
+### Phase 11.5
+Backup lokal JSON, restore dengan konfirmasi, Google Sign-In + Google Drive appDataFolder, status/error UX, dan preferensi backup otomatis sudah diintegrasikan. OAuth device verification ditunda ke Phase 11.7.
+
+### Phase 11.6
+Added a concrete OpenAI-compatible AI adapter behind the existing category fallback contract, secure API configuration, offline-safe fallback behavior, and a financial Q&A screen based on app-computed report data.
+
+### Phase 11.7
+Added the final Phase 11 E2E QA matrix, integration-test shell, and Windows QA runner. Device verification remains pending until the user executes the real-device checklist.

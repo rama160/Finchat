@@ -9,9 +9,9 @@
 4. AI Fallback — **service/contract baseline completed**; real provider and financial Q&A remain backlog.
 5. Receipt/OCR & image preprocessing — **technical baseline completed**; Phase 11.2 vertical integration is implemented and test-verified.
 6. Voice input — **technical baseline completed**; Phase 11.3 UI integration is implemented, with device acceptance deferred to final Phase 11 QA.
-7. Reports and analytics — **report baseline completed**; required charts/interactive details remain backlog.
+7. Reports and analytics — **report baseline completed**; Phase 11.4 integration now implements charts/interactive details.
 8. PDF export — **baseline completed**.
-9. Backup & Google Drive sync — **backup provider baseline completed**; OAuth/automatic setup/UI/sync UX remain backlog.
+9. Backup & Google Drive sync — **provider baseline completed**; Phase 11.5 implements local backup UI, Google OAuth wiring and Drive sync UX. Automatic execution remains an explicit verification/hardening item.
 10. Update & Release — **completed**.
 11. QA & End-to-End Integration — **active**.
 12. Production Hardening — future.
@@ -83,3 +83,20 @@ Implemented vertical integration:
 - service test verifies UI notifications and Indonesian locale propagation.
 
 Device microphone permission and physical-device acceptance are intentionally deferred until the final Phase 11 end-to-end test cycle.
+
+
+## Phase 11.4 — Reports/PDF
+Implemented: arbitrary day selection, date-range selection, month/year selection, summary metrics, expense-category aggregation, transaction-count visualization, insight card, drill-down to matching transactions, empty/loading/error states, and enhanced PDF category summary.
+
+## Phase 11.5 — Backup/Google Drive
+Implemented: local JSON export/import, restore confirmation, Google Sign-In authorization, Drive `appDataFolder` provider wiring, status/error UX, and persisted automatic-backup preference. Actual automatic execution is not claimed until device/network verification and a safe trigger policy are accepted.
+
+## Phase 11.6 — AI
+Implemented: concrete OpenAI-compatible provider behind the existing `AiCategoryProvider` contract, secure configuration, local-first category classification, malformed/offline fallback, and financial Q&A using application-computed report data. AI does not write SQLite.
+
+## Phase 11.7 — End-to-End QA
+Implemented QA tooling and matrix covering fresh install, session, text/OCR/voice, reports/PDF, backup/Drive, AI, permissions, network failures, malformed input, double taps, back navigation, release APK, and evidence recording. Execution remains pending.
+
+
+## Phase 12 gate
+Phase 12 starts only after Phase 11 has Analyze verified, Tests verified, Release build verified, Device verified, and Product accepted evidence.

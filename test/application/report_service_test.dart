@@ -74,6 +74,8 @@ void main() {
     expect(nasi.totalAmount, 35000);
     expect(report.expenseCount, 3);
     expect(report.expenseTotal, 40000);
+    expect(report.transactions, hasLength(3));
+    expect(report.expenseCategories.single.categoryName, 'Makanan');
   });
 
   test('keeps same description separate when type or category differs', () async {
@@ -113,5 +115,6 @@ void main() {
 
     expect(report.expenseTotal, 10000);
     expect(report.expenseCount, 1);
+    expect(report.transactions, hasLength(1));
   });
 }

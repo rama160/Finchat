@@ -225,3 +225,32 @@ Every meaningful future change must record:
 ### Phase 11.2 OCR test correction
 - Fixed receipt quantity-line parsing so the final monetary value is persisted as the transaction amount while the full item description remains intact.
 - No database schema change and no change to the OCR provider/preprocessing flow.
+
+
+## Phase 11.4
+- Added report category aggregation and transaction detail data.
+- Added category/count visual summaries, insight, drill-down, empty/loading/error states.
+- Enhanced PDF with category summary.
+- No SQLite schema change.
+
+
+## Phase 11.5
+- Added local backup export/import UI.
+- Added Google Sign-In + Drive appDataFolder integration.
+- Added restore confirmations and backup status/error handling.
+- Added persisted automatic-backup preference.
+
+
+## Phase 11.6
+- Added OpenAI-compatible AI provider adapter.
+- Added secure AI configuration UI/storage.
+- Wired configured AI as category fallback only.
+- Added financial Q&A using application-computed report data.
+- Added offline/malformed-response safe fallback.
+
+
+## Phase 11.7
+- Added Phase 11 E2E QA matrix.
+- Added integration-test shell for authenticated application shell.
+- Added Windows `RUN_PHASE_11_QA.bat` for analyze/test/release build sequence.
+- Device verification remains explicitly pending.

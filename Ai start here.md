@@ -90,3 +90,16 @@ The project owner intentionally wants camera, microphone, permission, OCR, voice
 ## Phase 11.3 Voice
 
 Voice input is now wired into the chat composer. It uses `SpeechToTextProvider` + `VoiceInputService`, locale `id_ID`, the existing transaction intelligence pipeline, and SQLite persistence with `InputSource.voice`. CI must verify analyze/tests/build; physical microphone testing is reserved for final Phase 11 QA.
+
+
+### Current Phase
+Phase 11.4 Reports/PDF is implemented on top of the successful Phase 11.3 Voice baseline. Device testing is intentionally deferred to Phase 11.7.
+
+### Phase 11.5
+Backup/Google Drive UI and service integration is implemented. OAuth/Drive device verification is intentionally deferred to Phase 11.7.
+
+### Phase 11.6
+AI is integrated behind existing contracts. Local parser and category learning remain first; configured AI is used only as fallback. Financial Q&A receives application-computed report data rather than querying SQLite directly.
+
+### Phase 11.7
+Phase 11 feature integration is packaged. The final status must remain pending until analyze, tests, release APK build, and the real Android device matrix are executed.
