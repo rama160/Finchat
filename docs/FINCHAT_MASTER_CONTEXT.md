@@ -51,6 +51,7 @@ Indonesian monetary input must support both formal and informal notation. At min
 SQLite is the local source of truth. The database contains users, categories, transactions, category mappings, category history, and app settings. Transactions are accessed through repositories rather than directly from presentation code. Transaction deletion is soft-delete so future synchronization can preserve deletion state.
 
 Category learning is local and user-specific. A correction such as `cabe -> Belanja Dapur` is stored as a normalized mapping with source, confidence, usage count, and timestamps. Each correction also creates a category-history record. Resolution priority favors user corrections/mappings before fallback rules or AI. AI must never silently override a confirmed user mapping.
+<<<<<<< HEAD
 
 ## Current repository baseline after Phase 9
 
@@ -63,3 +64,5 @@ The repository has technical baselines through Phase 9. Product-level gaps are t
 - The app can open the published release page when a newer semantic version is detected.
 - Release workflow and application version are aligned at `0.2.0+2` for this milestone.
 - Automatic/self-install APK update is not claimed complete.
+=======
+>>>>>>> origin/main

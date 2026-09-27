@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
 
 import 'application/session/session_manager.dart';
+<<<<<<< HEAD
 import 'data/session/secure_session_repository.dart';
+=======
+import 'data/repositories/in_memory_session_repository.dart';
+>>>>>>> origin/main
 import 'presentation/navigation/app_router.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+<<<<<<< HEAD
   final sessionManager = SessionManager(SecureSessionRepository());
+=======
+  final sessionManager = SessionManager(InMemorySessionRepository());
+>>>>>>> origin/main
   await sessionManager.initialize();
   runApp(FinChatApp(sessionManager: sessionManager));
 }

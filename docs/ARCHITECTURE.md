@@ -28,6 +28,7 @@ Input → normalize → local parser → category engine → validation → AI f
 
 ## CI architecture
 GitHub Actions is the canonical verification environment. Test workflow runs analyze/test. Android build workflow generates missing Android platform scaffolding on the runner and then builds release APK. This keeps local Flutter installation optional.
+<<<<<<< HEAD
 
 ## Session persistence
 
@@ -42,3 +43,5 @@ The provider only reports a newer release and its release URL/APK asset. It does
 ## Documentation architecture
 
 `docs/ROADMAP_AUDIT.md` is the source for known gaps between technical phase baselines and full PRD acceptance. Every future phase must reconcile implementation status and changelog with the actual repository state.
+=======
+>>>>>>> origin/main
