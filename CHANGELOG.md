@@ -1,0 +1,118 @@
+# FinChat Changelog
+
+Format: version/phase, problem or previous behavior, exact change, reason, impact, migration, tests/result, status.
+
+## Unreleased — Phase 10
+
+### Phase 10 — Update & Release + Documentation Reconciliation
+- **Previous behavior:** session state was stored by `InMemorySessionRepository`, so closing the app lost the login session.
+- **Change:** added `SecureSessionRepository` using `flutter_secure_storage` and wired it into `main.dart`.
+- **Reason:** satisfy the persistent-session requirement and avoid asking the user to log in after every app close.
+- **Impact:** session survives application restarts; logout still clears it.
+- **Migration:** no existing database migration required; the previous session implementation was in-memory only.
+- **Tests:** session behavior remains covered by application tests; CI verification required for the new plugin dependency.
+- **Status:** implementation complete; GitHub Actions verification pending.
+
+### Phase 10 — Update checker
+- **Previous behavior:** the app had a release workflow but no in-app way to know whether a newer release existed.
+- **Change:** added `UpdateService`, `GitHubReleaseUpdateProvider`, semantic version comparison, and Settings UI.
+- **Reason:** connect the product requirement "app can be updated when changes are released" to the existing GitHub release pipeline.
+- **Impact:** Settings can check the public `rama160/Finchat` latest release and open its release page.
+- **Migration:** none.
+- **Tests:** provider is isolated behind an interface so CI can use fakes; GitHub Actions must verify the package build.
+- **Status:** implementation complete; self-install APK is intentionally deferred.
+
+### Phase 10 — Version/release alignment
+- **Change:** application version moved from `0.1.0+1` to `0.2.0+2`; release workflow default tag moved to `v0.2.0`.
+- **Reason:** make the update checker and release artifact versioning coherent.
+- **Impact:** future releases can be compared semantically.
+- **Migration:** future database schema changes must use explicit SQLite migrations; Phase 10 changes do not alter the schema.
+- **Status:** implementation complete; CI pending.
+
+### Phase 10 — Documentation audit
+- **Previous behavior:** source code had reached Phase 9 while `README.md`, `Ai start here.md`, and parts of `IMPLEMENTATION_STATUS.md` still described Phase 2 as current; changelog history was incomplete.
+- **Change:** added `docs/ROADMAP_AUDIT.md` and reconciled all handoff documents through Phase 10.
+- **Reason:** another AI must be able to continue from the repository without relying on chat history.
+- **Impact:** technical completion and product-level completion are now explicitly separated.
+- **Status:** complete.
+
+## Phase 9 — Backup & Google Drive Sync
+- Added versioned JSON snapshots covering local SQLite tables.
+- Added transactional local restore.
+- Added provider-agnostic cloud backup/restore contract.
+- Added Google Drive `appDataFolder` provider that replaces the existing FinChat backup file instead of creating uncontrolled duplicates.
+- Added backup serialization, restore, provider-requirement and fake-cloud tests.
+- **Result:** project owner reports Phase 9 GitHub Actions success.
+- **Known carry-over:** OAuth/account setup, automatic backup/restore triggers, manual backup/restore UI and conflict UX remain product backlog.
+
+## Phase 8 — PDF Export
+- Added A4 PDF generation from Phase 7 report data.
+- Included period, income, expense, balance, transaction count and grouped details.
+- Added PDF export/share action.
+- Added PDF generation and filename tests.
+- **Result:** project owner reports Phase 8 analyze/test success (35 tests at that milestone).
+
+## Phase 7 — Reports & Analytics
+- Added report models and service for daily, custom range and monthly reports.
+- Added grouping by normalized description, transaction type and category.
+- Added transaction count and combined amount.
+- Added report screen and navigation.
+- Added tests for grouping and date boundaries.
+- **Known carry-over:** pie chart/category visualization, insight chart and transaction drill-down still need implementation.
+
+## Phase 6 — Voice Input
+- Added provider-agnostic speech contract.
+- Added `speech_to_text` adapter and voice application service.
+- Added Android speech permissions/recognition-service configuration in CI build.
+- Added fake-provider tests.
+- **Result:** project owner reports Phase 6 analyze success and 28 tests passing at that milestone.
+- **Known carry-over:** product UI/device acceptance still required.
+
+## Phase 5 — Receipt/OCR
+- Added receipt image preprocessing with orientation correction, adaptive resize, grayscale/contrast processing and JPEG compression before OCR.
+- Added ML Kit OCR adapter and provider-agnostic OCR contract.
+- Added OCR service that writes only a temporary processed image and cleans it up afterward.
+- Added CI-safe tests.
+- **Known carry-over:** camera/file input UI and receipt line-item/multi-transaction parser/review remain required.
+
+## Phase 4 — AI Fallback
+- Added AI category fallback contract and transaction intelligence orchestration.
+- Enforced local parser/category learning before AI fallback.
+- Added confidence-based fallback and safe manual processing when AI returns no suggestion.
+- Added tests for AI fallback and orchestration.
+- **Known carry-over:** no concrete AI provider is committed; financial chat Q&A is not yet end-to-end.
+
+## Phase 3B — Database + Repository + Category Learning
+- Added SQLite schema for users, categories, transactions, mappings, history and settings.
+- Added transaction and category repositories.
+- Added category learning with normalized user mappings, confidence, usage count and history records.
+- Added soft-delete for transactions.
+- Added CI-safe SQLite tests.
+- Fixed analyzer override/initializing-formal issues and category-learning test setup/history IDs.
+- **Result:** project owner reports Phase 3B CI success.
+
+## Phase 3 — Transaction Parser
+- Added Indonesian monetary parsing for informal forms including `25 rb`, `25 ribu`, `25k`, `Rp25.000`, `1 juta`, `1,5 juta`, `1.5jt`, `2m` and grouped numeric amounts.
+- Added multiple-transaction extraction baseline.
+- Added parser and money parser tests.
+
+## Phase 2 — Flutter Foundation
+- Added Flutter project structure, Material 3 foundation, session manager, navigation and baseline screens.
+- Added GitHub Actions for analyze/test and Android release build.
+- Added safe Windows GitHub uploader that avoids force-push and stops on merge conflicts.
+- Fixed deprecated router APIs (`location`/`onPopPage`) so analyze passes.
+
+## Phase 1 — Product Definition & Repository Foundation
+- Added PRD, architecture, phases, AI contract, implementation status, GitHub scripts and CI workflow baseline.
+- Established offline-first/local-source-of-truth, parser-first/AI-fallback, migration, backup, changelog and safe Git automation rules.
+
+## Changelog discipline
+
+Every meaningful future change must record:
+- previous behavior/problem;
+- exact change;
+- reason;
+- impacted components/files;
+- migration/data impact;
+- tests and verification result;
+- current status and known carry-over.

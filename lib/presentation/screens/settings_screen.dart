@@ -1,0 +1,121 @@
+import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../application/update/update_service.dart';
+import '../../core/constants/app_constants.dart';
+import '../../data/update/github_release_update_provider.dart';
+import '../../domain/update/app_update.dart';
+import '../../main.dart';
+
+class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  late final UpdateService _updateService;
+  Future<AppUpdate?>? _updateCheck;
+
+  @override
+  void initState() {
+    super.initState();
+    _updateService = UpdateService(
+      GitHubReleaseUpdateProvider(owner: 'rama160', repository: 'Finchat'),
+    );
+  }
+
+  void _checkForUpdate() {
+    setState(() {
+      _updateCheck = _updateService.check(currentVersion: AppConstants.appVersion);
+    });
+  }
+
+  Future<void> _openUpdate(AppUpdate update) async {
+    final opened = await launchUrl(update.releaseUrl, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tidak dapat membuka halaman release.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final session = SessionScope.of(context).session;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Pengaturan')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const ListTile(
+            leading: Icon(Icons.account_circle_outlined),
+            title: Text('Akun'),
+            subtitle: Text('Session disimpan secara aman di perangkat.'),
+          ),
+          if (session != null)
+            ListTile(
+              leading: const Icon(Icons.email_outlined),
+              title: const Text('Email'),
+              subtitle: Text(session.email),
+            ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.system_update_outlined),
+            title: const Text('Versi aplikasi'),
+            subtitle: Text(AppConstants.appVersion),
+          ),
+          ListTile(
+            leading: const Icon(Icons.update),
+            title: const Text('Periksa pembaruan'),
+            subtitle: const Text('Memeriksa GitHub Releases FinChat.'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: _checkForUpdate,
+          ),
+          if (_updateCheck != null)
+            FutureBuilder<AppUpdate?>(
+              future: _updateCheck,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Card(
+                    child: ListTile(
+                      leading: CircularProgressIndicator(),
+                      title: Text('Memeriksa pembaruan...'),
+                    ),
+                  );
+                }
+                if (snapshot.hasError) {
+                  return Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.error_outline),
+                      title: const Text('Pemeriksaan pembaruan gagal'),
+                      subtitle: Text(snapshot.error.toString()),
+                    ),
+                  );
+                }
+                final update = snapshot.data;
+                if (update == null) {
+                  return const Card(
+                    child: ListTile(
+                      leading: Icon(Icons.check_circle_outline),
+                      title: Text('FinChat sudah versi terbaru'),
+                    ),
+                  );
+                }
+                return Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.new_releases_outlined),
+                    title: Text('Versi ${update.version} tersedia'),
+                    subtitle: const Text('Buka halaman release untuk mengunduh APK.'),
+                    trailing: const Icon(Icons.open_in_new),
+                    onTap: () => _openUpdate(update),
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+}
