@@ -1,3 +1,14 @@
+## Phase 11.1.2 — Fix GitHub Actions analyzer errors
+
+- **Status:** Fixed in source; ready for GitHub Actions verification.
+- **Scope:** `lib/presentation/screens/chat_screen.dart`
+- **Fixes:**
+  1. Added the `local_transaction_parser.dart` import so `ParsedTransactionType` used by the immediate-save mapping is defined.
+  2. Replaced deprecated `DropdownButtonFormField.value` with `initialValue` for transaction type and category fields.
+  3. Renamed the date formatter call from `_date(_date)` to `_formatDate(_date)` to avoid invoking the `_date` `DateTime` state field as a function.
+- **Expected result:** `flutter analyze` should no longer report the four Phase 11.1.1 errors/info items previously observed in `chat_screen.dart`.
+- **Verification:** Source-level checks completed; run GitHub Actions `flutter analyze`, `flutter test`, and release build after pushing.
+
 # FinChat Changelog
 
 Format: version/phase, problem or previous behavior, exact change, reason, impact, migration, tests/result, status.

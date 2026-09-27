@@ -1,3 +1,13 @@
+## Current continuation point — Phase 11.1.2
+
+The immediate-save transaction flow from Phase 11.1 is retained:
+- Text such as `Beli nasi 25rb dan bensin 50k` is parsed into multiple transactions and saved immediately.
+- Each saved transaction has Edit/Delete buttons.
+- Swipe right edits; swipe left deletes.
+- Editing supports description, amount, type, category, and date.
+
+Phase 11.1.2 fixes the analyzer errors in `chat_screen.dart`. After uploading this package to GitHub, verify Actions with `flutter analyze`, `flutter test`, and `flutter build apk --release`.
+
 # AI START HERE — FINCHAT
 
 Jika AI baru melanjutkan project ini, **jangan meminta user menjelaskan ulang project** sebelum membaca dokumen berikut.

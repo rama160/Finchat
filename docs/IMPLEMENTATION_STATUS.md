@@ -1,3 +1,13 @@
+# Phase 11.1.2 Status — Analyzer Bugfix
+
+The Phase 11.1 immediate-save transaction flow remains the current feature baseline. This patch fixes the analyzer issues introduced in `chat_screen.dart`:
+
+- `ParsedTransactionType` is now available through the local parser import.
+- Deprecated `DropdownButtonFormField.value` usages are changed to `initialValue`.
+- Date formatting uses `_formatDate(_date)` instead of the `_date(_date)` name collision.
+
+**Next verification:** GitHub Actions should run `flutter analyze`, `flutter test`, and `flutter build apk --release`.
+
 # FinChat Implementation Status
 
 ## Current Phase

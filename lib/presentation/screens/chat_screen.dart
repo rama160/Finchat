@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../application/transactions/transaction_intelligence_service.dart';
+import '../../application/transactions/local_transaction_parser.dart';
 import '../../data/local/finchat_database.dart';
 import '../../data/repositories/sqlite_category_repository.dart';
 import '../../data/repositories/sqlite_transaction_repository.dart';
@@ -271,6 +272,12 @@ class _EditTransactionDialogState extends State<_EditTransactionDialog> {
     super.dispose();
   }
 
+  String _formatDate(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}/'
+        '${date.month.toString().padLeft(2, '0')}/'
+        '${date.year}';
+  }
+
   void _save() {
     final amount = double.tryParse(_amount.text.replaceAll('.', '').replaceAll(',', '.'));
     if (amount == null || amount <= 0 || _description.text.trim().isEmpty) return;
@@ -304,7 +311,7 @@ class _EditTransactionDialogState extends State<_EditTransactionDialog> {
               TextField(controller: _amount, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Nominal', prefixText: 'Rp ')),
               const SizedBox(height: 12),
               DropdownButtonFormField<TransactionType>(
-                value: _type,
+                initialValue: _type,
                 decoration: const InputDecoration(labelText: 'Jenis'),
                 items: const [
                   DropdownMenuItem(value: TransactionType.expense, child: Text('Pengeluaran')),
@@ -314,14 +321,14 @@ class _EditTransactionDialogState extends State<_EditTransactionDialog> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: widget.categories.any((c) => c.id == _categoryId) ? _categoryId : null,
+                initialValue: widget.categories.any((c) => c.id == _categoryId) ? _categoryId : null,
                 decoration: const InputDecoration(labelText: 'Kategori'),
                 items: widget.categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
                 onChanged: (value) => setState(() => _categoryId = value ?? _categoryId),
               ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                title: Text('Tanggal: ${_date(_date)}'),
+                title: Text('Tanggal: ${_formatDate(_date)}'),
                 trailing: const Icon(Icons.calendar_today),
                 onTap: () async {
                   final value = await showDatePicker(context: context, initialDate: _date, firstDate: DateTime(2000), lastDate: DateTime(2100));
