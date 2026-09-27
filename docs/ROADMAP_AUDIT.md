@@ -120,3 +120,8 @@ Every phase must update all applicable handoff artifacts:
 - tests for changed behavior
 
 A phase is not considered product-complete merely because `flutter analyze` and unit tests pass. End-to-end acceptance must also be marked separately.
+
+
+## Phase 11.1 progress
+
+The first end-to-end vertical slice is now connected: text composer -> parser/intelligence -> editable review -> SQLite transaction repository. Multiple transactions are supported in one input, and user category corrections are persisted as local mappings/history. Voice, receipt, reports visualization/drill-down, backup UI and financial Q&A remain subsequent Phase 11 work.

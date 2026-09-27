@@ -23,7 +23,15 @@ OCR rules:
 - Sync uses soft delete and conflict detection.
 - Schema changes require migration.
 
-## Android OCR release packaging\n\nFinChat currently uses ML Kit Latin text recognition for Indonesian receipt OCR. The CI-generated Android project installs targeted R8 `-dontwarn` rules for optional Chinese, Devanagari, Japanese and Korean ML Kit classes that the plugin references but does not bundle by default. If a non-Latin OCR script is enabled later, the matching official ML Kit language dependency must be added instead of relying on `-dontwarn`.\n\n## Transaction pipeline
+## Android OCR release packaging\n\nFinChat currently uses ML Kit Latin text recognition for Indonesian receipt OCR. The CI-generated Android project installs targeted R8 `-dontwarn` rules for optional Chinese, Devanagari, Japanese and Korean ML Kit classes that the plugin references but does not bundle by default. If a non-Latin OCR script is enabled later, the matching official ML Kit language dependency must be added instead of relying on `-dontwarn`.\n\n## Transaction UI integration
+
+The Phase 11 transaction entry path is implemented as:
+
+`ChatScreen composer -> TransactionIntelligenceService -> LocalTransactionParser -> CategoryLearningService -> optional AI fallback -> editable review draft -> SqliteTransactionRepository -> SQLite`
+
+The UI never writes to SQLite through AI. The user reviews the parsed result before persistence, and category corrections are recorded through the learning service.
+
+## Transaction pipeline
 Input → normalize → local parser → category engine → validation → AI fallback → validation → review → repository → local DB.
 
 ## CI architecture

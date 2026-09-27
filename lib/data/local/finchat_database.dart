@@ -28,6 +28,22 @@ class FinChatDatabase {
     return _database!;
   }
 
+  Future<void> ensureUser({required String userId, String? email}) async {
+    final db = await database;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await db.insert(
+      'users',
+      {
+        'id': userId,
+        'email': email ?? userId,
+        'display_name': email ?? userId,
+        'created_at': now,
+        'updated_at': now,
+      },
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+  }
+
   Future<void> close() async {
     final db = _database;
     _database = null;

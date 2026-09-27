@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 10 — Update & Release**
+**Phase 11.1 — Transaction End-to-End**
 
 ## Verification baseline
 
@@ -23,7 +23,7 @@ This document distinguishes **technical baseline completion** from **full PRD en
 - Phase 8 — A4 PDF report generation and sharing baseline.
 - Phase 9 — Versioned local backup/restore and Google Drive `appDataFolder` provider baseline.
 
-## Phase 10 completed in this package
+## Phase 10 completed
 
 - Replaced the in-memory session repository in `main.dart` with secure persistent session storage.
 - Added Settings screen and navigation entry point.
@@ -34,15 +34,27 @@ This document distinguishes **technical baseline completion** from **full PRD en
 - Added comprehensive roadmap audit.
 - Reconciled stale handoff documents and completed the changelog history through Phase 10.
 
-## Phase 10 remaining verification
+## Phase 10 verification result
 
-Run in GitHub Actions:
-- `flutter pub get`
-- `flutter analyze`
-- `flutter test`
-- Android release build
+GitHub Actions verification is reported successful by the project owner, including `flutter analyze`, `flutter test`, and `flutter build apk --release`. Phase 10 is therefore complete.
 
-Do not mark Phase 10 as CI-passed until those checks pass on GitHub.
+## Phase 11.1 implemented in this package
+
+- Replaced the placeholder `ChatScreen` with a real transaction-entry vertical slice.
+- Text input now calls `TransactionIntelligenceService`, which runs the local parser and category-learning pipeline before any AI fallback.
+- Multiple parsed transactions are presented as editable drafts before persistence.
+- Draft fields include nominal, description, type, category and transaction date.
+- Saving writes each reviewed transaction through `SqliteTransactionRepository`.
+- The logged-in user is ensured in the local `users` table before transaction persistence, satisfying the transaction foreign key.
+- User category changes are recorded through `CategoryLearningService`, preserving the local learning/history behavior.
+- Added an end-to-end service test covering multi-transaction parsing, persistence and category correction.
+
+### Phase 11.1 known carry-over
+
+- Voice button/UI is not yet wired into the composer.
+- Camera/file attachment and receipt line-item parsing/review are not yet wired.
+- Financial chat Q&A remains separate from transaction entry.
+- Reports still need category visualization, insights and drill-down.
 
 ## Known product gaps after Phase 10
 
@@ -77,3 +89,7 @@ The release build failed only during R8 because `google_mlkit_text_recognition` 
 
 ### Phase 10.4 CI fix
 The Android R8 configuration workflow now checks for `android/app/build.gradle` or `android/app/build.gradle.kts` and generates the Android platform when neither exists. R8 rules are applied using syntax appropriate to the detected Gradle format.
+
+### Phase 11.1.1 — Immediate transaction save
+
+The normal text transaction flow now saves parsed transactions immediately. The transaction list provides explicit Edit/Delete buttons and horizontal gestures: swipe right to edit and swipe left to delete. Editing preserves the transaction identity and records category corrections in the local learning service.

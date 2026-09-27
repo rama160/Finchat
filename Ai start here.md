@@ -16,8 +16,8 @@ Jika AI baru melanjutkan project ini, **jangan meminta user menjelaskan ulang pr
 ## Kondisi saat handoff
 - Phase 1–9 technical baselines sudah dikerjakan.
 - User melaporkan Phase 9 GitHub Actions sukses.
-- **Current phase: Phase 10 — Update & Release.**
-- Phase 10 implementation in this package still requires GitHub Actions verification.
+- **Current phase: Phase 11.1 — Transaction End-to-End Vertical Slice.**
+- Phase 10 is complete; the project owner reports GitHub Actions success including the release APK build.
 
 ## Aturan melanjutkan
 - Bedakan technical baseline completion dari full PRD end-to-end completion.
@@ -30,15 +30,16 @@ Jika AI baru melanjutkan project ini, **jangan meminta user menjelaskan ulang pr
 - Jangan menghilangkan data user ketika parser/OCR/AI gagal.
 - Setiap perubahan bermakna wajib memperbarui `CHANGELOG.md` dan `IMPLEMENTATION_STATUS.md`.
 
-## Phase 10 in this package
-1. Secure persistent session.
-2. Settings entry point.
-3. GitHub Releases update checker.
-4. App version/release alignment.
-5. Documentation and roadmap reconciliation.
+## Phase 11.1 in this package
+1. Text transaction composer is connected to the local intelligence pipeline.
+2. Multiple parsed transactions become editable review drafts.
+3. Drafts can edit nominal, description, type, category and date.
+4. Confirmed drafts are saved through the SQLite repository.
+5. Category corrections are recorded for future local learning.
+6. Added an end-to-end service test for parsing, persistence and category correction.
 
-## Exact next task after Phase 10 passes CI
-Start **Phase 11 — QA & End-to-End Integration**, beginning with the transaction entry/edit UI wired to the existing parser, category learning, repository, and validation pipeline.
+## Exact next task
+Continue Phase 11 with voice UI integration, then camera/file receipt input, receipt multi-transaction parsing/review, reports visualization/drill-down, backup/restore UI, financial chat Q&A, and end-to-end tests.
 
 ## Handoff requirement
 At the end of every phase, record:

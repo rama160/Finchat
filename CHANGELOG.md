@@ -163,3 +163,30 @@ Every meaningful future change must record:
 - Impact: no Dart, database, parser, OCR, or transaction behavior change.
 - Tests: GitHub Actions must rerun analyze, test, and release APK build.
 - Status: Ready for CI verification.
+
+
+## Phase 11.1 — Transaction End-to-End Vertical Slice
+
+- **Date:** 2026-09-27
+- **Type:** Feature / integration
+- **Component:** Chat transaction entry, transaction intelligence, SQLite repository, category learning
+- **Previous behavior:** `ChatScreen` was only a placeholder greeting and did not send user input through the parser or persist transactions.
+- **Change:** Replaced the placeholder with a real text composer that invokes `TransactionIntelligenceService`, displays multiple parsed transactions as editable review cards, and saves confirmed transactions through `SqliteTransactionRepository`. Added editable nominal, description, type, category and date fields.
+- **Reason:** Start Phase 11 with the most important PRD path: text transaction input must become reviewed local database records rather than stopping at an isolated parser/service.
+- **Impact:** Users can enter examples such as `Beli nasi 25rb dan bensin 50k`, review the two resulting transactions, correct their categories, and save them locally. User category corrections are recorded for future resolution.
+- **Migration/data impact:** Added `FinChatDatabase.ensureUser()` so the active session is represented in the local `users` table before a transaction is saved. No destructive schema change.
+- **Tests:** Added `test/application/transaction_entry_flow_test.dart` covering multi-transaction parsing, SQLite persistence and category correction. GitHub Actions is the canonical verification environment.
+- **Status:** Phase 11.1 implementation complete; CI verification required.
+
+## Phase 11.1.1 — Immediate Transaction Save + Edit/Delete Gestures
+
+- Previous behavior: parsed transactions were held in a review draft list and required a separate Save button.
+- Change: normal text transaction input is now parsed and saved immediately to SQLite.
+- Change: saved transactions expose Edit and Delete actions directly.
+- Change: swipe right opens Edit; swipe left deletes the transaction.
+- Change: editing can update description, amount, type, category, and date; category corrections are learned locally.
+- Reason: match the intended FinChat chat workflow where transaction capture is immediate and post-save correction is lightweight.
+- Impact: the normal text-entry path no longer uses a review-before-save screen. Future receipt/voice flows may still use specialized review where extraction confidence or user verification requires it.
+- Example: `Beli nasi 25rb dan bensin 50k` is parsed into two transactions and both are immediately stored.
+- Verification: GitHub Actions must run `flutter analyze`, `flutter test`, and `flutter build apk --release`.
+- Status: Ready for CI verification.
