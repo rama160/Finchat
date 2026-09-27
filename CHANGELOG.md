@@ -116,3 +116,16 @@ Every meaningful future change must record:
 - migration/data impact;
 - tests and verification result;
 - current status and known carry-over.
+
+## Phase 10.1 — Analyzer Fix: Database Constructor Callsite
+
+- **Date:** 2026-09-27
+- **Type:** Fix
+- **Component:** `FinChatDatabase`, backup service tests
+- **Previous problem:** CI reported `undefined_named_parameter` because `backup_service_test.dart` still called the private constructor parameter `_databasePath`.
+- **Change:** Exposed the constructor argument as public `databasePath` while keeping the internal `_databasePath` field private, and updated the test callsite.
+- **Reason:** Dart analyzer requires the callsite to use the public parameter name.
+- **Impact:** No runtime behavior change; in-memory backup tests continue to use `:memory:`.
+- **Migration:** None.
+- **Tests:** Pending GitHub Actions verification.
+- **Status:** Ready for CI.

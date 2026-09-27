@@ -4,8 +4,9 @@ import 'package:path/path.dart' as path;
 import 'database_schema.dart';
 
 class FinChatDatabase {
-  FinChatDatabase({DatabaseFactory? factory, this._databasePath})
-      : _factory = factory ?? databaseFactory;
+  FinChatDatabase({DatabaseFactory? factory, String? databasePath})
+      : _factory = factory ?? databaseFactory,
+        _databasePath = databasePath;
 
   final DatabaseFactory _factory;
   final String? _databasePath;

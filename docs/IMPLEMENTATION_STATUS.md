@@ -63,3 +63,6 @@ See `docs/ROADMAP_AUDIT.md`. The largest remaining gaps are product integration 
 ## Documentation rule
 
 Any future meaningful change must update this file and `CHANGELOG.md`, plus any affected architecture/AI/PRD/roadmap document. Do not leave the current phase or next task stale.
+
+### Phase 10.1 CI fix
+The database constructor now accepts the public `databasePath` named parameter and backup tests use that public API. This resolves the analyzer error without changing database behavior.
