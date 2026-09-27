@@ -73,3 +73,7 @@ The database constructor now accepts the public `databasePath` named parameter a
 
 ### Phase 10.3 CI fix
 The release build failed only during R8 because `google_mlkit_text_recognition` references optional non-Latin language classes that are not bundled by default. FinChat currently constructs the OCR recognizer with the Latin script, so the Android workflows now install targeted R8 `-dontwarn` rules for the four optional language namespaces before building. This avoids adding unnecessary ML Kit language binaries to the APK.
+
+
+### Phase 10.4 CI fix
+The Android R8 configuration workflow now checks for `android/app/build.gradle` or `android/app/build.gradle.kts` and generates the Android platform when neither exists. R8 rules are applied using syntax appropriate to the detected Gradle format.

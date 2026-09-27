@@ -45,3 +45,7 @@ SQLite adalah local source of truth. Transaksi diakses melalui repository. Categ
 7. `docs/ROADMAP_AUDIT.md`
 8. `docs/IMPLEMENTATION_STATUS.md`
 9. `CHANGELOG.md`
+
+
+### Android CI build note
+The GitHub workflow supports both legacy Groovy (`build.gradle`) and modern Kotlin (`build.gradle.kts`) Android templates when applying ML Kit R8 rules.

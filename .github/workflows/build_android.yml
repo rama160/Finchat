@@ -22,11 +22,16 @@ jobs:
         run: flutter analyze
       - name: Test
         run: flutter test
-      - name: Generate Android platform if missing
+      - name: Ensure Android platform exists
         shell: bash
         run: |
-          if [ ! -d android ]; then
+          if [ ! -f android/app/build.gradle ] && [ ! -f android/app/build.gradle.kts ]; then
             flutter create --platforms=android --project-name finchat --org com.finchat --no-pub .
+          fi
+          if [ ! -f android/app/build.gradle ] && [ ! -f android/app/build.gradle.kts ]; then
+            echo "Android project was not generated correctly."
+            find android -maxdepth 3 -type f -print 2>/dev/null || true
+            exit 1
           fi
       - name: Configure Android R8 rules for ML Kit optional languages
         shell: bash
@@ -36,16 +41,35 @@ jobs:
           rules = Path("tooling/android/proguard-rules.pro")
           target = Path("android/app/proguard-rules.pro")
           target.write_text(rules.read_text())
-          gradle = Path("android/app/build.gradle")
-          text = gradle.read_text()
-          if "proguard-rules.pro" not in text:
-              marker = "release {"
-              replacement = "release {\n            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'"
-              if marker in text:
+
+          groovy = Path("android/app/build.gradle")
+          kotlin = Path("android/app/build.gradle.kts")
+          if groovy.exists():
+              gradle = groovy
+              text = gradle.read_text()
+              if "proguard-rules.pro" not in text:
+                  marker = "release {"
+                  replacement = "release {\n            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'"
+                  if marker not in text:
+                      raise SystemExit("Could not locate release build type in android/app/build.gradle")
                   text = text.replace(marker, replacement, 1)
-              else:
-                  raise SystemExit("Could not locate release build type in android/app/build.gradle")
-              gradle.write_text(text)
+                  gradle.write_text(text)
+          elif kotlin.exists():
+              gradle = kotlin
+              text = gradle.read_text()
+              if "proguard-rules.pro" not in text:
+                  marker = "buildTypes {"
+                  if marker not in text:
+                      raise SystemExit("Could not locate buildTypes in android/app/build.gradle.kts")
+                  release_marker = "release {"
+                  if release_marker in text:
+                      replacement = "release {\n            proguardFiles(getDefaultProguardFile(\"proguard-android-optimize.txt\"), \"proguard-rules.pro\")"
+                      text = text.replace(release_marker, replacement, 1)
+                  else:
+                      raise SystemExit("Could not locate release build type in android/app/build.gradle.kts")
+                  gradle.write_text(text)
+          else:
+              raise SystemExit("Neither android/app/build.gradle nor build.gradle.kts exists")
           PYCFG
       - name: Configure Android security storage
         shell: bash
