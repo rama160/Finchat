@@ -13,8 +13,8 @@
 8. PDF export — **baseline completed**.
 9. Backup & Google Drive sync — **provider baseline completed**; Phase 11.5 implements local backup UI, Google OAuth wiring and Drive sync UX. Automatic execution remains an explicit verification/hardening item.
 10. Update & Release — **completed**.
-11. QA & End-to-End Integration — **active**.
-12. Production Hardening — future.
+11. QA & End-to-End Integration — **CI/release verified; device acceptance pending**.
+12. Production Hardening — **implemented 12.1–12.8; CI/device acceptance pending**.
 
 ## Phase 10 — Update & Release
 
@@ -65,12 +65,12 @@ A phase may contain carry-over remediation from an earlier phase when the missin
 GitHub Actions remains the canonical CI environment because the project is intentionally buildable without a local Flutter installation.
 
 
-### Phase 11.2 Receipt/OCR — ACTIVE
+### Phase 11.2 Receipt/OCR — IMPLEMENTED; DEVICE VERIFICATION PENDING
 
 The vertical slice now connects camera/gallery input to the existing preprocessing and ML Kit OCR services, parses multiple receipt line items, presents a review/edit screen, learns category corrections, and persists reviewed transactions to SQLite. Device permission/error handling and release/device verification remain acceptance work.
 
 
-## Phase 11.3 — Voice transaction integration — ACTIVE
+## Phase 11.3 — Voice transaction integration — IMPLEMENTED; DEVICE VERIFICATION PENDING
 
 Implemented vertical integration:
 - microphone button in the transaction composer;
@@ -95,11 +95,27 @@ Implemented: local JSON export/import, restore confirmation, Google Sign-In auth
 Implemented: concrete OpenAI-compatible provider behind the existing `AiCategoryProvider` contract, secure configuration, local-first category classification, malformed/offline fallback, and financial Q&A using application-computed report data. AI does not write SQLite.
 
 ## Phase 11.7 — End-to-End QA
-Implemented QA tooling and matrix covering fresh install, session, text/OCR/voice, reports/PDF, backup/Drive, AI, permissions, network failures, malformed input, double taps, back navigation, release APK, and evidence recording. Execution remains pending.
+QA tooling and matrix are implemented. The project owner has verified the cumulative package through analyze, tests, and release APK. Real-device execution remains pending and is intentionally scheduled after Phase 12 hardening.
 
 
 ## Phase 12 gate
-Phase 12 starts only after Phase 11 has Analyze verified, Tests verified, Release build verified, Device verified, and Product accepted evidence.
+Phase 12 engineering may proceed after the Phase 11 code path reaches Analyze, Tests, and Release-build verification. Device verification remains the final product-acceptance gate and is not claimed by this package.
 
 ### Phase 11 CI correction
 After the 11.4–11.7 cumulative merge, analyzer cleanup was required for integration imports, an unused Drive import, report-screen syntax, and tests aligned to the current report/AI contracts. This is a CI stabilization step; feature scope is unchanged.
+
+
+## PHASE 12 — Production Hardening
+12.1 Stability & Crash Hardening
+12.2 Data Integrity
+12.3 AI Reliability & Safety
+12.4 Performance
+12.5 Security
+12.6 UX Resilience
+12.7 Release Hardening
+12.8 Final Product Acceptance
+
+Delivered as one cumulative package while retaining separate sub-phase scope.
+
+## Phase 12 account and monetization foundation
+Added Google Sign-In session integration and the disabled foundation for four subscription tiers and multiple payment methods. Monetization remains OFF during pilot testing. Google OAuth and backend verification are device/configuration gates, not claimed by source-level CI.

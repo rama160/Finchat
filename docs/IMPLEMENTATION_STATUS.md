@@ -12,7 +12,7 @@ The Phase 11.1 immediate-save transaction flow remains the current feature basel
 
 ## Current Phase
 
-**Phase 11 — End-to-End Integration (11.3 Voice active)**
+**Phase 12 — Production Hardening (12.1–12.8 prepared)**
 
 ## Verification baseline
 
@@ -178,3 +178,20 @@ Verification status: source implemented; local Flutter execution is unavailable 
 
 ### Phase 11 CI analyzer correction — prepared
 The merged 11.4–11.7 package had nine analyzer issues caused by integration/test drift and three malformed widget expressions. The source has been corrected without changing the production report, backup, or AI contracts. GitHub Actions must re-run `flutter analyze`, the full test suite, and the release build before product/device acceptance.
+
+
+## Phase 12 — Production Hardening
+
+Phase 12.1–12.8 is implemented cumulatively from the last Phase 11 CI/release baseline. Changes cover transaction validation and atomic multi-save, backup validation, AI network safeguards, UI error resilience, login validation, and release metadata. No SQLite schema change was introduced. Flutter execution remains a GitHub Actions verification responsibility for this workspace; device acceptance remains pending.
+
+## Multi-user / monetization foundation
+- Google Sign-In: implemented in session/application layers; Google OAuth device configuration and real provider verification remain pending.
+- Subscription model: Free, Basic, Pro, Unlimited defined; only Free enabled in pilot.
+- Payment model: QRIS, GoPay, bank transfer, card and other e-wallet methods defined behind a backend payment gateway contract.
+- Monetization: disabled by feature flags; no payment is collected in the pilot build.
+- Version: 0.3.1+4.
+
+## Google OAuth build audit
+- CI/release workflows pass the server client ID through the `FINCHAT_GOOGLE_SERVER_CLIENT_ID` GitHub Actions secret.
+- Release workflow default tag is aligned to `v0.3.1`.
+- Runtime Google OAuth still requires the correct Android OAuth package name and signing SHA-1.

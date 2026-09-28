@@ -102,7 +102,17 @@ Backup/Google Drive UI and service integration is implemented. OAuth/Drive devic
 AI is integrated behind existing contracts. Local parser and category learning remain first; configured AI is used only as fallback. Financial Q&A receives application-computed report data rather than querying SQLite directly.
 
 ### Phase 11.7
-Phase 11 feature integration is packaged. The final status must remain pending until analyze, tests, release APK build, and the real Android device matrix are executed.
+Phase 11 feature integration is packaged. Phase 11 analyze, tests, and release APK build have been verified by the project owner. Real-device acceptance remains pending and is intentionally deferred until after Phase 12 hardening.
 
 ### Latest CI stabilization
 The cumulative Phase 11 package has received a source-level analyzer correction for the 11.4–11.7 merge: integration-test Flutter import, unused Drive import, report-screen syntax, ReportSummary test arguments, and AI secure-config test parameter names. No production data model or feature contract was intentionally changed. The next gate is a fresh GitHub Actions `flutter analyze`, full `flutter test`, and release APK build.
+
+
+## Phase 12 handoff
+Phase 12.1–12.8 production hardening is included from the last Phase 11 CI/release baseline. No SQLite schema migration. Run GitHub Actions analyze/test/release next, then perform one complete device QA cycle. See `docs/PHASE_12_HARDENING_MATRIX.md`.
+
+## Multi-user account & monetization foundation
+
+Google Sign-In is now integrated into the session layer. Users can enter through Google; the existing email-only path remains as a local development/testing fallback. Google identity metadata is kept in secure session storage and Google ID tokens are not persisted.
+
+Premium monetization has a disabled foundation with four tiers: Free, Basic, Pro, Unlimited. Payment methods are modeled for QRIS, GoPay, bank transfer, card and other e-wallets. Subscription and payment flags remain OFF during the pilot test period. See `docs/GOOGLE_SIGN_IN_SETUP.md` and `docs/MULTI_USER_AI_AND_MONETIZATION.md`.

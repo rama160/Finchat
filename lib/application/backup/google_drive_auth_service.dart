@@ -2,35 +2,29 @@ import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sig
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis_auth/googleapis_auth.dart' as auth;
 
-class GoogleDriveAuthService {
-  GoogleDriveAuthService({this.clientId});
+import '../auth/google_sign_in_coordinator.dart';
 
-  final String? clientId;
+class GoogleDriveAuthService {
+  GoogleDriveAuthService({GoogleSignInCoordinator? coordinator})
+      : _coordinator = coordinator ?? GoogleSignInCoordinator.instance;
+
+  final GoogleSignInCoordinator _coordinator;
   static const scopes = <String>['https://www.googleapis.com/auth/drive.appdata'];
   GoogleSignInAccount? _currentUser;
-  Future<void>? _initialization;
 
-  Future<void> initialize() {
-    return _initialization ??= GoogleSignIn.instance.initialize(clientId: clientId).then((_) {
-      GoogleSignIn.instance.authenticationEvents.listen((event) {
-        switch (event) {
-          case GoogleSignInAuthenticationEventSignIn():
-            _currentUser = event.user;
-          case GoogleSignInAuthenticationEventSignOut():
-            _currentUser = null;
-        }
-      });
-    });
+  Future<void> initialize() async {
+    await _coordinator.initialize();
+    _currentUser ??= _coordinator.signIn.currentUser;
   }
 
   GoogleSignInAccount? get currentUser => _currentUser;
 
   Future<GoogleSignInAccount> signIn() async {
     await initialize();
-    if (!GoogleSignIn.instance.supportsAuthenticate()) {
+    if (!_coordinator.signIn.supportsAuthenticate()) {
       throw StateError('Google Sign-In pada platform ini tidak menyediakan authenticate().');
     }
-    final user = await GoogleSignIn.instance.authenticate();
+    final user = await _coordinator.signIn.authenticate();
     _currentUser = user;
     return user;
   }
@@ -45,7 +39,7 @@ class GoogleDriveAuthService {
 
   Future<void> signOut() async {
     await initialize();
-    await GoogleSignIn.instance.signOut();
+    await _coordinator.signIn.signOut();
     _currentUser = null;
   }
 }

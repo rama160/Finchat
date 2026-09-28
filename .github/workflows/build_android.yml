@@ -110,7 +110,7 @@ jobs:
           manifest.write_text(text)
           PYCFG
       - name: Build release APK
-        run: flutter build apk --release
+        run: flutter build apk --release --dart-define=FINCHAT_GOOGLE_SERVER_CLIENT_ID=${{ secrets.FINCHAT_GOOGLE_SERVER_CLIENT_ID }}
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:

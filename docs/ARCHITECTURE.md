@@ -50,3 +50,19 @@ The provider only reports a newer release and its release URL/APK asset. It does
 ## Documentation architecture
 
 `docs/ROADMAP_AUDIT.md` is the source for known gaps between technical phase baselines and full PRD acceptance. Every future phase must reconcile implementation status and changelog with the actual repository state.
+
+
+## Phase 12 hardening architecture
+Transaction persistence now supports atomic multi-save and pre-persistence validation. Backup snapshots are validated before restore. AI network access is bounded by HTTPS configuration, timeout and response-size checks.
+
+## Multi-user authentication
+
+`LoginScreen -> SessionManager -> GoogleAuthService -> Google Sign-In` creates a Google-backed session. `SecureSessionRepository` stores only session metadata in secure storage. The Google ID token is not persisted. Existing email login remains a local/testing fallback and is not the intended public account flow.
+
+## Monetization foundation
+
+`SubscriptionService -> MonetizationConfig` defines Free/Basic/Pro/Unlimited while feature flags keep paid tiers disabled during pilot. `PaymentGateway` is a provider-neutral backend contract; payment credentials must never be placed in the mobile client.
+
+## Shared AI target
+
+For a multi-user production service, the mobile client should send a verifiable Google identity token over HTTPS to a FinChat backend/AI gateway. The backend verifies identity, resolves entitlement/rate limits, and calls the Gemini/API provider using a server-side secret. The Android app must never contain the shared provider API key.

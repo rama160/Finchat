@@ -1,12 +1,24 @@
 import 'package:flutter/material.dart';
 
+import 'application/auth/google_auth_service.dart';
+import 'application/auth/google_sign_in_coordinator.dart';
 import 'application/session/session_manager.dart';
 import 'data/session/secure_session_repository.dart';
 import 'presentation/navigation/app_router.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final sessionManager = SessionManager(SecureSessionRepository());
+  final googleServerClientId = const String.fromEnvironment('FINCHAT_GOOGLE_SERVER_CLIENT_ID');
+  final googleAuth = GoogleAuthService(
+    serverClientId: googleServerClientId.isEmpty ? null : googleServerClientId,
+  );
+  GoogleSignInCoordinator.instance.configure(
+    serverClientId: googleServerClientId.isEmpty ? null : googleServerClientId,
+  );
+  final sessionManager = SessionManager(
+    SecureSessionRepository(),
+    googleAuth: googleAuth,
+  );
   await sessionManager.initialize();
   runApp(FinChatApp(sessionManager: sessionManager));
 }

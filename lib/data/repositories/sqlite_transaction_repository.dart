@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 
+import '../../core/validation/transaction_validator.dart';
 import '../../domain/entities/transaction_entity.dart';
 import '../../domain/repositories/transaction_repository.dart';
 import '../local/finchat_database.dart';
@@ -70,8 +71,25 @@ class SqliteTransactionRepository implements TransactionRepository {
 
   @override
   Future<void> save(TransactionEntity transaction) async {
+    TransactionValidator.validate(transaction);
     final db = await database.database;
     await db.insert('transactions', _toRow(transaction), conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  @override
+  Future<void> saveAll(List<TransactionEntity> transactions) async {
+    if (transactions.isEmpty) return;
+    for (final transaction in transactions) TransactionValidator.validate(transaction);
+    final ids = <String>{};
+    for (final transaction in transactions) {
+      if (!ids.add(transaction.id)) throw StateError('ID transaksi duplikat dalam satu operasi penyimpanan.');
+    }
+    final db = await database.database;
+    await db.transaction((txn) async {
+      for (final transaction in transactions) {
+        await txn.insert('transactions', _toRow(transaction), conflictAlgorithm: ConflictAlgorithm.abort);
+      }
+    });
   }
 
   @override
@@ -79,6 +97,7 @@ class SqliteTransactionRepository implements TransactionRepository {
 
   @override
   Future<void> delete(String id) async {
+    if (id.trim().isEmpty) throw ArgumentError.value(id, 'id', 'must not be empty');
     final db = await database.database;
     await db.update(
       'transactions',

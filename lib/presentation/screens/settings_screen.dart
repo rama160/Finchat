@@ -48,11 +48,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _saveAiConfig() async {
-    final existingKey = await _aiConfig.readApiKey();
-    final apiKey = _aiKey.text.trim().isEmpty ? (existingKey ?? '') : _aiKey.text;
-    await _aiConfig.save(apiKey: apiKey, endpoint: _aiEndpoint.text, model: _aiModel.text, enabled: _aiEnabled);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Konfigurasi AI disimpan aman di secure storage.')));
+    try {
+      final existingKey = await _aiConfig.readApiKey();
+      final apiKey = _aiKey.text.trim().isEmpty ? (existingKey ?? '') : _aiKey.text;
+      await _aiConfig.save(apiKey: apiKey, endpoint: _aiEndpoint.text, model: _aiModel.text, enabled: _aiEnabled);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Konfigurasi AI disimpan aman di secure storage.')));
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Konfigurasi AI tidak valid: $error')));
+    }
   }
 
   void _checkForUpdate() {
@@ -91,12 +95,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: Text('Akun'),
             subtitle: Text('Session disimpan secara aman di perangkat.'),
           ),
-          if (session != null)
+          if (session != null) ...[
             ListTile(
               leading: const Icon(Icons.email_outlined),
               title: const Text('Email'),
               subtitle: Text(session.email),
             ),
+            ListTile(
+              leading: Icon(session.authProvider == 'google' ? Icons.account_circle : Icons.person_outline),
+              title: const Text('Metode masuk'),
+              subtitle: Text(session.authProvider == 'google' ? 'Google' : 'Email lokal'),
+            ),
+          ],
           if (session != null) ...[
             ListTile(
               leading: const Icon(Icons.auto_awesome_outlined),
@@ -124,6 +134,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ],
           const Divider(),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.workspace_premium_outlined),
+              title: const Text('FinChat Premium'),
+              subtitle: const Text('4 tier (Free, Basic, Pro, Unlimited) disiapkan. Pembayaran masih dimatikan selama pilot.'),
+              trailing: const Icon(Icons.lock_outline),
+            ),
+          ),
           if (session != null)
             ListTile(
               leading: const Icon(Icons.backup_outlined),
@@ -144,6 +162,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             trailing: const Icon(Icons.chevron_right),
             onTap: _checkForUpdate,
           ),
+          if (session != null)
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: const Text('Keluar'),
+              subtitle: const Text('Hapus sesi FinChat dari perangkat ini.'),
+              onTap: () => SessionScope.of(context).logout(),
+            ),
           if (_updateCheck != null)
             FutureBuilder<AppUpdate?>(
               future: _updateCheck,

@@ -6,7 +6,7 @@ on:
       tag:
         description: 'Release tag, e.g. v0.2.0'
         required: true
-        default: 'v0.2.0'
+        default: 'v0.3.1'
 
 jobs:
   release:
@@ -87,10 +87,29 @@ jobs:
               text = text.replace("<application", "<application android:allowBackup=\"false\"", 1) if "android:allowBackup" not in text else text
               manifest.write_text(text)
           PYCFG
-      - run: flutter build apk --release
+      - run: flutter build apk --release --dart-define=FINCHAT_GOOGLE_SERVER_CLIENT_ID=${{ secrets.FINCHAT_GOOGLE_SERVER_CLIENT_ID }}
+      - name: Verify release tag matches pubspec version
+        shell: bash
+        run: |
+          VERSION=$(python3 - <<'PY'
+          import re
+          text=open('pubspec.yaml', encoding='utf-8').read()
+          print(re.search(r'^version:\s*["\']([^"\']+)["\']', text, re.M).group(1))
+          PY
+          )
+          EXPECTED="v${VERSION%%+*}"
+          if [ "${{ inputs.tag }}" != "$EXPECTED" ]; then
+            echo "Tag ${{ inputs.tag }} tidak cocok dengan versi pubspec $VERSION (expected $EXPECTED)."
+            exit 1
+          fi
+      - name: Generate APK checksum
+        shell: bash
+        run: sha256sum build/app/outputs/flutter-apk/app-release.apk > build/app/outputs/flutter-apk/app-release.apk.sha256
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag }}
           generate_release_notes: true
-          files: build/app/outputs/flutter-apk/app-release.apk
+          files: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/flutter-apk/app-release.apk.sha256

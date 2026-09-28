@@ -56,10 +56,21 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
     if (mounted) setState(() => _reportFuture = future);
   }
 
+  bool _exporting = false;
+
   Future<void> _exportPdf(ReportSummary report) async {
-    final title = switch (_tabController.index) { 0 => 'Laporan Harian', 1 => 'Laporan Rentang', _ => 'Laporan Bulanan' };
-    final bytes = await _reportPdfService.generate(report: report, reportTitle: title);
-    await Printing.sharePdf(bytes: bytes, filename: reportPdfFileName(title, report.start));
+    if (_exporting) return;
+    setState(() => _exporting = true);
+    try {
+      final title = switch (_tabController.index) { 0 => 'Laporan Harian', 1 => 'Laporan Rentang', _ => 'Laporan Bulanan' };
+      final bytes = await _reportPdfService.generate(report: report, reportTitle: title);
+      if (!mounted) return;
+      await Printing.sharePdf(bytes: bytes, filename: reportPdfFileName(title, report.start));
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal membuat PDF: $error')));
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
   }
 
   Future<void> _pickDay() async {

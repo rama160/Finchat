@@ -65,6 +65,34 @@ class BackupSnapshot {
       tables: tables,
     );
   }
+
+  void validateForRestore() {
+    const requiredTables = <String>{'users', 'categories', 'transactions', 'category_mappings', 'category_history', 'app_settings'};
+    const columns = <String, Set<String>>{
+      'users': {'id', 'email', 'display_name', 'created_at', 'updated_at'},
+      'categories': {'id', 'name', 'type', 'is_system', 'created_at', 'updated_at'},
+      'transactions': {'id', 'user_id', 'type', 'amount', 'description', 'category_id', 'transaction_date', 'transaction_time', 'input_source', 'processed_by', 'confidence', 'created_at', 'updated_at', 'deleted_at', 'sync_status'},
+      'category_mappings': {'id', 'user_id', 'normalized_keyword', 'category_id', 'source', 'confidence', 'usage_count', 'last_used_at', 'created_at', 'updated_at'},
+      'category_history': {'id', 'user_id', 'transaction_id', 'keyword', 'previous_category_id', 'new_category_id', 'source', 'created_at'},
+      'app_settings': {'key', 'value', 'updated_at'},
+    };
+    if (!tables.keys.toSet().containsAll(requiredTables)) throw const FormatException('Backup tidak lengkap: tabel FinChat yang wajib tidak tersedia.');
+    final unknown = tables.keys.where((key) => !requiredTables.contains(key));
+    if (unknown.isNotEmpty) throw FormatException('Backup memiliki tabel yang tidak didukung: ${unknown.join(', ')}.');
+    for (final entry in tables.entries) {
+      final allowed = columns[entry.key]!;
+      for (final row in entry.value) {
+        if (row.keys.any((key) => !allowed.contains(key))) throw FormatException('Backup tabel ${entry.key} memiliki kolom yang tidak didukung.');
+        if (!row.keys.toSet().containsAll(allowed)) throw FormatException('Backup tabel ${entry.key} tidak memiliki kolom yang lengkap.');
+      }
+    }
+    for (final row in tables['transactions']!) {
+      final amount = row['amount'];
+      final confidence = row['confidence'];
+      if (amount is! num || !amount.isFinite || amount <= 0) throw const FormatException('Backup memiliki nominal transaksi yang tidak valid.');
+      if (confidence is! num || !confidence.isFinite || confidence < 0 || confidence > 1) throw const FormatException('Backup memiliki confidence transaksi yang tidak valid.');
+    }
+  }
 }
 
 abstract interface class CloudBackupProvider {

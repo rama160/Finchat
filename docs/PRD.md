@@ -39,3 +39,12 @@ Menyediakan aplikasi keuangan pribadi yang mudah digunakan, offline-first, denga
 ## Product-completion rule
 
 A technical phase may be marked as a baseline when its contracts/services/tests pass, but the original product acceptance criteria remain open until the corresponding UI/device/end-to-end behavior is implemented. See `docs/ROADMAP_AUDIT.md`.
+
+
+## Phase 12 production-hardening acceptance
+- Transaction writes are validated and multi-transaction saves are atomic.
+- Invalid backup structures are rejected before destructive restore.
+- AI configuration and network behavior fail safely.
+- UI operation failures are surfaced without crashing the application.
+- Release metadata is versioned without embedding signing credentials.
+- Final acceptance requires CI plus one complete Android device QA cycle.

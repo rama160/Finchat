@@ -262,3 +262,27 @@ Every meaningful future change must record:
 - Updated `ReportPdfService` tests for the current `ReportSummary` contract (`transactions` and `categories`).
 - Updated OpenAI-compatible provider tests to use the current `AiSecureConfigService(store: ...)` parameter.
 - Status: source corrections prepared; GitHub Actions `flutter analyze`, full test suite, and release build remain the verification gate.
+
+
+## Phase 12 — Production Hardening
+- Added transaction validation and atomic multi-transaction persistence.
+- Added backup structure validation before restore.
+- Added AI HTTPS requirement, timeout and response-size safeguards.
+- Hardened login, report PDF export, backup import and transaction edit/delete error handling.
+- Advanced application version to `0.3.0+3`.
+- Added Phase 12.1–12.8 hardening matrix.
+
+## Google OAuth build configuration audit
+- GitHub Android build now passes `FINCHAT_GOOGLE_SERVER_CLIENT_ID` through a GitHub Actions secret.
+- Release workflow default tag updated to `v0.3.1` to match app version `0.3.1+4`.
+- No transaction, SQLite, OCR, voice, report/PDF, backup core, or AI hardening source was changed by this audit.
+
+## Multi-user account & monetization foundation
+- Added Google Sign-In to the application session flow.
+- Added secure session metadata for authentication provider, Google user ID and display name.
+- Preserved normalized email as the local user key to avoid breaking existing user-scoped SQLite data.
+- Added Free, Basic, Pro and Unlimited subscription models.
+- Added payment method foundation for QRIS, GoPay, bank transfer, card and other e-wallets.
+- Added disabled monetization/payment feature flags for the pilot period.
+- Added Google Sign-In setup and multi-user AI/monetization architecture documentation.
+- Advanced app version to 0.3.1+4.

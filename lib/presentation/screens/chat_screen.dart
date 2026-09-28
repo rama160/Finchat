@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../application/ocr/receipt_ocr_service.dart';
+import '../../core/validation/transaction_validator.dart';
 import '../../application/ocr/receipt_transaction_parser.dart';
 import '../../application/transactions/transaction_intelligence_service.dart';
 import '../../application/transactions/local_transaction_parser.dart';
@@ -86,9 +87,13 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _loadTransactions() async {
     final session = SessionScope.of(context).session;
     if (session == null) return;
-    await _database.ensureUser(userId: session.userId, email: session.email);
-    final items = await _transactions.getByUser(session.userId);
-    if (mounted) setState(() => _items = items);
+    try {
+      await _database.ensureUser(userId: session.userId, email: session.email);
+      final items = await _transactions.getByUser(session.userId);
+      if (mounted) setState(() => _items = items);
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal memuat transaksi: $error')));
+    }
   }
 
   Future<void> _saveIntelligentResults({
@@ -98,6 +103,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }) async {
     final session = SessionScope.of(context).session;
     if (session == null) return;
+    TransactionValidator.validateInput(input);
 
     await _database.ensureUser(userId: session.userId, email: session.email);
     final results = await _intelligence.process(userId: session.userId, input: input);
@@ -106,9 +112,10 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     final now = DateTime.now();
+    final transactions = <TransactionEntity>[];
     for (var index = 0; index < results.length; index++) {
       final item = results[index];
-      await _transactions.save(TransactionEntity(
+      transactions.add(TransactionEntity(
         id: '${session.userId}_${now.microsecondsSinceEpoch}_${source.name}_$index',
         userId: session.userId,
         type: item.type == ParsedTransactionType.income ? TransactionType.income : TransactionType.expense,
@@ -123,6 +130,7 @@ class _ChatScreenState extends State<ChatScreen> {
         updatedAt: now,
       ));
     }
+    await _transactions.saveAll(transactions);
     await _loadTransactions();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(successMessage.replaceFirst('{count}', '${results.length}'))));
@@ -282,9 +290,10 @@ class _ChatScreenState extends State<ChatScreen> {
       if (reviewed == null || reviewed.isEmpty) return;
 
       final now = DateTime.now();
+      final transactions = <TransactionEntity>[];
       for (var index = 0; index < reviewed.length; index++) {
         final item = reviewed[index];
-        await _transactions.save(TransactionEntity(
+        transactions.add(TransactionEntity(
           id: '${session.userId}_${now.microsecondsSinceEpoch}_ocr_$index',
           userId: session.userId,
           type: item.type,
@@ -299,6 +308,7 @@ class _ChatScreenState extends State<ChatScreen> {
           updatedAt: now,
         ));
       }
+      await _transactions.saveAll(transactions);
 
       for (var index = 0; index < reviewed.length && index < reviewItems.length; index++) {
         final original = reviewItems[index];
@@ -350,28 +360,36 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _editTransaction(TransactionEntity transaction) async {
-    final categories = await _categories.getCategories();
-    if (!mounted) return;
-    final result = await showDialog<TransactionEntity>(
-      context: context,
-      builder: (_) => _EditTransactionDialog(transaction: transaction, categories: categories),
-    );
-    if (result == null) return;
-
-    await _transactions.update(result);
-    if (result.categoryId != transaction.categoryId) {
-      await _learning.recordCorrection(
-        userId: transaction.userId,
-        text: result.description,
-        categoryId: result.categoryId,
+    try {
+      final categories = await _categories.getCategories();
+      if (!mounted) return;
+      final result = await showDialog<TransactionEntity>(
+        context: context,
+        builder: (_) => _EditTransactionDialog(transaction: transaction, categories: categories),
       );
+      if (result == null) return;
+
+      await _transactions.update(result);
+      if (result.categoryId != transaction.categoryId) {
+        await _learning.recordCorrection(
+          userId: transaction.userId,
+          text: result.description,
+          categoryId: result.categoryId,
+        );
+      }
+      await _loadTransactions();
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal mengubah transaksi: $error')));
     }
-    await _loadTransactions();
   }
 
   Future<void> _deleteTransaction(TransactionEntity transaction) async {
-    await _transactions.delete(transaction.id);
-    await _loadTransactions();
+    try {
+      await _transactions.delete(transaction.id);
+      await _loadTransactions();
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal menghapus transaksi: $error')));
+    }
   }
 
   @override

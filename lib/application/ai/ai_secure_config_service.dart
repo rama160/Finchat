@@ -28,9 +28,18 @@ class AiSecureConfigService {
   Future<bool> readEnabled() async => (await _store.read(key: enabledKey)) == 'true';
 
   Future<void> save({required String apiKey, required String endpoint, required String model, required bool enabled}) async {
-    await _store.write(key: apiKeyKey, value: apiKey.trim());
-    await _store.write(key: endpointKey, value: endpoint.trim());
-    await _store.write(key: modelKey, value: model.trim());
+    final normalizedKey = apiKey.trim();
+    final normalizedEndpoint = endpoint.trim();
+    final normalizedModel = model.trim();
+    if (enabled) {
+      if (normalizedKey.isEmpty) throw const FormatException('API key wajib diisi ketika AI fallback aktif.');
+      final uri = Uri.tryParse(normalizedEndpoint);
+      if (uri == null || uri.scheme != 'https' || uri.host.isEmpty) throw const FormatException('Endpoint AI aktif harus menggunakan URL HTTPS yang valid.');
+      if (normalizedModel.isEmpty) throw const FormatException('Model AI wajib diisi ketika AI fallback aktif.');
+    }
+    await _store.write(key: apiKeyKey, value: normalizedKey);
+    await _store.write(key: endpointKey, value: normalizedEndpoint);
+    await _store.write(key: modelKey, value: normalizedModel);
     await _store.write(key: enabledKey, value: enabled ? 'true' : 'false');
   }
 

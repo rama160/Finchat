@@ -21,3 +21,7 @@ If AI fails, preserve the original input, allow manual correction, and never los
 
 ## Financial answers
 Use application-computed facts from local data. AI should explain results, not manufacture financial records.
+
+
+## Phase 12 hardening
+Enabled AI requires an HTTPS endpoint, model and API key. Network requests are time-bounded and oversized/malformed responses are rejected. AI remains read-only with respect to SQLite.

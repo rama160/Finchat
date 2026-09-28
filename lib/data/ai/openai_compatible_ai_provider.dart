@@ -38,17 +38,27 @@ class OpenAiCompatibleAiProvider implements AiCategoryProvider, FinancialAiProvi
     if (!enabled || apiKey == null || apiKey.trim().isEmpty || endpoint == null || endpoint.trim().isEmpty || model == null || model.trim().isEmpty) return null;
 
     final uri = Uri.tryParse(endpoint);
-    if (uri == null || !uri.hasScheme) return null;
+    if (uri == null || uri.scheme != 'https' || uri.host.isEmpty) return null;
     try {
-      final result = await _client.post(uri, headers: {'Authorization': 'Bearer ${apiKey.trim()}', 'Content-Type': 'application/json'}, body: jsonEncode({'model': model.trim(), 'temperature': 0.1, 'messages': [{'role': 'system', 'content': 'Anda adalah asisten keuangan pribadi. Jangan mengarang data. Gunakan hanya data yang diberikan aplikasi. Untuk klasifikasi kategori, keluarkan JSON yang diminta.'}, {'role': 'user', 'content': prompt}]}));
+      final result = await _client.post(
+        uri,
+        headers: {'Authorization': 'Bearer ${apiKey.trim()}', 'Content-Type': 'application/json'},
+        body: jsonEncode({'model': model.trim(), 'temperature': 0.1, 'messages': [
+          {'role': 'system', 'content': 'Anda adalah asisten keuangan pribadi. Jangan mengarang data. Gunakan hanya data yang diberikan aplikasi. Untuk klasifikasi kategori, keluarkan JSON yang diminta.'},
+          {'role': 'user', 'content': prompt},
+        ]}),
+      ).timeout(const Duration(seconds: 20));
       if (result.statusCode < 200 || result.statusCode >= 300) return null;
+      if (result.body.length > 1024 * 1024) return null;
       final body = jsonDecode(result.body);
       if (body is! Map) return null;
       final choices = body['choices'];
       if (choices is! List || choices.isEmpty || choices.first is! Map) return null;
       final message = choices.first['message'];
       if (message is! Map || message['content'] is! String) return null;
-      return (message['content'] as String).trim();
+      final content = (message['content'] as String).trim();
+      if (content.isEmpty || content.length > 20000) return null;
+      return content;
     } catch (_) {
       return null;
     }

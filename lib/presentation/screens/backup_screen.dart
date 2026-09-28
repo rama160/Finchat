@@ -65,22 +65,38 @@ class _BackupScreenState extends State<BackupScreen> {
     await _run(() async {
       final bytes = await _backup.exportBytes();
       final directory = Directory.systemTemp;
-      final file = File('${directory.path}/finchat_backup.json');
+      final file = File('${directory.path}/finchat_backup_${DateTime.now().millisecondsSinceEpoch}.json');
       await file.writeAsBytes(bytes, flush: true);
       await SharePlus.instance.share(ShareParams(files: [XFile(file.path, mimeType: 'application/json')], subject: 'Backup FinChat'));
     }, 'Backup lokal dibuat. Simpan file finchat_backup.json di lokasi aman.');
   }
 
   Future<void> _importLocal() async {
-    final file = await FilePicker.pickFile(type: FileType.custom, allowedExtensions: ['json']);
-    if (file == null) return;
-    if (!mounted) return;
-    final confirmed = await showDialog<bool>(context: context, builder: (context) => AlertDialog(title: const Text('Pulihkan backup?'), content: const Text('Data lokal yang ada akan diganti oleh isi backup. Tindakan ini tidak dapat dibatalkan.'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')), FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Pulihkan'))]));
-    if (confirmed != true) return;
-    await _run(() async {
-      final bytes = await file.readAsBytes();
-      await _backup.restoreJson(String.fromCharCodes(bytes));
-    }, 'Backup lokal berhasil dipulihkan.');
+    try {
+      final file = await FilePicker.pickFile(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+      if (file == null || !mounted) return;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Pulihkan backup?'),
+          content: const Text('Data lokal yang ada akan diganti oleh isi backup. Tindakan ini tidak dapat dibatalkan.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
+            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Pulihkan')),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+      await _run(() async {
+        final bytes = await file.readAsBytes();
+        await _backup.restoreJson(String.fromCharCodes(bytes));
+      }, 'Backup lokal berhasil dipulihkan.');
+    } catch (error) {
+      if (mounted) setState(() => _status = 'Gagal memilih/membaca backup: $error');
+    }
   }
 
   Future<void> _connectGoogle() async {

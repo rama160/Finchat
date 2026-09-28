@@ -48,6 +48,7 @@ class BackupService {
   }
 
   Future<void> restoreSnapshot(BackupSnapshot snapshot) async {
+    snapshot.validateForRestore();
     final db = await database.database;
     await db.transaction((txn) async {
       await txn.delete('category_history');

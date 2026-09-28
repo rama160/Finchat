@@ -63,3 +63,7 @@ The repository has technical baselines through Phase 9. Product-level gaps are t
 - The app can open the published release page when a newer semantic version is detected.
 - Release workflow and application version are aligned at `0.2.0+2` for this milestone.
 - Automatic/self-install APK update is not claimed complete.
+
+
+## Phase 12 state
+Phase 12.1–12.8 hardening is prepared cumulatively. No SQLite schema change. CI and Android device verification remain the final external gates.

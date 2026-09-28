@@ -14,6 +14,7 @@ abstract interface class TransactionRepository {
     required String categoryId,
   });
   Future<void> save(TransactionEntity transaction);
+  Future<void> saveAll(List<TransactionEntity> transactions);
   Future<void> update(TransactionEntity transaction);
   Future<void> delete(String id);
 }

@@ -65,4 +65,14 @@ Backup lokal JSON, restore dengan konfirmasi, Google Sign-In + Google Drive appD
 Added a concrete OpenAI-compatible AI adapter behind the existing category fallback contract, secure API configuration, offline-safe fallback behavior, and a financial Q&A screen based on app-computed report data.
 
 ### Phase 11.7
-Added the final Phase 11 E2E QA matrix, integration-test shell, and Windows QA runner. Device verification remains pending until the user executes the real-device checklist.
+Added the final Phase 11 E2E QA matrix, integration-test shell, and Windows QA runner. Device verification remains pending and is intentionally scheduled after Phase 12 hardening.
+
+
+## Phase 12
+Phase 12.1–12.8 production hardening is included in the latest cumulative package. Run GitHub Actions analyze/test/release before device acceptance.
+
+## Multi-user account foundation
+Google Sign-In is integrated into the session layer. Existing email login remains only as a local/testing fallback so existing local data is not stranded. Real Google OAuth device verification requires the app's own OAuth configuration and SHA-1 credentials.
+
+## Monetization foundation (OFF)
+Four subscription tiers are modeled: Free, Basic, Pro, Unlimited. Payment methods are modeled for QRIS, GoPay, bank transfer, card and other e-wallets. Subscription and payment flags are disabled during pilot testing; no payment is collected. Production billing must be enforced by a backend and verified entitlement/webhook flow.
