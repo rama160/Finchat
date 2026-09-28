@@ -14,7 +14,8 @@ class GoogleDriveAuthService {
 
   Future<void> initialize() async {
     await _coordinator.initialize();
-    _currentUser ??= _coordinator.signIn.currentUser;
+    _currentUser ??=
+        await _coordinator.signIn.attemptLightweightAuthentication();
   }
 
   GoogleSignInAccount? get currentUser => _currentUser;

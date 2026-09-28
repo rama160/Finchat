@@ -79,7 +79,9 @@ class SqliteTransactionRepository implements TransactionRepository {
   @override
   Future<void> saveAll(List<TransactionEntity> transactions) async {
     if (transactions.isEmpty) return;
-    for (final transaction in transactions) TransactionValidator.validate(transaction);
+    for (final transaction in transactions) {
+      TransactionValidator.validate(transaction);
+    }
     final ids = <String>{};
     for (final transaction in transactions) {
       if (!ids.add(transaction.id)) throw StateError('ID transaksi duplikat dalam satu operasi penyimpanan.');

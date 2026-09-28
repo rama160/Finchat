@@ -1,3 +1,10 @@
+# Phase 12 Google Auth — CI analyzer correction
+
+- Fixed `google_sign_in` 7.x compatibility by replacing the removed `GoogleSignIn.currentUser` access with `attemptLightweightAuthentication()` in the Google Drive authorization service.
+- Fixed analyzer `prefer_initializing_formals` findings in `GoogleSignInCoordinator` and `SessionManager` without changing runtime behavior.
+- Added curly braces around transaction validation flow in `SqliteTransactionRepository`; transaction validation and atomic save behavior remain unchanged.
+- **Status:** source correction prepared for GitHub Actions `flutter analyze`, `flutter test`, and release APK verification.
+
 # Phase 11.3 — Voice transaction integration
 
 - Added microphone input to the existing transaction composer.

@@ -1,9 +1,8 @@
 import 'package:google_sign_in/google_sign_in.dart';
 
 class GoogleSignInCoordinator {
-  GoogleSignInCoordinator({GoogleSignIn? signIn, String? serverClientId})
-      : _signIn = signIn ?? GoogleSignIn.instance,
-        _serverClientId = serverClientId;
+  GoogleSignInCoordinator({GoogleSignIn? signIn, this._serverClientId})
+      : _signIn = signIn ?? GoogleSignIn.instance;
 
   static final instance = GoogleSignInCoordinator();
 

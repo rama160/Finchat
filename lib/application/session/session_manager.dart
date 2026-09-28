@@ -5,7 +5,7 @@ import '../../domain/repositories/session_repository.dart';
 import '../auth/google_auth_service.dart';
 
 class SessionManager extends ChangeNotifier {
-  SessionManager(this._repository, {GoogleAuthGateway? googleAuth}) : _googleAuth = googleAuth;
+  SessionManager(this._repository, {this._googleAuth});
 
   final SessionRepository _repository;
   final GoogleAuthGateway? _googleAuth;
