@@ -9,6 +9,7 @@ void main() {
     await manager.initialize();
     await tester.pumpWidget(FinChatApp(sessionManager: manager));
     expect(find.text('FinChat'), findsOneWidget);
-    expect(find.text('Masuk'), findsOneWidget);
+    expect(find.text('Lanjut dengan Google'), findsOneWidget);
+    expect(find.text('Masuk tanpa Google'), findsOneWidget);
   });
 }

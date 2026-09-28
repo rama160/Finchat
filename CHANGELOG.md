@@ -1,3 +1,9 @@
+# Phase 12 Google Auth — widget test correction
+
+- Updated `test/widget_test.dart` to match the Google Sign-In login UI (`Lanjut dengan Google` and `Masuk tanpa Google`).
+- No application runtime logic was changed.
+- **Status:** prepared for GitHub Actions `flutter test` and release verification.
+
 # Phase 12 Google Auth — CI analyzer correction
 
 - Fixed `google_sign_in` 7.x compatibility by replacing the removed `GoogleSignIn.currentUser` access with `attemptLightweightAuthentication()` in the Google Drive authorization service.
