@@ -303,16 +303,19 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _scanReceiptFile() async {
     if (_processing) return;
-    final picked = await FilePicker.platform.pickFiles(
+    final picked = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp'],
-      withData: true,
     );
-    if (picked == null || picked.files.isEmpty) return;
-    final file = picked.files.single;
-    Uint8List? bytes = file.bytes;
-    if (bytes == null && file.path != null) {
-      bytes = await File(file.path!).readAsBytes();
+    if (picked.isEmpty) return;
+    final file = picked.single;
+    Uint8List? bytes;
+    try {
+      bytes = await file.readAsBytes();
+    } catch (_) {
+      if (file.path != null) {
+        bytes = await File(file.path!).readAsBytes();
+      }
     }
     if (bytes == null || bytes.isEmpty) {
       throw StateError('File struk tidak dapat dibaca.');

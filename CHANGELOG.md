@@ -1,3 +1,16 @@
+## Phase 11.1.2 — Fix `file_picker` 13 API Usage
+
+- **Date:** 2026-09-29
+- **Type:** Fix
+- **Component:** `lib/presentation/screens/chat_screen.dart`, attachment receipt picker
+- **Previous problem:** GitHub Actions `flutter analyze` failed because `FilePicker.platform` and the old `FilePickerResult`/`withData` API were still used while `pubspec.yaml` pins `file_picker: ^13.1.0`.
+- **Change:** Migrated attachment picking to `FilePicker.pickFiles()`, which returns `List<PlatformFile>` in file_picker 13, and reads bytes with `PlatformFile.readAsBytes()` with a local-path fallback.
+- **Reason:** Align the attachment implementation with the installed federated file_picker 13 API while preserving JPG/JPEG/PNG/WEBP receipt support.
+- **Impact:** No change to OCR preprocessing, receipt parsing, transaction saving, category learning, or database behavior.
+- **Migration:** None.
+- **Tests:** GitHub Actions should rerun `flutter analyze`, `flutter test`, and `flutter build apk --release`.
+- **Status:** Ready for CI verification.
+
 # Changelog
 
 ## 0.3.2+5 — Full Repository Audit, Cleanup, and PRD Gap Closure

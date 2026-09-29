@@ -1,3 +1,6 @@
+### Phase 11.1.2 CI fix — file_picker 13 API
+`ChatScreen` now uses the `file_picker` 13 API (`FilePicker.pickFiles()` and `PlatformFile.readAsBytes()`) instead of the removed `FilePicker.platform`/`withData` pattern. Attachment receipt behavior is unchanged.
+
 # FinChat Implementation Status
 
 **Version:** 0.3.2+5  
