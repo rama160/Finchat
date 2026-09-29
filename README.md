@@ -24,7 +24,7 @@ Repository ini dirancang agar pengguna tidak perlu memasang Flutter secara lokal
 
 ## Upload otomatis dari Windows
 
-Jalankan `UPLOAD_TO_GITHUB.bat` dari root project. Script tidak melakukan force push dan berhenti bila merge conflict perlu keputusan manual.
+Jalankan `UPDATE_GITHUB.bat` dari root project. Script menyinkronkan file baru/perubahan/penghapusan dengan `git add -A`, tidak melakukan force push, dan berhenti bila merge conflict perlu keputusan manual.
 
 ## Update aplikasi
 
@@ -76,3 +76,7 @@ Google Sign-In is integrated into the session layer. Existing email login remain
 
 ## Monetization foundation (OFF)
 Four subscription tiers are modeled: Free, Basic, Pro, Unlimited. Payment methods are modeled for QRIS, GoPay, bank transfer, card and other e-wallets. Subscription and payment flags are disabled during pilot testing; no payment is collected. Production billing must be enforced by a backend and verified entitlement/webhook flow.
+
+## Repository audit package 0.3.2+5
+
+The 2026-09-29 full repository audit reconciles the cumulative Phase 12 source with the original FinChat PRD. See `docs/FULL_REPOSITORY_AUDIT.md` for the complete file-by-file review and remaining acceptance gates. Use `UPDATE_GITHUB.bat` as the single Windows synchronizer; it stages additions, updates and tracked deletions with `git add -A` and never force-pushes.

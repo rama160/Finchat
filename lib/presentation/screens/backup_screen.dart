@@ -128,6 +128,23 @@ class _BackupScreenState extends State<BackupScreen> {
     }, 'Backup Google Drive berhasil dipulihkan.');
   }
 
+
+  Future<void> _setAutomaticBackup(bool enabled) async {
+    if (!enabled) {
+      await _preferences.setAutomaticBackupEnabled(false);
+      if (mounted) setState(() { _automatic = false; _status = 'Backup otomatis dinonaktifkan.'; });
+      return;
+    }
+
+    await _run(() async {
+      final client = await _googleAuth.authorizeDrive();
+      _backup = BackupService(_database, cloudProvider: GoogleDriveBackupProvider(drive.DriveApi(client)));
+      await _backup.backupToCloud();
+      await _preferences.setAutomaticBackupEnabled(true);
+      if (mounted) setState(() => _automatic = true);
+    }, 'Backup otomatis aktif. FinChat akan mencoba backup saat aplikasi dibuka dan setelah data transaksi berubah.');
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(title: const Text('Backup & Pemulihan')),
@@ -143,12 +160,12 @@ class _BackupScreenState extends State<BackupScreen> {
             ListTile(leading: const Icon(Icons.login), title: const Text('Hubungkan akun Google'), onTap: _busy ? null : _connectGoogle),
             ListTile(leading: const Icon(Icons.cloud_upload_outlined), title: const Text('Backup sekarang'), onTap: _busy ? null : _backupGoogle),
             ListTile(leading: const Icon(Icons.cloud_download_outlined), title: const Text('Pulihkan dari Google Drive'), onTap: _busy ? null : _restoreGoogle),
-            SwitchListTile(title: const Text('Backup otomatis'), subtitle: const Text('Preferensi disimpan lokal; eksekusi otomatis terjadwal akan disempurnakan pada hardening.'), value: _automatic, onChanged: _busy ? null : (value) async { await _preferences.setAutomaticBackupEnabled(value); if (mounted) setState(() => _automatic = value); }),
+            SwitchListTile(title: const Text('Backup otomatis'), subtitle: const Text('Memerlukan otorisasi Google Drive satu kali. Setelah aktif, backup dicoba saat aplikasi dibuka dan setiap transaksi berubah.'), value: _automatic, onChanged: _busy ? null : _setAutomaticBackup),
           ])),
           const SizedBox(height: 12),
           Card(child: ListTile(leading: _busy ? const CircularProgressIndicator() : const Icon(Icons.info_outline), title: const Text('Status'), subtitle: Text(_status))),
           const SizedBox(height: 12),
-          const Text('Catatan konfigurasi: Google Drive memerlukan OAuth client Android yang terdaftar pada Google Cloud Console, API Google Drive aktif, dan SHA-1 aplikasi. Detail langkah ada di docs/PHASE_11_5_GOOGLE_DRIVE_SETUP.md.'),
+          const Text('Catatan konfigurasi: Google Drive memerlukan OAuth client Android yang terdaftar pada Google Cloud Console, API Google Drive aktif, dan SHA-1 aplikasi. Detail langkah ada di docs/GOOGLE_ACCOUNT_AND_DRIVE_SETUP.md.'),
         ]),
       );
 }

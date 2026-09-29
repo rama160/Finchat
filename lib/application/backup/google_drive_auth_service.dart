@@ -30,6 +30,15 @@ class GoogleDriveAuthService {
     return user;
   }
 
+
+  Future<auth.AuthClient?> tryAuthorizeDriveSilently() async {
+    await initialize();
+    final user = _currentUser;
+    if (user == null) return null;
+    final authorization = await user.authorizationClient.authorizationForScopes(scopes);
+    return authorization?.authClient(scopes: scopes);
+  }
+
   Future<auth.AuthClient> authorizeDrive() async {
     await initialize();
     final user = _currentUser ?? await signIn();

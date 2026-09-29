@@ -1,3 +1,17 @@
+# Changelog
+
+## 0.3.2+5 — Full Repository Audit, Cleanup, and PRD Gap Closure
+
+- **Date:** 2026-09-29
+- **Type:** Audit / integration / repository cleanup
+- **Previous problem:** The uploaded repository had implementation through Phase 12 but stale Phase 11.1 handoff/status documents, multiple root phase-copy instruction files, multiple overlapping BAT utilities, divergent Android build/release configuration, and several original PRD gaps that were only partially implemented.
+- **Changes:** Added a file-by-file repository audit; explicit image-file receipt attachment; main-chat financial-question recognition; local-first finance Q&A; true report pie chart, per-category counts and income/expense drill-down; operational automatic Drive backup after one-time authorization; safe inherited-context lifecycle loading; swipe-delete race hardening; shared Android CI configurator; and one `UPDATE_GITHUB.bat` that stages additions/updates/deletions without force-push.
+- **Repository cleanup:** Consolidated `PHASE_11_2` through `PHASE_12` copy instructions into `docs/PHASE_11_12_IMPLEMENTATION_HISTORY.md`; removed obsolete QA/upload/status/release BAT helpers from the distributable package; excluded `.git` metadata from the cleaned ZIP.
+- **Build metadata:** Version advanced from `0.3.1+4` to `0.3.2+5`; release workflow default tag aligned to `v0.3.2`.
+- **Data/schema impact:** No SQLite schema migration; existing transaction/user/category/backup data format remains unchanged.
+- **Verification:** Static repository audit and Python build-tool syntax check completed in the artifact environment. Flutter/Dart SDK is unavailable here, therefore fresh GitHub Actions analyze/test/release build and real-device acceptance are mandatory.
+- **Status:** Ready for GitHub CI verification.
+
 # Phase 12 Google Auth — widget test correction
 
 - Updated `test/widget_test.dart` to match the Google Sign-In login UI (`Lanjut dengan Google` and `Masuk tanpa Google`).

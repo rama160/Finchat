@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag, e.g. v0.2.0'
+        description: 'Release tag, e.g. v0.3.2'
         required: true
-        default: 'v0.3.1'
+        default: 'v0.3.2'
 
 jobs:
   release:
@@ -19,75 +19,23 @@ jobs:
         with:
           channel: stable
           cache: true
-      - run: flutter pub get
-      - run: flutter analyze
-      - run: flutter test
+      - name: Get dependencies
+        run: flutter pub get
+      - name: Analyze
+        run: flutter analyze
+      - name: Test
+        run: flutter test
       - name: Ensure Android platform exists
         shell: bash
         run: |
           if [ ! -f android/app/build.gradle ] && [ ! -f android/app/build.gradle.kts ]; then
             flutter create --platforms=android --project-name finchat --org com.finchat --no-pub .
           fi
-          if [ ! -f android/app/build.gradle ] && [ ! -f android/app/build.gradle.kts ]; then
-            echo "Android project was not generated correctly."
-            find android -maxdepth 3 -type f -print 2>/dev/null || true
-            exit 1
-          fi
-      - name: Configure Android R8 rules for ML Kit optional languages
-        shell: bash
-        run: |
-          python3 - <<'PYCFG'
-          from pathlib import Path
-          rules = Path("tooling/android/proguard-rules.pro")
-          target = Path("android/app/proguard-rules.pro")
-          target.write_text(rules.read_text())
-
-          groovy = Path("android/app/build.gradle")
-          kotlin = Path("android/app/build.gradle.kts")
-          if groovy.exists():
-              gradle = groovy
-              text = gradle.read_text()
-              if "proguard-rules.pro" not in text:
-                  marker = "release {"
-                  replacement = "release {\n            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'"
-                  if marker not in text:
-                      raise SystemExit("Could not locate release build type in android/app/build.gradle")
-                  text = text.replace(marker, replacement, 1)
-                  gradle.write_text(text)
-          elif kotlin.exists():
-              gradle = kotlin
-              text = gradle.read_text()
-              if "proguard-rules.pro" not in text:
-                  marker = "buildTypes {"
-                  if marker not in text:
-                      raise SystemExit("Could not locate buildTypes in android/app/build.gradle.kts")
-                  release_marker = "release {"
-                  if release_marker in text:
-                      replacement = "release {\n            proguardFiles(getDefaultProguardFile(\"proguard-android-optimize.txt\"), \"proguard-rules.pro\")"
-                      text = text.replace(release_marker, replacement, 1)
-                  else:
-                      raise SystemExit("Could not locate release build type in android/app/build.gradle.kts")
-                  gradle.write_text(text)
-          else:
-              raise SystemExit("Neither android/app/build.gradle nor build.gradle.kts exists")
-          PYCFG
-      - name: Configure Android security storage
-        shell: bash
-        run: |
-          python3 - <<'PYCFG'
-          from pathlib import Path
-          gradle = Path("android/app/build.gradle")
-          if gradle.exists():
-              text = gradle.read_text()
-              text = text.replace("minSdk = flutter.minSdkVersion", "minSdk = 23")
-              gradle.write_text(text)
-          manifest = Path("android/app/src/main/AndroidManifest.xml")
-          if manifest.exists():
-              text = manifest.read_text()
-              text = text.replace("<application", "<application android:allowBackup=\"false\"", 1) if "android:allowBackup" not in text else text
-              manifest.write_text(text)
-          PYCFG
-      - run: flutter build apk --release --dart-define=FINCHAT_GOOGLE_SERVER_CLIENT_ID=${{ secrets.FINCHAT_GOOGLE_SERVER_CLIENT_ID }}
+          test -f android/app/build.gradle || test -f android/app/build.gradle.kts
+      - name: Configure Android release, permissions, and R8
+        run: python3 tooling/android/configure_android_ci.py
+      - name: Build release APK
+        run: flutter build apk --release --dart-define=FINCHAT_GOOGLE_SERVER_CLIENT_ID=${{ secrets.FINCHAT_GOOGLE_SERVER_CLIENT_ID }}
       - name: Verify release tag matches pubspec version
         shell: bash
         run: |
@@ -103,7 +51,6 @@ jobs:
             exit 1
           fi
       - name: Generate APK checksum
-        shell: bash
         run: sha256sum build/app/outputs/flutter-apk/app-release.apk > build/app/outputs/flutter-apk/app-release.apk.sha256
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

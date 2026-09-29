@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 
@@ -179,8 +181,8 @@ class _SummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = report;
     return Card(child: Padding(padding: const EdgeInsets.all(14), child: Wrap(spacing: 10, runSpacing: 10, children: [
-      _Metric('Pemasukan', _money(r?.incomeTotal ?? 0), Icons.south_west),
-      _Metric('Pengeluaran', _money(r?.expenseTotal ?? 0), Icons.north_east),
+      _Metric('Pemasukan', _money(r?.incomeTotal ?? 0), Icons.south_west, onTap: r == null ? null : () => _showTypeDetails(context, TransactionType.income, r.transactions)),
+      _Metric('Pengeluaran', _money(r?.expenseTotal ?? 0), Icons.north_east, onTap: r == null ? null : () => _showTypeDetails(context, TransactionType.expense, r.transactions)),
       _Metric('Saldo', _money(r?.balance ?? 0), Icons.account_balance_wallet_outlined),
       _Metric('Transaksi', '${r?.transactionCount ?? 0}', Icons.receipt_long_outlined),
     ])));
@@ -188,36 +190,42 @@ class _SummaryCard extends StatelessWidget {
 }
 
 class _Metric extends StatelessWidget {
-  const _Metric(this.label, this.value, this.icon);
+  const _Metric(this.label, this.value, this.icon, {this.onTap});
   final String label, value;
   final IconData icon;
+  final VoidCallback? onTap;
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: 155,
       child: Card(
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Row(
-            children: [
-              Icon(icon, size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(label, style: Theme.of(context).textTheme.labelMedium),
-                    Text(
-                      value,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ],
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Row(
+              children: [
+                Icon(icon, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(label, style: Theme.of(context).textTheme.labelMedium),
+                      Text(
+                        value,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                if (onTap != null) const Icon(Icons.chevron_right, size: 16),
+              ],
+            ),
           ),
         ),
       ),
@@ -242,10 +250,72 @@ class _CategoryChart extends StatelessWidget {
   final ReportSummary report;
   @override
   Widget build(BuildContext context) {
-    final items = report.expenseCategories.take(6).toList();
-    final max = items.isEmpty ? 1.0 : items.map((e) => e.totalAmount).reduce((a, b) => a > b ? a : b);
-    return Card(child: Padding(padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('Pengeluaran per kategori', style: TextStyle(fontWeight: FontWeight.bold)), const SizedBox(height: 12), if (items.isEmpty) const Text('Tidak ada data kategori.') else ...items.map((item) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Expanded(child: Text(item.categoryName)), Text(_money(item.totalAmount))]), const SizedBox(height: 4), LinearProgressIndicator(value: item.totalAmount / max)])))])));
+    final items = report.expenseCategories.take(8).toList();
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Pengeluaran per kategori', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            const Text('Diagram lingkaran berdasarkan nominal; legenda menampilkan jumlah transaksi per kategori.'),
+            const SizedBox(height: 12),
+            if (items.isEmpty)
+              const Text('Tidak ada data kategori.')
+            else ...[
+              Center(
+                child: SizedBox.square(
+                  dimension: 190,
+                  child: CustomPaint(painter: _ExpensePiePainter(items)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              ...items.asMap().entries.map((entry) {
+                final item = entry.value;
+                return ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: CircleAvatar(radius: 7, backgroundColor: _pieColor(entry.key)),
+                  title: Text(item.categoryName),
+                  subtitle: Text('${item.transactionCount} transaksi • ${_percent(item.totalAmount, report.expenseTotal)}'),
+                  trailing: Text(_money(item.totalAmount)),
+                  onTap: () => _showCategoryDetails(context, item, report.transactions),
+                );
+              }),
+            ],
+          ],
+        ),
+      ),
+    );
   }
+}
+
+class _ExpensePiePainter extends CustomPainter {
+  const _ExpensePiePainter(this.items);
+  final List<ReportCategorySummary> items;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final total = items.fold<double>(0, (sum, item) => sum + item.totalAmount);
+    if (total <= 0) return;
+    final rect = Offset.zero & size;
+    var start = -math.pi / 2;
+    for (var index = 0; index < items.length; index++) {
+      final sweep = items[index].totalAmount / total * math.pi * 2;
+      canvas.drawArc(rect.deflate(18), start, sweep, true, Paint()..color = _pieColor(index));
+      start += sweep;
+    }
+    canvas.drawCircle(size.center(Offset.zero), size.shortestSide * .22, Paint()..color = Colors.white);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ExpensePiePainter oldDelegate) => oldDelegate.items != items;
+}
+
+Color _pieColor(int index) {
+  const colors = <Color>[Colors.indigo, Colors.teal, Colors.orange, Colors.pink, Colors.blue, Colors.green, Colors.deepPurple, Colors.brown];
+  return colors[index % colors.length];
 }
 
 class _CountChart extends StatelessWidget {
@@ -271,6 +341,38 @@ class _GroupList extends StatelessWidget {
   final ReportSummary report;
   @override
   Widget build(BuildContext context) => Card(child: Column(children: [const ListTile(title: Text('Detail transaksi', style: TextStyle(fontWeight: FontWeight.bold))), ...report.groups.take(30).map((group) => ListTile(leading: Icon(group.type == TransactionType.income ? Icons.arrow_downward : Icons.arrow_upward), title: Text(group.description), subtitle: Text('${group.categoryName} • ${group.transactionCount} transaksi'), trailing: Text(_money(group.totalAmount)), onTap: () => _showGroupDetails(context, group, report.transactions)))]));
+}
+
+void _showTypeDetails(BuildContext context, TransactionType type, List<TransactionEntity> transactions) {
+  final items = transactions.where((item) => item.type == type).toList();
+  _showTransactionDetails(context, type == TransactionType.income ? 'Pemasukan' : 'Pengeluaran', items);
+}
+
+void _showCategoryDetails(BuildContext context, ReportCategorySummary category, List<TransactionEntity> transactions) {
+  final items = transactions.where((item) => item.type == category.type && item.categoryId == category.categoryId).toList();
+  _showTransactionDetails(context, category.categoryName, items);
+}
+
+void _showTransactionDetails(BuildContext context, String title, List<TransactionEntity> items) {
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (context) => SafeArea(
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleLarge),
+          Text('${items.length} transaksi'),
+          const Divider(),
+          ...items.map((item) => ListTile(
+                title: Text(item.description),
+                subtitle: Text('${_date(item.transactionDate)} • ${item.categoryId}'),
+                trailing: Text(_money(item.amount)),
+              )),
+        ],
+      ),
+    ),
+  );
 }
 
 void _showGroupDetails(

@@ -189,3 +189,23 @@ Phase 12.1–12.8 is implemented from the CI/release-verified Phase 11 baseline.
 - No prior Phase 12 business logic was reverted or removed.
 - CI configuration now passes the Google server client ID without committing it to source.
 - Release default tag is aligned with `pubspec.yaml` version.
+
+---
+
+## Repository re-audit — 2026-09-29 / version 0.3.2+5
+
+A full file-by-file audit of the cumulative repository was completed. The authoritative detailed matrix is now `docs/FULL_REPOSITORY_AUDIT.md`.
+
+The re-audit found that technical code existed through Phase 12, but several original product requirements were still only partial in the uploaded ZIP. This package closes the static gaps that can be addressed without a physical Android device:
+
+- explicit receipt image-file attachment in addition to camera/gallery;
+- finance-question recognition from the main chat composer;
+- local-first answers for common finance questions before AI fallback;
+- true expense pie chart and transaction count per category;
+- tapping income/expense summaries to inspect matching transactions;
+- automatic Google Drive backup that actually executes after one-time authorization;
+- one shared Android CI configurator for build and release workflows;
+- one Windows GitHub sync script that stages additions, updates and deletions;
+- stale phase-copy files consolidated and handoff/status documents reconciled.
+
+This re-audit does **not** claim runtime acceptance. Fresh GitHub Actions and one real-device QA cycle remain required because the artifact workspace has no Flutter/Dart SDK and cannot validate microphone, camera, OAuth/Drive, OCR quality or platform sharing behavior.

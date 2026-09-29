@@ -8,14 +8,16 @@ import '../../data/repositories/sqlite_category_repository.dart';
 import '../../data/repositories/sqlite_transaction_repository.dart';
 
 class FinancialQaScreen extends StatefulWidget {
-  const FinancialQaScreen({super.key, required this.userId});
+  const FinancialQaScreen({super.key, required this.userId, this.initialQuestion, this.autoAsk = false});
   final String userId;
+  final String? initialQuestion;
+  final bool autoAsk;
   @override
   State<FinancialQaScreen> createState() => _FinancialQaScreenState();
 }
 
 class _FinancialQaScreenState extends State<FinancialQaScreen> {
-  final _question = TextEditingController();
+  late final TextEditingController _question;
   late final FinChatDatabase _database;
   late final FinancialQaService _service;
   DateTimeRange _range = DateTimeRange(start: DateTime(DateTime.now().year, DateTime.now().month, 1), end: DateTime.now());
@@ -25,8 +27,12 @@ class _FinancialQaScreenState extends State<FinancialQaScreen> {
   @override
   void initState() {
     super.initState();
+    _question = TextEditingController(text: widget.initialQuestion ?? '');
     _database = FinChatDatabase();
     _service = FinancialQaService(reports: ReportService(transactions: SqliteTransactionRepository(_database), categories: SqliteCategoryRepository(_database)), provider: OpenAiCompatibleAiProvider());
+    if (widget.autoAsk && _question.text.trim().isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _ask());
+    }
   }
 
   @override

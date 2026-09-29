@@ -1,13 +1,18 @@
+import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../application/backup/automatic_backup_service.dart';
 import '../../application/ocr/receipt_ocr_service.dart';
 import '../../core/validation/transaction_validator.dart';
 import '../../application/ocr/receipt_transaction_parser.dart';
 import '../../application/transactions/transaction_intelligence_service.dart';
 import '../../application/transactions/local_transaction_parser.dart';
+import '../../domain/parsing/money_amount_parser.dart';
 import '../../data/local/finchat_database.dart';
 import '../../data/ocr/image_receipt_preprocessor.dart';
 import '../../data/ocr/mlkit_receipt_ocr_provider.dart';
@@ -25,6 +30,7 @@ import '../../main.dart';
 import 'receipt_review_screen.dart';
 import 'report_screen.dart';
 import 'settings_screen.dart';
+import 'financial_qa_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -42,10 +48,12 @@ class _ChatScreenState extends State<ChatScreen> {
   late final CategoryLearningService _learning;
   late final TransactionIntelligenceService _intelligence;
   late final VoiceInputService _voice;
+  late final AutomaticBackupService _automaticBackup;
 
   List<TransactionEntity> _items = const [];
   bool _processing = false;
   bool _voiceConsumePending = false;
+  bool _initialLoadStarted = false;
 
   @override
   void initState() {
@@ -61,6 +69,7 @@ class _ChatScreenState extends State<ChatScreen> {
         categoryExists: (id) => _categories.getById(id).then((value) => value != null),
       ),
     );
+    _automaticBackup = AutomaticBackupService(_database);
     _voice = VoiceInputService(
       SpeechToTextProvider(),
       onChanged: () {
@@ -74,6 +83,13 @@ class _ChatScreenState extends State<ChatScreen> {
         }
       },
     );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_initialLoadStarted) return;
+    _initialLoadStarted = true;
     _loadTransactions();
   }
 
@@ -91,9 +107,27 @@ class _ChatScreenState extends State<ChatScreen> {
       await _database.ensureUser(userId: session.userId, email: session.email);
       final items = await _transactions.getByUser(session.userId);
       if (mounted) setState(() => _items = items);
+      unawaited(_runAutomaticBackupSilently());
     } catch (error) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal memuat transaksi: $error')));
     }
+  }
+
+
+  Future<void> _runAutomaticBackupSilently() async {
+    try {
+      await _automaticBackup.runIfEnabled();
+    } catch (_) {
+      // Automatic backup must never block transaction capture. The user can
+      // inspect/retry cloud backup from Settings > Backup & pemulihan.
+    }
+  }
+
+  bool _looksLikeFinancialQuestion(String input) {
+    if (MoneyAmountParser.findAll(input).isNotEmpty) return false;
+    final normalized = input.toLowerCase().trim();
+    if (normalized.endsWith('?')) return true;
+    return RegExp(r'\b(berapa|total|pengeluaran|pemasukan|saldo|terbesar|terkecil|kategori|bulan ini|minggu ini|hari ini|laporan)\b').hasMatch(normalized);
   }
 
   Future<void> _saveIntelligentResults({
@@ -141,6 +175,23 @@ class _ChatScreenState extends State<ChatScreen> {
     final input = _voice.transcript.trim();
     if (input.isEmpty || !mounted) {
       _voiceConsumePending = false;
+      return;
+    }
+
+    final session = SessionScope.of(context).session;
+    if (session != null && _looksLikeFinancialQuestion(input)) {
+      await _voice.cancel();
+      _voiceConsumePending = false;
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => FinancialQaScreen(
+            userId: session.userId,
+            initialQuestion: input,
+            autoAsk: true,
+          ),
+        ),
+      );
       return;
     }
 
@@ -202,6 +253,21 @@ class _ChatScreenState extends State<ChatScreen> {
     final input = _inputController.text.trim();
     if (input.isEmpty || _processing) return;
 
+    final session = SessionScope.of(context).session;
+    if (session != null && _looksLikeFinancialQuestion(input)) {
+      _inputController.clear();
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => FinancialQaScreen(
+            userId: session.userId,
+            initialQuestion: input,
+            autoAsk: true,
+          ),
+        ),
+      );
+      return;
+    }
+
     setState(() => _processing = true);
     try {
       await _saveIntelligentResults(
@@ -222,19 +288,45 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _scanReceipt(ImageSource source) async {
+    if (_processing) return;
+    final picked = await _imagePicker.pickImage(
+      source: source,
+      imageQuality: 95,
+      maxWidth: 2400,
+    );
+    if (picked == null) return;
+    await _processReceiptBytes(
+      bytes: await picked.readAsBytes(),
+      source: source == ImageSource.camera ? InputSource.camera : InputSource.attachment,
+    );
+  }
+
+  Future<void> _scanReceiptFile() async {
+    if (_processing) return;
+    final picked = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp'],
+      withData: true,
+    );
+    if (picked == null || picked.files.isEmpty) return;
+    final file = picked.files.single;
+    Uint8List? bytes = file.bytes;
+    if (bytes == null && file.path != null) {
+      bytes = await File(file.path!).readAsBytes();
+    }
+    if (bytes == null || bytes.isEmpty) {
+      throw StateError('File struk tidak dapat dibaca.');
+    }
+    await _processReceiptBytes(bytes: bytes, source: InputSource.attachment);
+  }
+
+  Future<void> _processReceiptBytes({required Uint8List bytes, required InputSource source}) async {
     final session = SessionScope.of(context).session;
     if (session == null || _processing) return;
 
     setState(() => _processing = true);
     MlKitReceiptOcrProvider? provider;
     try {
-      final picked = await _imagePicker.pickImage(
-        source: source,
-        imageQuality: 95,
-        maxWidth: 2400,
-      );
-      if (picked == null) return;
-
       await _database.ensureUser(userId: session.userId, email: session.email);
       provider = MlKitReceiptOcrProvider();
       final ocr = ReceiptOcrService(
@@ -242,13 +334,13 @@ class _ChatScreenState extends State<ChatScreen> {
         provider: provider,
       );
       final result = await ocr.processImageBytes(
-        imageBytes: await picked.readAsBytes(),
+        imageBytes: bytes,
         workingImagePath: '${Directory.systemTemp.path}/finchat_receipt_${DateTime.now().microsecondsSinceEpoch}.jpg',
       );
 
       if (!result.hasText) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Teks struk tidak terbaca. Coba foto lebih jelas.')));
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Teks struk tidak terbaca. Coba foto/file yang lebih jelas.')));
         }
         return;
       }
@@ -279,6 +371,7 @@ class _ChatScreenState extends State<ChatScreen> {
         );
       }
 
+      if (reviewItems.isEmpty) throw StateError('Item struk tidak dapat diubah menjadi transaksi.');
       if (!mounted) return;
       final categories = await _categories.getCategories();
       if (!mounted) return;
@@ -301,7 +394,7 @@ class _ChatScreenState extends State<ChatScreen> {
           description: item.description,
           categoryId: item.categoryId,
           transactionDate: DateTime(now.year, now.month, now.day),
-          inputSource: source == ImageSource.camera ? InputSource.camera : InputSource.attachment,
+          inputSource: source,
           processedBy: item.processedBy,
           confidence: item.confidence,
           createdAt: now,
@@ -336,7 +429,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _chooseReceiptSource() async {
     if (_processing) return;
-    final source = await showModalBottomSheet<ImageSource>(
+    final action = await showModalBottomSheet<_ReceiptSourceAction>(
       context: context,
       builder: (context) => SafeArea(
         child: Column(
@@ -345,18 +438,33 @@ class _ChatScreenState extends State<ChatScreen> {
             ListTile(
               leading: const Icon(Icons.camera_alt_outlined),
               title: const Text('Foto struk dengan kamera'),
-              onTap: () => Navigator.pop(context, ImageSource.camera),
+              onTap: () => Navigator.pop(context, _ReceiptSourceAction.camera),
             ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Pilih struk dari galeri'),
-              onTap: () => Navigator.pop(context, ImageSource.gallery),
+              title: const Text('Pilih gambar dari galeri'),
+              onTap: () => Navigator.pop(context, _ReceiptSourceAction.gallery),
+            ),
+            ListTile(
+              leading: const Icon(Icons.attach_file),
+              title: const Text('Pilih file struk'),
+              subtitle: const Text('JPG, JPEG, PNG, atau WEBP'),
+              onTap: () => Navigator.pop(context, _ReceiptSourceAction.file),
             ),
           ],
         ),
       ),
     );
-    if (source != null) await _scanReceipt(source);
+    switch (action) {
+      case _ReceiptSourceAction.camera:
+        await _scanReceipt(ImageSource.camera);
+      case _ReceiptSourceAction.gallery:
+        await _scanReceipt(ImageSource.gallery);
+      case _ReceiptSourceAction.file:
+        await _scanReceiptFile();
+      case null:
+        return;
+    }
   }
 
   Future<void> _editTransaction(TransactionEntity transaction) async {
@@ -446,7 +554,9 @@ class _ChatScreenState extends State<ChatScreen> {
                               return false;
                             }
                             await _deleteTransaction(transaction);
-                            return true;
+                            // The repository reload removes the item from the list. Returning
+                            // false prevents Dismissible from also removing the same widget.
+                            return false;
                           },
                           child: _TransactionCard(
                             transaction: transaction,
@@ -471,6 +581,8 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 }
+
+enum _ReceiptSourceAction { camera, gallery, file }
 
 class _TransactionCard extends StatelessWidget {
   const _TransactionCard({required this.transaction, required this.onEdit, required this.onDelete});

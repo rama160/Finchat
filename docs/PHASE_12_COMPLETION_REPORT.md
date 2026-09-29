@@ -52,7 +52,7 @@ Implemented:
 
 ## 12.8 Final Product Acceptance
 Prepared:
-- `RUN_PHASE_12_QA.bat`.
+- GitHub Actions (`flutter analyze`, `flutter test`, dan release APK build).
 - Phase 12 hardening matrix.
 - Final device QA remains an external verification step after CI succeeds.
 
