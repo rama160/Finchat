@@ -9,12 +9,12 @@ import 'package:finchat/domain/entities/transaction_entity.dart';
 
 
 void main() {
-  test('parses category JSON from an OpenAI-compatible response', () async {
+  test('parses category JSON from the Cloudflare Gateway response', () async {
     final storage = _FakeStore();
-    final client = MockClient((request) async => http.Response(jsonEncode({'choices':[{'message':{'content':'{"category_id":"makanan","confidence":0.91}'}}]}),200));
+    final client = MockClient((request) async => http.Response(jsonEncode({'text':'{"category_id":"makanan","confidence":0.91}'}),200));
     final config = AiSecureConfigService(store: storage);
     await config.save(apiKey:'test', endpoint:'https://example.com/v1/chat/completions', model:'test-model', enabled:true);
-    final provider = OpenAiCompatibleAiProvider(config: config, client: client);
+    final provider = OpenAiCompatibleAiProvider(config: config, client: client, idTokenProvider: () async => 'test-google-id-token');
     final result = await provider.suggestCategory(const AiCategoryRequest(userId:'u', originalText:'nasi 20rb', description:'nasi', type:TransactionType.expense, amount:20000, localCategoryId:'lainnya'));
     expect(result?.categoryId, 'makanan');
     expect(result?.confidence, .91);
@@ -24,7 +24,7 @@ void main() {
     final storage = _FakeStore();
     final config = AiSecureConfigService(store: storage);
     await config.save(apiKey:'', endpoint:'https://example.com', model:'x', enabled:false);
-    final provider = OpenAiCompatibleAiProvider(config: config, client: MockClient((_) async => http.Response('{}',200)));
+    final provider = OpenAiCompatibleAiProvider(config: config, client: MockClient((_) async => http.Response('{}',200)), idTokenProvider: () async => null);
     final result = await provider.suggestCategory(const AiCategoryRequest(userId:'u', originalText:'x', description:'x', type:TransactionType.expense, amount:1, localCategoryId:'lainnya'));
     expect(result, isNull);
   });

@@ -1,14 +1,21 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-
+import 'package:google_sign_in/google_sign_in.dart';
 import '../../application/ai/ai_secure_config_service.dart';
 import '../../domain/ai/ai_category_fallback.dart';
 import '../../domain/ai/financial_ai_provider.dart';
 
 class OpenAiCompatibleAiProvider implements AiCategoryProvider, FinancialAiProvider {
-  OpenAiCompatibleAiProvider({AiSecureConfigService? config, http.Client? client}) : _config = config ?? AiSecureConfigService(), _client = client ?? http.Client();
-  final AiSecureConfigService _config;
+  OpenAiCompatibleAiProvider({AiSecureConfigService? config, http.Client? client, Future<String?> Function()? idTokenProvider}) : _client = client ?? http.Client(), _idTokenProvider = idTokenProvider ?? _currentGoogleIdToken;
+  final Future<String?> Function() _idTokenProvider;
+  static const _gatewayEndpoint = 'https://finchat-ai-gateway.finchat-ai-gateway.workers.dev/v1/ai/chat';
+
+  static Future<String?> _currentGoogleIdToken() async {
+    final account = GoogleSignIn.instance.currentUser;
+    if (account == null) return null;
+    return (await account.authentication).idToken;
+  }
   final http.Client _client;
 
   @override
@@ -31,32 +38,22 @@ class OpenAiCompatibleAiProvider implements AiCategoryProvider, FinancialAiProvi
   Future<String?> answer(FinancialAiRequest request) => _chat(_qaPrompt(request));
 
   Future<String?> _chat(String prompt) async {
-    final enabled = await _config.readEnabled();
-    final apiKey = await _config.readApiKey();
-    final endpoint = await _config.readEndpoint();
-    final model = await _config.readModel();
-    if (!enabled || apiKey == null || apiKey.trim().isEmpty || endpoint == null || endpoint.trim().isEmpty || model == null || model.trim().isEmpty) return null;
-
-    final uri = Uri.tryParse(endpoint);
-    if (uri == null || uri.scheme != 'https' || uri.host.isEmpty) return null;
+    final idToken = await _idTokenProvider();
+    if (idToken == null || idToken.trim().isEmpty) return null;
+    final uri = Uri.parse(_gatewayEndpoint);
     try {
       final result = await _client.post(
         uri,
-        headers: {'Authorization': 'Bearer ${apiKey.trim()}', 'Content-Type': 'application/json'},
-        body: jsonEncode({'model': model.trim(), 'temperature': 0.1, 'messages': [
-          {'role': 'system', 'content': 'Anda adalah asisten keuangan pribadi. Jangan mengarang data. Gunakan hanya data yang diberikan aplikasi. Untuk klasifikasi kategori, keluarkan JSON yang diminta.'},
-          {'role': 'user', 'content': prompt},
-        ]}),
-      ).timeout(const Duration(seconds: 20));
+        headers: {'Authorization': 'Bearer ${idToken.trim()}', 'Content-Type': 'application/json'},
+        body: jsonEncode({'messages': [
+          {'role': 'user', 'text': 'Anda adalah asisten keuangan pribadi. Jangan mengarang data. Gunakan hanya data yang diberikan aplikasi. Untuk klasifikasi kategori, keluarkan JSON yang diminta.\n\n$prompt'},
+        ], 'temperature': 0.1, 'maxOutputTokens': 1024}),
+      ).timeout(const Duration(seconds: 25));
       if (result.statusCode < 200 || result.statusCode >= 300) return null;
       if (result.body.length > 1024 * 1024) return null;
       final body = jsonDecode(result.body);
-      if (body is! Map) return null;
-      final choices = body['choices'];
-      if (choices is! List || choices.isEmpty || choices.first is! Map) return null;
-      final message = choices.first['message'];
-      if (message is! Map || message['content'] is! String) return null;
-      final content = (message['content'] as String).trim();
+      if (body is! Map || body['text'] is! String) return null;
+      final content = (body['text'] as String).trim();
       if (content.isEmpty || content.length > 20000) return null;
       return content;
     } catch (_) {
