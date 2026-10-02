@@ -16,7 +16,7 @@ class OpenAiCompatibleAiProvider implements AiCategoryProvider, FinancialAiProvi
     await GoogleSignInCoordinator.instance.initialize();
     final account = await GoogleSignIn.instance.attemptLightweightAuthentication();
     if (account == null) return null;
-    return (await account.authentication).idToken;
+    return (account.authentication).idToken;
   }
   final http.Client _client;
 
