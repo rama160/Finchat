@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../application/ai/ai_secure_config_service.dart';
+import '../../application/auth/google_sign_in_coordinator.dart';
 import '../../domain/ai/ai_category_fallback.dart';
 import '../../domain/ai/financial_ai_provider.dart';
 
@@ -12,7 +13,8 @@ class OpenAiCompatibleAiProvider implements AiCategoryProvider, FinancialAiProvi
   static const _gatewayEndpoint = 'https://finchat-ai-gateway.finchat-ai-gateway.workers.dev/v1/ai/chat';
 
   static Future<String?> _currentGoogleIdToken() async {
-    final account = GoogleSignIn.instance.currentUser;
+    await GoogleSignInCoordinator.instance.initialize();
+    final account = await GoogleSignIn.instance.attemptLightweightAuthentication();
     if (account == null) return null;
     return (await account.authentication).idToken;
   }
