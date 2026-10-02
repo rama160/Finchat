@@ -8,7 +8,11 @@ import '../../domain/ai/ai_category_fallback.dart';
 import '../../domain/ai/financial_ai_provider.dart';
 
 class OpenAiCompatibleAiProvider implements AiCategoryProvider, FinancialAiProvider {
-  OpenAiCompatibleAiProvider({AiSecureConfigService? config, http.Client? client, Future<String?> Function()? idTokenProvider}) : _client = client ?? http.Client(), _idTokenProvider = idTokenProvider ?? _currentGoogleIdToken;
+  OpenAiCompatibleAiProvider({AiSecureConfigService? config, http.Client? client, Future<String?> Function()? idTokenProvider})
+      : _config = config ?? AiSecureConfigService(),
+        _client = client ?? http.Client(),
+        _idTokenProvider = idTokenProvider ?? _currentGoogleIdToken;
+  final AiSecureConfigService _config;
   final Future<String?> Function() _idTokenProvider;
   static const _gatewayEndpoint = 'https://finchat-ai-gateway.finchat-ai-gateway.workers.dev/v1/ai/chat';
 
@@ -40,6 +44,7 @@ class OpenAiCompatibleAiProvider implements AiCategoryProvider, FinancialAiProvi
   Future<String?> answer(FinancialAiRequest request) => _chat(_qaPrompt(request));
 
   Future<String?> _chat(String prompt) async {
+    if (!await _config.readEnabled()) return null;
     final idToken = await _idTokenProvider();
     if (idToken == null || idToken.trim().isEmpty) return null;
     final uri = Uri.parse(_gatewayEndpoint);
