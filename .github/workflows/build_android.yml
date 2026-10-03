@@ -31,6 +31,12 @@ jobs:
           test -f android/app/build.gradle || test -f android/app/build.gradle.kts
       - name: Configure Android release, permissions, and R8
         run: python3 tooling/android/configure_android_ci.py
+
+      - name: Get SHA-1 Fingerprint from GitHub Server
+        run: |
+          cd android
+          ./gradlew signingReport
+
       - name: Build release APK
         run: flutter build apk --release --dart-define=FINCHAT_GOOGLE_SERVER_CLIENT_ID=${{ secrets.FINCHAT_GOOGLE_SERVER_CLIENT_ID }}
       - name: Upload APK
