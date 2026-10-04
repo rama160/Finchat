@@ -12,13 +12,12 @@ class OpenAiCompatibleAiProvider
   OpenAiCompatibleAiProvider({
     AiSecureConfigService? config,
     http.Client? client,
-    Future<String?> Function()? idTokenProvider,
+    this._idTokenProvider,
     GoogleSignInCoordinator? googleSignInCoordinator,
   })  : _legacyConfig = config,
         _client = client ?? http.Client(),
         _googleSignInCoordinator =
-            googleSignInCoordinator ?? GoogleSignInCoordinator.instance,
-        _idTokenProvider = idTokenProvider;
+            googleSignInCoordinator ?? GoogleSignInCoordinator.instance;
 
   final AiSecureConfigService? _legacyConfig;
   final http.Client _client;
@@ -89,9 +88,12 @@ class OpenAiCompatibleAiProvider
       }
 
       final tokenProvider = _idTokenProvider;
-      final idToken = tokenProvider != null
-          ? await tokenProvider()
-          : await _currentGoogleIdToken();
+      late final String? idToken;
+      if (tokenProvider == null) {
+        idToken = await _currentGoogleIdToken();
+      } else {
+        idToken = await tokenProvider();
+      }
 
       if (idToken == null || idToken.trim().isEmpty) {
         return null;

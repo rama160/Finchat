@@ -1,3 +1,8 @@
+
+## 0.3.2+9 — Analyzer fix
+- Fixed `OpenAiCompatibleAiProvider` constructor initialization by using an initializing formal for `_idTokenProvider`.
+- Fixed nullable token-provider invocation with explicit local promotion before invocation.
+- No change to transaction, restore, Google Sign-In workflow, database schema, OCR, voice, Gateway endpoint, or CI workflow.
 # 0.3.2+7 — Analyzer Cleanup After Runtime Bugfix
 
 - **Date:** 2026-10-05

@@ -63,3 +63,6 @@ GitHub Actions reported two analyzer errors remaining in `lib/data/ai/openai_com
 ## Handoff requirement
 
 At the end of each patch, record current version, changed files, exact issue, exact fix, schema/data impact, tests/CI result, device result, and any remaining PRD gap.
+
+### 0.3.2+9 analyzer follow-up
+The CI analyzer reported two remaining errors in `openai_compatible_ai_provider.dart`. The constructor now uses an initializing formal for `_idTokenProvider`, and token-provider invocation uses explicit nullable-flow promotion. No existing workflow or business logic was changed.

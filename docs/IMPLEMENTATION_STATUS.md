@@ -63,3 +63,6 @@ The project owner reported successful GitHub Actions for the earlier cumulative 
 - Update checker against an actual published GitHub Release.
 
 No destructive SQLite schema migration is introduced by the 0.3.2+5 audit package or the 0.3.2+6 runtime bugfix.
+
+### 0.3.2+9 analyzer follow-up
+The CI analyzer reported two remaining errors in `openai_compatible_ai_provider.dart`. The constructor now uses an initializing formal for `_idTokenProvider`, and token-provider invocation uses explicit nullable-flow promotion. No existing workflow or business logic was changed.
