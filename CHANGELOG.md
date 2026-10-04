@@ -44,6 +44,11 @@
 
 # Changelog
 
+## 0.3.2+8
+- Fixed remaining Dart analyzer errors in `OpenAiCompatibleAiProvider` by properly initializing the optional ID-token callback field and promoting it before invocation.
+- No established application workflow or business logic changed.
+
+
 ## 0.3.2+5 — Full Repository Audit, Cleanup, and PRD Gap Closure
 
 - **Date:** 2026-09-29

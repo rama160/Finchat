@@ -1,6 +1,6 @@
 # AI START HERE — FINCHAT
 
-## Current continuation point — Bugfix package 0.3.2+7
+## Current continuation point — Bugfix package 0.3.2+8
 
 Read this file first, then:
 1. `docs/FULL_REPOSITORY_AUDIT.md`
@@ -38,7 +38,15 @@ Read this file first, then:
 - Every meaningful change updates changelog/status/audit documentation.
 - Never force-push automatically.
 
-## 0.3.2+7 analyzer follow-up
+## 0.3.2+8 analyzer follow-up
+
+GitHub Actions reported two analyzer errors remaining in `lib/data/ai/openai_compatible_ai_provider.dart` after 0.3.2+7. They are fixed in this package:
+
+- The optional `idTokenProvider` callback is now assigned through an initialized private final field in the constructor, removing `final_not_initialized_constructor`.
+- `_chat()` copies the nullable callback into a local `tokenProvider` before invocation, so the non-null branch is promoted and `unchecked_use_of_nullable_value` is removed.
+- No production workflow or business logic was changed.
+- The Gateway endpoint, Google Sign-In coordinator, database lifecycle fix, restore flow, OCR, voice, transaction parsing, reports, backup, and GitHub workflow remain unchanged.
+
 
 - Fixed `prefer_initializing_formals` in `OpenAiCompatibleAiProvider` without changing the public constructor argument `idTokenProvider` or Gateway behavior.
 - Removed the unnecessary non-null assertion when invoking the injected ID-token provider.

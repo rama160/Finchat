@@ -17,12 +17,13 @@ class OpenAiCompatibleAiProvider
   })  : _legacyConfig = config,
         _client = client ?? http.Client(),
         _googleSignInCoordinator =
-            googleSignInCoordinator ?? GoogleSignInCoordinator.instance;
+            googleSignInCoordinator ?? GoogleSignInCoordinator.instance,
+        _idTokenProvider = idTokenProvider;
 
   final AiSecureConfigService? _legacyConfig;
   final http.Client _client;
   final GoogleSignInCoordinator _googleSignInCoordinator;
-  final Future<String?> Function()? idTokenProvider;
+  final Future<String?> Function()? _idTokenProvider;
 
   static const String _gatewayEndpoint =
       'https://finchat-ai-gateway.finchat-ai-gateway.workers.dev/v1/ai/chat';
@@ -87,8 +88,9 @@ class OpenAiCompatibleAiProvider
         return null;
       }
 
-      final idToken = idTokenProvider != null
-          ? await idTokenProvider()
+      final tokenProvider = _idTokenProvider;
+      final idToken = tokenProvider != null
+          ? await tokenProvider()
           : await _currentGoogleIdToken();
 
       if (idToken == null || idToken.trim().isEmpty) {
