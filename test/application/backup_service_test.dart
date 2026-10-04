@@ -75,6 +75,53 @@ void main() {
     expect(rows.single['id'], 'user-1');
   });
 
+
+  test('restores the original FinChat backup format and maps it to the current user', () async {
+    final database = await openDatabase();
+    addTearDown(database.close);
+    final service = BackupService(
+      database,
+      restoreUserId: 'user@example.com',
+      restoreUserEmail: 'user@example.com',
+    );
+
+    const legacyJson = '''{
+      "format": "finchat_backup",
+      "version": 1,
+      "created_at": "2026-10-03T06:15:24.836554",
+      "transactions": [
+        {
+          "id": 246,
+          "chat_id": "local_user",
+          "transaction_date": "2026-10-02",
+          "transaction_time": "18:07:56",
+          "type": "expense",
+          "category": "Lainnya",
+          "description": "jajan",
+          "amount": 50000.0,
+          "payment_method": "Cash",
+          "merchant": "",
+          "notes": "",
+          "source": "text",
+          "is_synced": 1
+        }
+      ],
+      "deleted_transaction_ids": [12]
+    }''';
+
+    await service.restoreJson(legacyJson);
+    final db = await database.database;
+    final users = await db.query('users');
+    final transactions = await db.query('transactions');
+
+    expect(users, hasLength(1));
+    expect(users.single['id'], 'user@example.com');
+    expect(transactions, hasLength(1));
+    expect(transactions.single['user_id'], 'user@example.com');
+    expect(transactions.single['description'], 'jajan');
+    expect(transactions.single['category_id'], 'lainnya');
+  });
+
   test('cloud backup requires an explicitly configured provider', () async {
     final database = await openDatabase();
     addTearDown(database.close);

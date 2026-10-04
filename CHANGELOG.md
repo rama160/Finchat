@@ -1,3 +1,14 @@
+## Unreleased — Backup compatibility fix
+
+- **Date:** 2026-10-04
+- **Type:** Fix / backward compatibility
+- **Previous problem:** Restoring an older FinChat JSON backup (`format: finchat_backup`, `version: 1`) failed with `FormatException: Struktur backup tidak valid` because the current restore parser only accepted the newer `format_version` + `tables` schema.
+- **Change:** Added a backward-compatible migration for the original backup format, converting its transaction records and legacy categories into the current SQLite backup schema before restore. Legacy `local_user` data is rebound to the currently authenticated FinChat user during restore.
+- **Impact:** Existing old local/Drive backup files can be restored without changing the current backup export format or transaction/business logic.
+- **Migration:** Automatic at restore time; no manual conversion is required.
+- **Tests:** Added coverage for restoring the original backup format and rebinding it to the current user. Fresh Flutter analyze/test verification must be run in GitHub Actions.
+- **Status:** Ready for CI verification.
+
 ## Phase 11.1.2 — Fix `file_picker` 13 API Usage
 
 - **Date:** 2026-09-29

@@ -31,7 +31,7 @@ class _BackupScreenState extends State<BackupScreen> {
   void initState() {
     super.initState();
     _database = FinChatDatabase();
-    _backup = BackupService(_database);
+    _backup = BackupService(_database, restoreUserId: widget.userId, restoreUserEmail: widget.email);
     _preferences = BackupPreferenceService(_database);
     _googleAuth = GoogleDriveAuthService();
     _loadPreference();
@@ -103,7 +103,7 @@ class _BackupScreenState extends State<BackupScreen> {
     await _run(() async {
       final client = await _googleAuth.authorizeDrive();
       final provider = GoogleDriveBackupProvider(drive.DriveApi(client));
-      _backup = BackupService(_database, cloudProvider: provider);
+      _backup = BackupService(_database, cloudProvider: provider, restoreUserId: widget.userId, restoreUserEmail: widget.email);
       final account = _googleAuth.currentUser;
       if (account != null && mounted) setState(() => _status = 'Google Drive terhubung sebagai ${account.email}.');
     }, 'Google Drive terhubung.');
@@ -112,7 +112,7 @@ class _BackupScreenState extends State<BackupScreen> {
   Future<void> _backupGoogle() async {
     await _run(() async {
       final client = await _googleAuth.authorizeDrive();
-      _backup = BackupService(_database, cloudProvider: GoogleDriveBackupProvider(drive.DriveApi(client)));
+      _backup = BackupService(_database, cloudProvider: GoogleDriveBackupProvider(drive.DriveApi(client)), restoreUserId: widget.userId, restoreUserEmail: widget.email);
       await _backup.backupToCloud();
     }, 'Backup Google Drive berhasil.');
   }
@@ -122,7 +122,7 @@ class _BackupScreenState extends State<BackupScreen> {
     if (confirmed != true) return;
     await _run(() async {
       final client = await _googleAuth.authorizeDrive();
-      _backup = BackupService(_database, cloudProvider: GoogleDriveBackupProvider(drive.DriveApi(client)));
+      _backup = BackupService(_database, cloudProvider: GoogleDriveBackupProvider(drive.DriveApi(client)), restoreUserId: widget.userId, restoreUserEmail: widget.email);
       final restored = await _backup.restoreFromCloud();
       if (!restored) throw StateError('Belum ada backup FinChat di Google Drive.');
     }, 'Backup Google Drive berhasil dipulihkan.');
@@ -138,7 +138,7 @@ class _BackupScreenState extends State<BackupScreen> {
 
     await _run(() async {
       final client = await _googleAuth.authorizeDrive();
-      _backup = BackupService(_database, cloudProvider: GoogleDriveBackupProvider(drive.DriveApi(client)));
+      _backup = BackupService(_database, cloudProvider: GoogleDriveBackupProvider(drive.DriveApi(client)), restoreUserId: widget.userId, restoreUserEmail: widget.email);
       await _backup.backupToCloud();
       await _preferences.setAutomaticBackupEnabled(true);
       if (mounted) setState(() => _automatic = true);

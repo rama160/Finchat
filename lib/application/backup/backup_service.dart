@@ -7,10 +7,12 @@ import '../../data/local/finchat_database.dart';
 import '../../domain/backup/backup_models.dart';
 
 class BackupService {
-  BackupService(this.database, {this.cloudProvider});
+  BackupService(this.database, {this.cloudProvider, this.restoreUserId, this.restoreUserEmail});
 
   final FinChatDatabase database;
   final CloudBackupProvider? cloudProvider;
+  final String? restoreUserId;
+  final String? restoreUserEmail;
 
   static const _tableOrder = [
     'users',
@@ -60,7 +62,17 @@ class BackupService {
 
       for (final table in _tableOrder) {
         final rows = snapshot.tables[table] ?? const [];
-        for (final row in rows) {
+        for (final originalRow in rows) {
+          final row = Map<String, Object?>.from(originalRow);
+          if (snapshot.isLegacy && restoreUserId != null) {
+            if (table == 'users' && row['id'] == 'local_user') {
+              row['id'] = restoreUserId;
+              row['email'] = restoreUserEmail ?? row['email'];
+              row['display_name'] = restoreUserEmail ?? row['display_name'];
+            } else if ((table == 'transactions' || table == 'category_mappings' || table == 'category_history') && row['user_id'] == 'local_user') {
+              row['user_id'] = restoreUserId;
+            }
+          }
           await txn.insert(table, row, conflictAlgorithm: ConflictAlgorithm.replace);
         }
       }
