@@ -1,4 +1,4 @@
-# FinChat 0.3.2+6 — Database Closed + AI Gateway Bugfix
+# FinChat 0.3.2+6/+7 — Database Closed + AI Gateway Bugfix and Analyzer Cleanup
 
 ## User report
 
@@ -47,7 +47,7 @@ No schema change or data migration was introduced. Existing restore behavior is 
 
 ## Files changed
 
-- `pubspec.yaml` — version `0.3.2+6`.
+- `pubspec.yaml` — version advanced to `0.3.2+7` for the analyzer cleanup follow-up.
 - `lib/data/local/finchat_database.dart` — shared production connection, serialized open, stale-handle recovery.
 - `lib/data/ai/openai_compatible_ai_provider.dart` — Gateway-first AI and shared Google Sign-In coordinator.
 - `test/data_database_test.dart` — database lifecycle regression coverage.
@@ -55,6 +55,10 @@ No schema change or data migration was introduced. Existing restore behavior is 
 - `Ai start here.md` — continuation point and current truth updated.
 - `CHANGELOG.md` — bugfix entry.
 - `docs/BUGFIX_0.3.2+6_DATABASE_AI.md` — detailed handoff.
+
+## Follow-up 0.3.2+7 — analyzer cleanup
+
+The first GitHub Actions analyzer run after the runtime bugfix reported eight issues, all non-runtime: one `prefer_initializing_formals`, one `unnecessary_non_null_assertion`, and six `unnecessary_string_escapes` in the Gateway regression test. These were fixed without changing the Gateway request contract or runtime workflow. The test now constructs its nested JSON with `jsonEncode()`.
 
 ## Verification gate
 

@@ -1,6 +1,6 @@
 # AI START HERE — FINCHAT
 
-## Current continuation point — Bugfix package 0.3.2+6
+## Current continuation point — Bugfix package 0.3.2+7
 
 Read this file first, then:
 1. `docs/FULL_REPOSITORY_AUDIT.md`
@@ -21,7 +21,7 @@ Read this file first, then:
 - The database open path is serialized and reopens a handle if the cached handle is no longer open.
 - The AI provider is Gateway-first in production. It reuses the existing `GoogleSignInCoordinator` session configuration to obtain the logged-in Google ID token, then calls the Cloudflare Gateway. Gemini API credentials remain server-side. The legacy local AI enable switch is retained only when an `AiSecureConfigService` is explicitly injected, preserving existing test/config contracts.
 - Google Sign-In and restore/migration behavior are intentionally left unchanged.
-- Flutter/Dart SDK is not available in the artifact workspace, so local analyze/test/APK build is not claimed. GitHub Actions remains the canonical verification environment.
+- Flutter/Dart SDK is not available in the artifact workspace, so local analyze/test/APK build is not claimed. A GitHub Actions run exposed analyzer-only issues in the AI provider/test fixture; those issues are fixed in 0.3.2+7. GitHub Actions remains the canonical verification environment.
 - Real Android-device acceptance is still required for camera, microphone, OCR quality, Google Sign-In/OAuth, Google Drive and Gateway/AI behavior.
 
 ## Non-negotiable product rules
@@ -37,6 +37,13 @@ Read this file first, then:
 - Automatic Drive backup requires one-time Google authorization; once enabled it is attempted on app load/data changes and must not block transaction capture.
 - Every meaningful change updates changelog/status/audit documentation.
 - Never force-push automatically.
+
+## 0.3.2+7 analyzer follow-up
+
+- Fixed `prefer_initializing_formals` in `OpenAiCompatibleAiProvider` without changing the public constructor argument `idTokenProvider` or Gateway behavior.
+- Removed the unnecessary non-null assertion when invoking the injected ID-token provider.
+- Rewrote the Gateway JSON test fixture with `jsonEncode()` so analyzer no longer reports unnecessary string escapes.
+- No database, authentication, restore/migration, transaction, OCR, voice, report, backup, Gateway endpoint, or GitHub workflow logic was changed.
 
 ## Exact next gate
 

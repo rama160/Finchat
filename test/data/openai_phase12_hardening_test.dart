@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -16,7 +18,12 @@ void main() {
         expect(request.url.toString(), contains('/v1/ai/chat'));
         expect(request.headers['authorization'], 'Bearer test-token');
         return http.Response(
-          '{"text":"{\"category_id\":\"makanan\",\"confidence\":0.9}"}',
+          jsonEncode({
+            'text': jsonEncode({
+              'category_id': 'makanan',
+              'confidence': 0.9,
+            }),
+          }),
           200,
         );
       }),

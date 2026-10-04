@@ -1,3 +1,11 @@
+# 0.3.2+7 — Analyzer Cleanup After Runtime Bugfix
+
+- **Date:** 2026-10-05
+- **User-reported CI result:** `flutter analyze` exited with code 1 because the runtime bugfix package still had two AI-provider analyzer findings and six unnecessary string-escape findings in its Gateway regression test.
+- **Fix:** Kept the `idTokenProvider` constructor contract unchanged, exposed the same callback through the provider field without the `prefer_initializing_formals` finding, removed the unnecessary non-null assertion, and built the nested Gateway test JSON with `jsonEncode()` instead of escaped string literals.
+- **Preserved:** Database lifecycle fix, Google Sign-In, restore from legacy data to current user data, local-first parsing, OCR, voice, reports, backup, Gateway endpoint, and GitHub Actions workflow were not redesigned.
+- **Verification:** The reported analyzer findings are addressed at source level. Flutter/Dart SDK is unavailable in this artifact workspace, so the next required gate is GitHub Actions `flutter analyze`, `flutter test`, and release APK build.
+
 # 0.3.2+6 — Runtime Bugfix: Shared SQLite Connection + Gateway AI
 
 - **User-reported problems:** text, voice and receipt transaction capture showed `DatabaseException(error database_closed)`; AI reported as unavailable.
