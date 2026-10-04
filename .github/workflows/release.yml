@@ -34,6 +34,38 @@ jobs:
           test -f android/app/build.gradle || test -f android/app/build.gradle.kts
       - name: Configure Android release, permissions, and R8
         run: python3 tooling/android/configure_android_ci.py
+      - name: Restore permanent release keystore
+        env:
+          FINCHAT_UPLOAD_KEYSTORE_BASE64: ${{ secrets.FINCHAT_UPLOAD_KEYSTORE_BASE64 }}
+          FINCHAT_KEY_ALIAS: ${{ secrets.FINCHAT_KEY_ALIAS }}
+          FINCHAT_KEY_PASSWORD: ${{ secrets.FINCHAT_KEY_PASSWORD }}
+          FINCHAT_STORE_PASSWORD: ${{ secrets.FINCHAT_STORE_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in FINCHAT_UPLOAD_KEYSTORE_BASE64 FINCHAT_KEY_ALIAS FINCHAT_KEY_PASSWORD FINCHAT_STORE_PASSWORD; do
+            if [ -z "${!name:-}" ]; then
+              echo "Required GitHub Actions secret is missing: $name" >&2
+              exit 1
+            fi
+          done
+          mkdir -p android/app
+          printf '%s' "$FINCHAT_UPLOAD_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+          test -s android/app/upload-keystore.jks
+          cat > android/key.properties <<EOF
+          storePassword=$FINCHAT_STORE_PASSWORD
+          keyPassword=$FINCHAT_KEY_PASSWORD
+          keyAlias=$FINCHAT_KEY_ALIAS
+          storeFile=upload-keystore.jks
+          EOF
+          chmod 600 android/key.properties android/app/upload-keystore.jks
+      - name: Show permanent signing certificate SHA-1
+        env:
+          FINCHAT_KEY_ALIAS: ${{ secrets.FINCHAT_KEY_ALIAS }}
+          FINCHAT_STORE_PASSWORD: ${{ secrets.FINCHAT_STORE_PASSWORD }}
+        shell: bash
+        run: |
+          keytool -list -v -keystore android/app/upload-keystore.jks -alias "$FINCHAT_KEY_ALIAS" -storepass "$FINCHAT_STORE_PASSWORD" | grep -E 'SHA1:|SHA-1:'
       - name: Build release APK
         run: flutter build apk --release --dart-define=FINCHAT_GOOGLE_SERVER_CLIENT_ID=${{ secrets.FINCHAT_GOOGLE_SERVER_CLIENT_ID }}
       - name: Verify release tag matches pubspec version
