@@ -209,3 +209,8 @@ The re-audit found that technical code existed through Phase 12, but several ori
 - stale phase-copy files consolidated and handoff/status documents reconciled.
 
 This re-audit does **not** claim runtime acceptance. Fresh GitHub Actions and one real-device QA cycle remain required because the artifact workspace has no Flutter/Dart SDK and cannot validate microphone, camera, OAuth/Drive, OCR quality or platform sharing behavior.
+
+
+## Runtime re-audit — 2026-10-05 / version 0.3.2+6
+
+The device report exposed two runtime regressions after the Phase 12 audit: shared SQLite handles could be closed by screen lifecycle disposal, and the new Cloudflare Gateway provider was still blocked by the legacy local AI enable flag. Both are fixed without changing the established Google Sign-In, restore/migration, parser-first, OCR, voice, backup or release workflows. GitHub Actions and real-device verification remain mandatory.

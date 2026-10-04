@@ -1,8 +1,17 @@
-# FinChat Full Repository Audit — 2026-09-29
+# FinChat Full Repository Audit — 2026-10-05
 
 ## Scope and verification boundary
 
-This audit was performed against the uploaded ZIP file-by-file and then used to produce the cleaned 0.3.2+5 package. The artifact workspace has **no Flutter/Dart SDK**, so this package is not claimed to have passed `flutter analyze`, `flutter test`, or `flutter build apk --release` locally. GitHub Actions is the canonical compiler/test/build gate. A real Android-device pass is still mandatory for plugin and permission behavior.
+This audit was performed against the uploaded ZIP file-by-file and then used to produce the cleaned 0.3.2+5 package and the 0.3.2+6 runtime bugfix. The artifact workspace has **no Flutter/Dart SDK**, so this package is not claimed to have passed `flutter analyze`, `flutter test`, or `flutter build apk --release` locally. GitHub Actions is the canonical compiler/test/build gate. A real Android-device pass is still mandatory for plugin and permission behavior.
+
+
+## 0.3.2+6 runtime bugfix audit
+
+- **Database:** `FinChatDatabase()` is now a shared production instance so `ChatScreen`, `ReportScreen`, `FinancialQaScreen` and `BackupScreen` cannot close each other's SQLite connection during `dispose()`. Custom test instances remain isolated.
+- **Database:** open operations are serialized and a cached closed handle is reopened. No schema version or restore format changed.
+- **AI:** normal `OpenAiCompatibleAiProvider()` no longer requires the legacy secure-storage `ai.enabled` flag. It reuses `GoogleSignInCoordinator` for the logged-in Google ID token and calls the existing Cloudflare Gateway.
+- **Preserved:** Google Sign-In/session mapping and legacy-data restore behavior were not redesigned.
+- **Verification:** source-level audit complete; GitHub Actions and Android-device tests remain required.
 
 ## Executive findings
 
@@ -64,15 +73,16 @@ The distributable ZIP intentionally excludes `.git/`. Seven `PHASE_*_COPY_INSTRU
 | `.github/workflows/flutter_test.yml` | CI analyze/test | **OK** | Runs pub get, analyze and unit/widget tests on push/PR. |
 | `.github/workflows/release.yml` | GitHub Release APK | **IMPROVED** | Uses the same Android/R8/permission configurator as build; default release tag is v0.3.2. |
 | `.gitignore` | Repository/analyzer configuration | **OK** | Configuration retained. |
-| `Ai start here.md` | AI handoff entry point | **UPDATED** | Stale Phase 11.1.2 opening replaced with current 0.3.2+5 audit state and exact next gate. |
+| `Ai start here.md` | AI handoff entry point | **UPDATED** | Stale Phase 11.1.2 opening replaced with current 0.3.2+6 bugfix state and exact next gate. |
 | `CHANGELOG.md` | Repository documentation | **UPDATED** | Retained and updated for this audit package. |
 | `README.md` | Repository documentation | **UPDATED** | Retained and updated for this audit package. |
 | `UPDATE_GITHUB.bat` | Single Windows GitHub synchronizer | **NEW** | Fetch/rebase, manifest-driven stale tracked-file cleanup, git add -A, commit and push; no force-push. |
 | `analysis_options.yaml` | Repository/analyzer configuration | **OK** | Configuration retained. |
 | `docs/AI_CONTRACT.md` | Project documentation | **RETAIN** | Retained as architecture/setup/history documentation; current truth defers to IMPLEMENTATION_STATUS and this audit. |
-| `docs/ARCHITECTURE.md` | Project documentation | **RETAIN** | Retained as architecture/setup/history documentation; current truth defers to IMPLEMENTATION_STATUS and this audit. |
+| `docs/ARCHITECTURE.md` | Project documentation | **UPDATED** | Retained; current truth includes the shared production database lifecycle and Gateway architecture. |
+| `docs/BUGFIX_0.3.2+6_DATABASE_AI.md` | Runtime bugfix handoff | **NEW** | Records root causes, exact fixes, preserved workflows and verification gates for 0.3.2+6. |
 | `docs/FINCHAT_MASTER_CONTEXT.md` | Project documentation | **RETAIN** | Retained as architecture/setup/history documentation; current truth defers to IMPLEMENTATION_STATUS and this audit. |
-| `docs/FULL_REPOSITORY_AUDIT.md` | Authoritative detailed audit | **NEW** | This file: feature matrix, cleanup record, file-by-file inventory and acceptance gates. |
+| `docs/FULL_REPOSITORY_AUDIT.md` | Authoritative detailed audit | **UPDATED** | Adds the 0.3.2+6 runtime bugfix findings and verification gates. |
 | `docs/GOOGLE_ACCOUNT_AND_DRIVE_SETUP.md` | Google setup documentation | **CONSOLIDATED** | Merges the former Google Sign-In and Phase 11.5 Drive setup documents. |
 | `docs/IMPLEMENTATION_STATUS.md` | Current implementation truth | **UPDATED** | Conflicting Phase 11/12 status replaced with current audit/package verification state. |
 | `docs/MULTI_USER_AI_AND_MONETIZATION.md` | Project documentation | **RETAIN** | Retained as architecture/setup/history documentation; current truth defers to IMPLEMENTATION_STATUS and this audit. |
@@ -109,10 +119,10 @@ The distributable ZIP intentionally excludes `.git/`. Seven `PHASE_*_COPY_INSTRU
 | `lib/core/constants/app_constants.dart` | Project file | **REVIEWED** | Reviewed in the repository inventory. |
 | `lib/core/errors/app_failure.dart` | Project file | **REVIEWED** | Reviewed in the repository inventory. |
 | `lib/core/validation/transaction_validator.dart` | Project file | **REVIEWED** | Reviewed in the repository inventory. |
-| `lib/data/ai/openai_compatible_ai_provider.dart` | Infrastructure/data adapter | **OK** | Concrete SQLite/network/device implementation retained and connected through contracts where applicable. |
+| `lib/data/ai/openai_compatible_ai_provider.dart` | Infrastructure/data adapter | **FIXED** | Gateway-first production path now uses the shared Google Sign-In coordinator and no longer depends on the legacy local AI enable flag. |
 | `lib/data/backup/google_drive_backup_provider.dart` | Infrastructure/data adapter | **OK** | Concrete SQLite/network/device implementation retained and connected through contracts where applicable. |
 | `lib/data/local/database_schema.dart` | Infrastructure/data adapter | **OK** | Concrete SQLite/network/device implementation retained and connected through contracts where applicable. |
-| `lib/data/local/finchat_database.dart` | Infrastructure/data adapter | **OK** | Concrete SQLite/network/device implementation retained and connected through contracts where applicable. |
+| `lib/data/local/finchat_database.dart` | Infrastructure/data adapter | **FIXED** | Production database handle is shared across screens; opening is serialized and stale closed handles are reopened. |
 | `lib/data/ocr/image_receipt_preprocessor.dart` | Infrastructure/data adapter | **OK** | Concrete SQLite/network/device implementation retained and connected through contracts where applicable. |
 | `lib/data/ocr/mlkit_receipt_ocr_provider.dart` | Infrastructure/data adapter | **OK** | Concrete SQLite/network/device implementation retained and connected through contracts where applicable. |
 | `lib/data/repositories/in_memory_session_repository.dart` | Infrastructure/data adapter | **OK** | Concrete SQLite/network/device implementation retained and connected through contracts where applicable. |
@@ -150,7 +160,7 @@ The distributable ZIP intentionally excludes `.git/`. Seven `PHASE_*_COPY_INSTRU
 | `lib/presentation/screens/report_screen.dart` | Reports UI | **IMPROVED** | Daily/range/month summaries, true expense pie chart, per-category counts, income/expense/category/group drill-down, insight and PDF share. |
 | `lib/presentation/screens/settings_screen.dart` | Flutter presentation | **OK** | UI layer retained; feature-specific findings appear in the feature matrix. |
 | `lib/presentation/screens/splash_screen.dart` | Flutter presentation | **OK** | UI layer retained; feature-specific findings appear in the feature matrix. |
-| `pubspec.yaml` | Flutter dependencies/version | **IMPROVED** | Version 0.3.2+5; required SQLite/OCR/voice/PDF/Drive/auth/file dependencies retained. |
+| `pubspec.yaml` | Flutter dependencies/version | **IMPROVED** | Version 0.3.2+6; required SQLite/OCR/voice/PDF/Drive/auth/file dependencies retained. |
 | `test/application/automatic_backup_service_test.dart` | Automated regression test | **PRESENT** | Focused test retained; fresh GitHub Actions run is required after this package. |
 | `test/application/backup_preference_service_test.dart` | Automated regression test | **PRESENT** | Focused test retained; fresh GitHub Actions run is required after this package. |
 | `test/application/backup_service_test.dart` | Automated regression test | **PRESENT** | Focused test retained; fresh GitHub Actions run is required after this package. |

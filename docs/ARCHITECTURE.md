@@ -66,3 +66,11 @@ Transaction persistence now supports atomic multi-save and pre-persistence valid
 ## Shared AI target
 
 For a multi-user production service, the mobile client should send a verifiable Google identity token over HTTPS to a FinChat backend/AI gateway. The backend verifies identity, resolves entitlement/rate limits, and calls the Gemini/API provider using a server-side secret. The Android app must never contain the shared provider API key.
+
+## Runtime lifecycle hardening — 0.3.2+6
+
+Production screens use the shared default `FinChatDatabase()` instance. Individual screen `dispose()` methods may still call `close()` for lifecycle compatibility, but the shared production instance does not close from a screen. Isolated database instances remain available for tests and custom tooling. Database opens are serialized to prevent duplicate concurrent handles.
+
+## AI Gateway runtime
+
+`OpenAiCompatibleAiProvider` uses the existing `GoogleSignInCoordinator` to obtain the logged-in Google ID token and sends it to the Cloudflare Gateway over HTTPS. The normal production provider does not depend on the legacy local `ai.enabled` flag. Gemini credentials remain server-side.

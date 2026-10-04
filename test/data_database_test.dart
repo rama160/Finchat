@@ -37,6 +37,26 @@ void main() {
     });
   }
 
+
+  test('production database instances share one connection and screen close cannot close it', () async {
+    final first = FinChatDatabase();
+    final second = FinChatDatabase();
+    expect(identical(first, second), isTrue);
+
+    final db = await first.database;
+    await second.close();
+    expect(db.isOpen, isTrue);
+    expect((await first.database).isOpen, isTrue);
+  });
+
+  test('custom database instances remain isolated for tests', () {
+    final first = FinChatDatabase(factory: databaseFactoryFfi, databasePath: inMemoryDatabasePath);
+    final second = FinChatDatabase(factory: databaseFactoryFfi, databasePath: inMemoryDatabasePath);
+    expect(identical(first, second), isFalse);
+    addTearDown(first.close);
+    addTearDown(second.close);
+  });
+
   test('creates schema and seeds system categories', () async {
     final result = await categories.getCategories();
     expect(result.map((e) => e.id), containsAll(<String>['makanan', 'belanja_dapur', 'lainnya']));

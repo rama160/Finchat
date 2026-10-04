@@ -3,9 +3,18 @@
 
 # FinChat Implementation Status
 
-**Version:** 0.3.2+5  
-**Status date:** 2026-09-29  
-**Current stage:** Post-Phase-12 full repository audit and integration cleanup; fresh CI + real-device acceptance pending.
+**Version:** 0.3.2+6  
+**Status date:** 2026-10-05  
+**Current stage:** Post-Phase-12 runtime bugfix; fresh CI + real-device acceptance pending.
+
+
+## Runtime bugfix 0.3.2+6
+
+- Fixed the shared SQLite lifecycle issue behind `DatabaseException(error database_closed)` during text, voice and receipt capture by making the default production database instance application-shared and preventing screen `dispose()` from closing it.
+- Added serialized database opening and stale-handle recovery without changing schema or restore/migration behavior.
+- Fixed Gateway AI availability by removing the legacy local `ai.enabled` prerequisite from the normal production provider path.
+- AI now reuses the existing `GoogleSignInCoordinator` to obtain the current Google ID token before calling the existing Cloudflare Gateway.
+- Gemini credentials remain server-side.
 
 ## Verified historical baseline
 
@@ -53,4 +62,4 @@ The project owner reported successful GitHub Actions for the earlier cumulative 
 - Financial questions entered directly in the main chat composer.
 - Update checker against an actual published GitHub Release.
 
-No destructive SQLite schema migration is introduced by the 0.3.2+5 audit package.
+No destructive SQLite schema migration is introduced by the 0.3.2+5 audit package or the 0.3.2+6 runtime bugfix.

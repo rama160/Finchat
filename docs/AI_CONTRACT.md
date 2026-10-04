@@ -22,6 +22,10 @@ If AI fails, preserve the original input, allow manual correction, and never los
 ## Financial answers
 Use application-computed facts from local data. AI should explain results, not manufacture financial records.
 
+## Production Gateway
+The production mobile app uses the FinChat Cloudflare AI Gateway. The app sends a verifiable Google ID token over HTTPS; the Gateway verifies identity and calls Gemini with a server-side secret. The mobile app never contains the shared Gemini API key.
 
-## Phase 12 hardening
-Enabled AI requires an HTTPS endpoint, model and API key. Network requests are time-bounded and oversized/malformed responses are rejected. AI remains read-only with respect to SQLite.
+The normal `OpenAiCompatibleAiProvider()` path does not require the legacy local `ai.enabled` switch. `AiSecureConfigService` remains available for explicit legacy/test configuration so existing tests and configuration contracts remain compatible.
+
+## Network hardening
+Gateway requests are HTTPS-only, time-bounded and reject oversized or malformed responses. AI remains read-only with respect to SQLite.

@@ -1,3 +1,15 @@
+# 0.3.2+6 — Runtime Bugfix: Shared SQLite Connection + Gateway AI
+
+- **User-reported problems:** text, voice and receipt transaction capture showed `DatabaseException(error database_closed)`; AI reported as unavailable.
+- **Database root cause:** multiple production screens each created a `FinChatDatabase()` for the same SQLite file and each screen called `close()` from `dispose()`. A screen lifecycle could therefore close a connection still needed by another async transaction flow.
+- **Database fix:** production/default `FinChatDatabase()` now resolves to one shared application instance; its production `close()` is intentionally a no-op from screen lifecycle. Custom factory/path instances remain isolated for tests. Database opening is also serialized and stale closed handles are reopened defensively.
+- **AI root cause:** the Gateway provider still checked the legacy secure-storage key `ai.enabled` before making any Gateway request. The production app constructs the provider without that legacy config, so this gate prevented Gateway calls.
+- **AI fix:** production provider is now Gateway-first and obtains the Google ID token through the existing `GoogleSignInCoordinator`, avoiding a second hardcoded Google Sign-In initialization. The Cloudflare Gateway endpoint remains the existing endpoint and Gemini credentials remain server-side. Explicitly injected legacy config remains supported for existing tests.
+- **Preserved workflows:** Google Sign-In, existing session/user mapping, restore from legacy data to current user data, local parser/category learning, OCR review, voice capture, reports, backup and release workflows are not redesigned.
+- **Tests added:** production database instances share one handle; isolated test database instances remain separate; production Gateway provider can call the Gateway without the legacy local AI toggle.
+- **Verification:** source-level audit completed; GitHub Actions `flutter analyze`, `flutter test`, and Android release build are required before calling this package CI-green.
+- **Status:** ready for GitHub Actions verification and Android-device acceptance.
+
 ## Unreleased — Backup compatibility fix
 
 - **Date:** 2026-10-04

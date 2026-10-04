@@ -7,6 +7,35 @@ import 'package:finchat/domain/ai/ai_category_fallback.dart';
 import 'package:finchat/domain/entities/transaction_entity.dart';
 
 void main() {
+
+  test('production Gateway provider does not require the legacy local AI toggle', () async {
+    var calls = 0;
+    final provider = OpenAiCompatibleAiProvider(
+      client: MockClient((request) async {
+        calls++;
+        expect(request.url.toString(), contains('/v1/ai/chat'));
+        expect(request.headers['authorization'], 'Bearer test-token');
+        return http.Response(
+          '{"text":"{\"category_id\":\"makanan\",\"confidence\":0.9}"}',
+          200,
+        );
+      }),
+      idTokenProvider: () async => 'test-token',
+    );
+
+    final result = await provider.suggestCategory(const AiCategoryRequest(
+      userId: 'u',
+      originalText: 'nasi 20rb',
+      description: 'nasi',
+      type: TransactionType.expense,
+      amount: 20000,
+      localCategoryId: 'lainnya',
+    ));
+
+    expect(result?.categoryId, 'makanan');
+    expect(calls, 1);
+  });
+
   test('disabled AI does not call network', () async {
     var calls = 0; final store = _Store(); final config = AiSecureConfigService(store: store);
     await config.save(apiKey: '', endpoint: '', model: '', enabled: false);

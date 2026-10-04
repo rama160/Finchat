@@ -77,6 +77,6 @@ Google Sign-In is integrated into the session layer. Existing email login remain
 ## Monetization foundation (OFF)
 Four subscription tiers are modeled: Free, Basic, Pro, Unlimited. Payment methods are modeled for QRIS, GoPay, bank transfer, card and other e-wallets. Subscription and payment flags are disabled during pilot testing; no payment is collected. Production billing must be enforced by a backend and verified entitlement/webhook flow.
 
-## Repository audit package 0.3.2+5
+## Runtime bugfix package 0.3.2+6
 
-The 2026-09-29 full repository audit reconciles the cumulative Phase 12 source with the original FinChat PRD. See `docs/FULL_REPOSITORY_AUDIT.md` for the complete file-by-file review and remaining acceptance gates. Use `UPDATE_GITHUB.bat` as the single Windows synchronizer; it stages additions, updates and tracked deletions with `git add -A` and never force-pushes.
+The 2026-09-29 repository audit was followed by the 2026-10-05 runtime bugfix package. The bugfix addresses the shared SQLite `database_closed` failure affecting text/voice/receipt capture and restores the production Cloudflare Gateway AI path. See `docs/BUGFIX_0.3.2+6_DATABASE_AI.md` and `docs/FULL_REPOSITORY_AUDIT.md`. Use `UPDATE_GITHUB.bat` as the single Windows synchronizer; it stages additions, updates and tracked deletions with `git add -A` and never force-pushes.

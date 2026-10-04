@@ -1,6 +1,6 @@
 # AI START HERE — FINCHAT
 
-## Current continuation point — Repository audit package 0.3.2+5
+## Current continuation point — Bugfix package 0.3.2+6
 
 Read this file first, then:
 1. `docs/FULL_REPOSITORY_AUDIT.md`
@@ -16,10 +16,13 @@ Read this file first, then:
 ## Current truth
 
 - Technical work exists through Phase 12 hardening.
-- The project owner previously reported GitHub Actions success for the pre-audit Phase 12 baseline.
-- This audit package changes source/build/docs and therefore **must receive a fresh GitHub Actions verification** before it is called CI-green.
-- Flutter/Dart SDK is not available in the artifact workspace, so local analyze/test/APK build is not claimed.
-- Real Android-device acceptance is still required for camera, microphone, OCR quality, file picker/share, Google Sign-In/OAuth, Google Drive and update-opening behavior.
+- This package fixes two device-reported runtime regressions without changing the established product workflow: `DatabaseException(error database_closed)` during text/voice/receipt transaction capture, and AI Gateway fallback being disabled by the legacy local `ai.enabled` gate.
+- Production `FinChatDatabase()` instances now share one application database handle; screen-level `dispose()` calls no longer close that shared production connection. Custom database factory/path instances remain isolated for tests.
+- The database open path is serialized and reopens a handle if the cached handle is no longer open.
+- The AI provider is Gateway-first in production. It reuses the existing `GoogleSignInCoordinator` session configuration to obtain the logged-in Google ID token, then calls the Cloudflare Gateway. Gemini API credentials remain server-side. The legacy local AI enable switch is retained only when an `AiSecureConfigService` is explicitly injected, preserving existing test/config contracts.
+- Google Sign-In and restore/migration behavior are intentionally left unchanged.
+- Flutter/Dart SDK is not available in the artifact workspace, so local analyze/test/APK build is not claimed. GitHub Actions remains the canonical verification environment.
+- Real Android-device acceptance is still required for camera, microphone, OCR quality, Google Sign-In/OAuth, Google Drive and Gateway/AI behavior.
 
 ## Non-negotiable product rules
 
@@ -37,7 +40,7 @@ Read this file first, then:
 
 ## Exact next gate
 
-1. Run `UPDATE_GITHUB.bat` from the cleaned package root.
+1. Run `UPDATE_GITHUB.bat` from the package root.
 2. Confirm GitHub Actions passes `flutter pub get`, `flutter analyze`, `flutter test`, `flutter build apk --release`.
 3. Fix any CI issue against this exact package without reverting the audit goals.
 4. Perform the device acceptance matrix in `docs/FULL_REPOSITORY_AUDIT.md` and `docs/PHASE_12_HARDENING_MATRIX.md`.

@@ -1,10 +1,9 @@
-
 import 'dart:convert';
 
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 
 import '../../application/ai/ai_secure_config_service.dart';
+import '../../application/auth/google_sign_in_coordinator.dart';
 import '../../domain/ai/ai_category_fallback.dart';
 import '../../domain/ai/financial_ai_provider.dart';
 
@@ -14,45 +13,20 @@ class OpenAiCompatibleAiProvider
     AiSecureConfigService? config,
     http.Client? client,
     Future<String?> Function()? idTokenProvider,
-  })  : _config = config ?? AiSecureConfigService(),
+    GoogleSignInCoordinator? googleSignInCoordinator,
+  })  : _legacyConfig = config,
         _client = client ?? http.Client(),
-        _idTokenProvider = idTokenProvider ?? _currentGoogleIdToken;
+        _googleSignInCoordinator =
+            googleSignInCoordinator ?? GoogleSignInCoordinator.instance,
+        _idTokenProvider = idTokenProvider;
 
-  final AiSecureConfigService _config;
+  final AiSecureConfigService? _legacyConfig;
   final http.Client _client;
-  final Future<String?> Function() _idTokenProvider;
-
-  static const String _webClientId =
-      '515697505386-r2ahk5fv1oa93dh6549h25ekllo85rfq.apps.googleusercontent.com';
+  final GoogleSignInCoordinator _googleSignInCoordinator;
+  final Future<String?> Function()? _idTokenProvider;
 
   static const String _gatewayEndpoint =
       'https://finchat-ai-gateway.finchat-ai-gateway.workers.dev/v1/ai/chat';
-
-  static bool _googleSignInInitialized = false;
-
-  /// Inisialisasi Google Sign-In dan ambil ID Token akun yang login.
-  static Future<String?> _currentGoogleIdToken() async {
-    try {
-      if (!_googleSignInInitialized) {
-        await GoogleSignIn.instance.initialize(
-          serverClientId: _webClientId,
-        );
-        _googleSignInInitialized = true;
-      }
-
-      final account =
-          await GoogleSignIn.instance.attemptLightweightAuthentication();
-
-      if (account == null) {
-        return null;
-      }
-
-      final authentication = account.authentication;
-      return authentication.idToken;
-    } catch (_) {
-      return null;
-    }
-  }
 
   @override
   Future<AiCategorySuggestion?> suggestCategory(
@@ -102,14 +76,21 @@ class OpenAiCompatibleAiProvider
   }
 
   /// Kirim prompt ke Cloudflare Gateway menggunakan Google ID Token.
-  /// Gemini API Key tidak disimpan atau dikirim dari aplikasi Flutter.
+  /// Gemini API Key tetap hanya berada di server/Gateway.
   Future<String?> _chat(String prompt) async {
     try {
-      if (!await _config.readEnabled()) {
+      // The production provider is Gateway-first. The old local AI enable
+      // switch is only honored when a config object is explicitly injected,
+      // which preserves the existing unit-test contract without disabling the
+      // real Gateway in the app.
+      final legacyConfig = _legacyConfig;
+      if (legacyConfig != null && !await legacyConfig.readEnabled()) {
         return null;
       }
 
-      final idToken = await _idTokenProvider();
+      final idToken = _idTokenProvider != null
+          ? await _idTokenProvider!()
+          : await _currentGoogleIdToken();
 
       if (idToken == null || idToken.trim().isEmpty) {
         return null;
@@ -163,6 +144,24 @@ class OpenAiCompatibleAiProvider
       }
 
       return content;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<String?> _currentGoogleIdToken() async {
+    try {
+      await _googleSignInCoordinator.initialize();
+      final signIn = _googleSignInCoordinator.signIn;
+      if (!signIn.supportsAuthenticate()) {
+        return null;
+      }
+
+      final account = await signIn.attemptLightweightAuthentication();
+      if (account == null) return null;
+
+      final authentication = account.authentication;
+      return authentication.idToken;
     } catch (_) {
       return null;
     }
