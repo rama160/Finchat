@@ -24,3 +24,6 @@ android/app/release/
 .env
 *.jks
 *.keystore
+/android/key.properties
+/android/app/*.jks
+/android/app/*.keystore

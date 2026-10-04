@@ -31,16 +31,41 @@ jobs:
           test -f android/app/build.gradle || test -f android/app/build.gradle.kts
       - name: Configure Android release, permissions, and R8
         run: python3 tooling/android/configure_android_ci.py
-
-      - name: Generate Keystore & Extract SHA-1 Fingerprint
+      - name: Restore permanent release keystore
+        env:
+          FINCHAT_UPLOAD_KEYSTORE_BASE64: ${{ secrets.FINCHAT_UPLOAD_KEYSTORE_BASE64 }}
+          FINCHAT_KEY_ALIAS: ${{ secrets.FINCHAT_KEY_ALIAS }}
+          FINCHAT_KEY_PASSWORD: ${{ secrets.FINCHAT_KEY_PASSWORD }}
+          FINCHAT_STORE_PASSWORD: ${{ secrets.FINCHAT_STORE_PASSWORD }}
+        shell: bash
         run: |
-          mkdir -p /home/runner/.config/.android/
-          keytool -genkey -v -keystore /home/runner/.config/.android/debug.keystore -storepass android -alias AndroidDebugKey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
-          cd android
-          ./gradlew signingReport
-
+          set -euo pipefail
+          for name in FINCHAT_UPLOAD_KEYSTORE_BASE64 FINCHAT_KEY_ALIAS FINCHAT_KEY_PASSWORD FINCHAT_STORE_PASSWORD; do
+            if [ -z "${!name:-}" ]; then echo "Required GitHub Actions secret is missing: $name" >&2; exit 1; fi
+          done
+          mkdir -p android/app
+          printf '%s' "$FINCHAT_UPLOAD_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+          test -s android/app/upload-keystore.jks
+          cat > android/key.properties <<EOF
+          storePassword=$FINCHAT_STORE_PASSWORD
+          keyPassword=$FINCHAT_KEY_PASSWORD
+          keyAlias=$FINCHAT_KEY_ALIAS
+          storeFile=app/upload-keystore.jks
+          EOF
+          chmod 600 android/key.properties android/app/upload-keystore.jks
+      - name: Show permanent signing certificate SHA-1
+        env:
+          FINCHAT_KEY_ALIAS: ${{ secrets.FINCHAT_KEY_ALIAS }}
+          FINCHAT_STORE_PASSWORD: ${{ secrets.FINCHAT_STORE_PASSWORD }}
+        shell: bash
+        run: |
+          keytool -list -v -keystore android/app/upload-keystore.jks -alias "$FINCHAT_KEY_ALIAS" -storepass "$FINCHAT_STORE_PASSWORD" | grep -E 'SHA1:|SHA-1:'
       - name: Build release APK
-        run: flutter build apk --release --dart-define=FINCHAT_GOOGLE_SERVER_CLIENT_ID=${{ secrets.FINCHAT_GOOGLE_SERVER_CLIENT_ID }}
+        env:
+          FINCHAT_GOOGLE_SERVER_CLIENT_ID: ${{ secrets.FINCHAT_GOOGLE_SERVER_CLIENT_ID }}
+        run: |
+          if [ -z "$FINCHAT_GOOGLE_SERVER_CLIENT_ID" ]; then echo 'Missing FINCHAT_GOOGLE_SERVER_CLIENT_ID GitHub secret' >&2; exit 1; fi
+          flutter build apk --release --dart-define=FINCHAT_GOOGLE_SERVER_CLIENT_ID="$FINCHAT_GOOGLE_SERVER_CLIENT_ID"
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:

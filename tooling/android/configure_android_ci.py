@@ -12,32 +12,107 @@ RULES_TARGET = APP / 'proguard-rules.pro'
 
 def configure_gradle() -> None:
     if GROOVY.exists():
-        text = GROOVY.read_text(encoding='utf-8')
-        text = text.replace('minSdk = flutter.minSdkVersion', 'minSdk = 23')
-        text = text.replace('minSdkVersion flutter.minSdkVersion', 'minSdkVersion 23')
-        if 'proguard-rules.pro' not in text:
-            marker = 'release {'
-            replacement = "release {\n            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'"
+        text = GROOVY.read_text(encoding="utf-8")
+        text = text.replace("minSdk = flutter.minSdkVersion", "minSdk = 23")
+        text = text.replace("minSdkVersion flutter.minSdkVersion", "minSdkVersion 23")
+        if "keystorePropertiesFile" not in text:
+            preamble = """def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file("key.properties")
+if (!keystorePropertiesFile.exists()) {
+    throw new GradleException("Missing android/key.properties; configure GitHub keystore secrets")
+}
+keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+
+"""
+            text = preamble + text
+        if "signingConfigs {" not in text:
+            marker = "    buildTypes {"
+            signing = """    signingConfigs {
+        release {
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+            storeFile file(keystoreProperties['storeFile'])
+            storePassword keystoreProperties['storePassword']
+        }
+    }
+
+"""
             if marker not in text:
-                raise SystemExit('Could not locate release build type in android/app/build.gradle')
-            text = text.replace(marker, replacement, 1)
-        GROOVY.write_text(text, encoding='utf-8')
+                raise SystemExit("Could not locate buildTypes in android/app/build.gradle")
+            text = text.replace(marker, signing + marker, 1)
+        if "proguard-rules.pro" not in text:
+            bt_pos = text.find("buildTypes {")
+            rel_pos = text.find("release {", bt_pos)
+            if rel_pos < 0:
+                raise SystemExit("Could not locate release build type for ProGuard")
+            insert_at = rel_pos + len("release {")
+            text = text[:insert_at] + "\n            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'" + text[insert_at:]
+        text = text.replace("signingConfig = signingConfigs.debug", "signingConfig = signingConfigs.release")
+        text = text.replace("signingConfig signingConfigs.debug", "signingConfig signingConfigs.release")
+        bt = text.find("buildTypes {")
+        rel = text.find("release {", bt)
+        if rel < 0:
+            raise SystemExit("Could not locate release build type")
+        end = text.find("\n        }", rel)
+        block = text[rel:end if end >= 0 else len(text)]
+        if "signingConfig" not in block:
+            pos = rel + len("release {")
+            text = text[:pos] + "\n            signingConfig signingConfigs.release" + text[pos:]
+        GROOVY.write_text(text, encoding="utf-8")
         return
 
     if KOTLIN.exists():
-        text = KOTLIN.read_text(encoding='utf-8')
-        text = text.replace('minSdk = flutter.minSdkVersion', 'minSdk = 23')
-        if 'proguard-rules.pro' not in text:
-            marker = 'release {'
-            replacement = 'release {\n            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")'
+        text = KOTLIN.read_text(encoding="utf-8")
+        text = text.replace("minSdk = flutter.minSdkVersion", "minSdk = 23")
+        if "keystorePropertiesFile" not in text:
+            preamble = """import java.util.Properties
+import java.io.FileInputStream
+
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (!keystorePropertiesFile.exists()) {
+    throw GradleException("Missing android/key.properties; configure GitHub keystore secrets")
+}
+keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+
+"""
+            text = preamble + text
+        if "signingConfigs {" not in text:
+            marker = "    buildTypes {"
+            signing = """    signingConfigs {
+        create("release") {
+            keyAlias = keystoreProperties["keyAlias"] as String
+            keyPassword = keystoreProperties["keyPassword"] as String
+            storeFile = file(keystoreProperties["storeFile"] as String)
+            storePassword = keystoreProperties["storePassword"] as String
+        }
+    }
+
+"""
             if marker not in text:
-                raise SystemExit('Could not locate release build type in android/app/build.gradle.kts')
-            text = text.replace(marker, replacement, 1)
-        KOTLIN.write_text(text, encoding='utf-8')
+                raise SystemExit("Could not locate buildTypes in android/app/build.gradle.kts")
+            text = text.replace(marker, signing + marker, 1)
+        if "proguard-rules.pro" not in text:
+            bt_pos = text.find("buildTypes {")
+            rel_pos = text.find("release {", bt_pos)
+            if rel_pos < 0:
+                raise SystemExit("Could not locate release build type for ProGuard")
+            insert_at = rel_pos + len("release {")
+            text = text[:insert_at] + '\n            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")' + text[insert_at:]
+        text = text.replace('signingConfig = signingConfigs.getByName("debug")', 'signingConfig = signingConfigs.getByName("release")')
+        bt = text.find("buildTypes {")
+        rel = text.find("release {", bt)
+        if rel < 0:
+            raise SystemExit("Could not locate release build type")
+        end = text.find("\n        }", rel)
+        block = text[rel:end if end >= 0 else len(text)]
+        if "signingConfig" not in block:
+            pos = rel + len("release {")
+            text = text[:pos] + '\n            signingConfig = signingConfigs.getByName("release")' + text[pos:]
+        KOTLIN.write_text(text, encoding="utf-8")
         return
 
-    raise SystemExit('Neither android/app/build.gradle nor build.gradle.kts exists')
-
+    raise SystemExit("Neither android/app/build.gradle nor build.gradle.kts exists")
 
 def configure_manifest() -> None:
     if not MANIFEST.exists():
