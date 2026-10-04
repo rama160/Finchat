@@ -45,7 +45,7 @@ jobs:
           set -euo pipefail
           for name in FINCHAT_UPLOAD_KEYSTORE_BASE64 FINCHAT_KEY_ALIAS FINCHAT_KEY_PASSWORD FINCHAT_STORE_PASSWORD; do
             if [ -z "${!name:-}" ]; then
-              echo "Required GitHub Actions secret is missing: $name" >&2
+              echo "Required permanent release secret is missing: $name" >&2
               exit 1
             fi
           done
@@ -67,7 +67,22 @@ jobs:
         run: |
           keytool -list -v -keystore android/app/upload-keystore.jks -alias "$FINCHAT_KEY_ALIAS" -storepass "$FINCHAT_STORE_PASSWORD" | grep -E 'SHA1:|SHA-1:'
       - name: Build release APK
-        run: flutter build apk --release --dart-define=FINCHAT_GOOGLE_SERVER_CLIENT_ID=${{ secrets.FINCHAT_GOOGLE_SERVER_CLIENT_ID }}
+        env:
+          FINCHAT_GOOGLE_SERVER_CLIENT_ID: ${{ secrets.FINCHAT_GOOGLE_SERVER_CLIENT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -n "${FINCHAT_GOOGLE_SERVER_CLIENT_ID:-}" ]; then
+            flutter build apk --release --dart-define=FINCHAT_GOOGLE_SERVER_CLIENT_ID="$FINCHAT_GOOGLE_SERVER_CLIENT_ID"
+          else
+            echo "FINCHAT_GOOGLE_SERVER_CLIENT_ID is not configured; using the app's built-in Google client ID."
+            flutter build apk --release
+          fi
+      - name: Upload release APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: finchat-release-apk-${{ inputs.tag }}
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
       - name: Verify release tag matches pubspec version
         shell: bash
         run: |
