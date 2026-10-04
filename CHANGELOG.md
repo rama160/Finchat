@@ -1,3 +1,8 @@
+## 0.3.2+10 — Database test initialization fix
+- Fixed the production `FinChatDatabase` singleton being created eagerly before `sqflite_common_ffi` initializes `databaseFactory` in Flutter tests.
+- Production singleton is now lazy; this preserves the shared production connection/lifecycle fix while allowing FFI tests to call `sqfliteFfiInit()` before the first production database instance is constructed.
+- No schema, transaction, restore, authentication, OCR, voice, AI Gateway, or GitHub workflow behavior changed.
+
 
 ## 0.3.2+9 — Analyzer fix
 - Fixed `OpenAiCompatibleAiProvider` constructor initialization by using an initializing formal for `_idTokenProvider`.

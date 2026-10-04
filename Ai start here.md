@@ -1,6 +1,6 @@
 # AI START HERE — FINCHAT
 
-## Current continuation point — Bugfix package 0.3.2+8
+## Current continuation point — Bugfix package 0.3.2+10
 
 Read this file first, then:
 1. `docs/FULL_REPOSITORY_AUDIT.md`
@@ -66,3 +66,10 @@ At the end of each patch, record current version, changed files, exact issue, ex
 
 ### 0.3.2+9 analyzer follow-up
 The CI analyzer reported two remaining errors in `openai_compatible_ai_provider.dart`. The constructor now uses an initializing formal for `_idTokenProvider`, and token-provider invocation uses explicit nullable-flow promotion. No existing workflow or business logic was changed.
+
+### 0.3.2+10 database test follow-up
+GitHub Actions reported one failing test after the analyzer fixes: `test/data_database_test.dart` failed with `Bad state: databaseFactory not initialized`. The cause was eager initialization of the static production `FinChatDatabase` singleton, which evaluated the global `databaseFactory` before `sqflite_common_ffi` test setup ran.
+
+Fix: `FinChatDatabase._shared` is now a lazy getter backed by `_sharedInstance`. The global `databaseFactory` is therefore not read until the first production `FinChatDatabase()` call. This preserves the established production shared-connection behavior and `close()` protection, while allowing `setUpAll(sqfliteFfiInit)` to initialize the FFI factory first. No schema, business logic, restore flow, Google Sign-In, OCR, voice, AI Gateway, or GitHub workflow was changed.
+
+Verification status: source-level fix prepared from CI failure. Run the canonical GitHub Actions sequence again: `flutter analyze`, `flutter test`, then release APK build.

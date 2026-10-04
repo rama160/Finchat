@@ -66,3 +66,10 @@ No destructive SQLite schema migration is introduced by the 0.3.2+5 audit packag
 
 ### 0.3.2+9 analyzer follow-up
 The CI analyzer reported two remaining errors in `openai_compatible_ai_provider.dart`. The constructor now uses an initializing formal for `_idTokenProvider`, and token-provider invocation uses explicit nullable-flow promotion. No existing workflow or business logic was changed.
+
+### 0.3.2+10 database test follow-up
+- Fixed `FinChatDatabase` production singleton initialization order for `sqflite_common_ffi` tests.
+- The shared production instance is now created lazily, after the test suite can initialize `databaseFactoryFfi`.
+- Preserved shared production connection and screen-level `close()` protection.
+- No SQLite schema or application business logic changed.
+- CI verification pending.

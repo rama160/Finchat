@@ -21,11 +21,19 @@ class FinChatDatabase {
 
   FinChatDatabase._(this._factory, this.databasePath, {required this.shared});
 
-  static final FinChatDatabase _shared = FinChatDatabase._(
-    databaseFactory,
-    null,
-    shared: true,
-  );
+  // Lazily create the production singleton. This is important for Flutter
+  // tests using sqflite_common_ffi: the FFI database factory is initialized
+  // by setUpAll(sqfliteFfiInit), so eager construction would access the global
+  // databaseFactory before it is initialized. On Android/iOS the normal
+  // sqflite plugin initialization remains unchanged.
+  static FinChatDatabase? _sharedInstance;
+
+  static FinChatDatabase get _shared =>
+      _sharedInstance ??= FinChatDatabase._(
+        databaseFactory,
+        null,
+        shared: true,
+      );
 
   final DatabaseFactory _factory;
   final String? databasePath;
