@@ -57,6 +57,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   late final AutomaticBackupService _automaticBackup;
 
   List<TransactionEntity> _items = const [];
+  Map<String, String> _categoryNames = const {};
   late SelectedPeriod _period;
   late DateTime _viewDay;
   DateTime _now() => widget.now?.call() ?? DateTime.now();
@@ -158,7 +159,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     try {
       await _database.ensureUser(userId: session.userId, email: session.email);
       final items = await _transactions.getByUser(session.userId);
-      if (mounted) setState(() => _items = items);
+      final categories = await _categories.getCategories();
+      if (mounted) setState(() { _items = items; _categoryNames = {for (final category in categories) category.id: category.name}; });
       unawaited(_runAutomaticBackupSilently());
     } catch (error) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(inputFailureMessage(error, 'Transaksi belum berhasil dimuat. Coba buka kembali halaman Input.'))));
@@ -177,7 +179,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           final session = SessionScope.of(context).session;
           if (session != null) {
             final items = await _transactions.getByUser(session.userId);
-            if (mounted) setState(() => _items = items);
+            final categories = await _categories.getCategories();
+      if (mounted) setState(() { _items = items; _categoryNames = {for (final category in categories) category.id: category.name}; });
           }
         }
       } while (_backupPending && mounted);
@@ -697,6 +700,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                           },
                           child: _TransactionCard(
                             transaction: transaction,
+                            categoryName: _categoryNames[transaction.categoryId] ?? transaction.categoryId,
                           ),
                         );
                       },
@@ -728,7 +732,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 enum _ReceiptSourceAction { camera, gallery, file }
 
 class _TransactionCard extends StatelessWidget {
-  const _TransactionCard({required this.transaction});
+  const _TransactionCard({required this.transaction, required this.categoryName});
+  final String categoryName;
   final TransactionEntity transaction;
 
   @override
@@ -739,7 +744,7 @@ class _TransactionCard extends StatelessWidget {
       child: ListTile(
         leading: CircleAvatar(child: Icon(income ? Icons.arrow_downward : Icons.arrow_upward)),
         title: Text(transaction.description),
-        subtitle: Text('${_date(transaction.transactionDate)} • ${transaction.categoryId}'),
+        subtitle: Text('${_date(transaction.transactionDate)} • $categoryName'),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [

@@ -1,0 +1,22 @@
+name: Gateway Recovery Snapshot Validation
+on:
+  push:
+    branches: [codex/finchat-input-navigation-audit]
+    paths: ['tooling/gateway-recovery/**', '.github/workflows/gateway_recovery_snapshot.yml']
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tooling/gateway-recovery
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npx wrangler deploy --dry-run --outdir /tmp/gateway-dry-run

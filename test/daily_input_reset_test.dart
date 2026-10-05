@@ -43,6 +43,7 @@ void main() {
     await tester.enterText(categoryField, 'Acara keluarga');
     await tester.tap(find.widgetWithText(FilledButton, 'Simpan'));
     await tester.pumpAndSettle();
+    now = now.add(const Duration(seconds: 1));
     await tester.enterText(find.byType(TextField), 'nasi 20 ribu');
     await tester.pump();
     await tester.tap(find.byTooltip('Proses transaksi'));
