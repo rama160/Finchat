@@ -1,7 +1,7 @@
 name: Gateway Recovery Snapshot Validation
 on:
   push:
-    branches: [codex/finchat-input-navigation-audit]
+    branches: [codex/gateway-recovery-validation]
     paths: ['tooling/gateway-recovery/**', '.github/workflows/gateway_recovery_snapshot.yml']
   workflow_dispatch:
 jobs:
