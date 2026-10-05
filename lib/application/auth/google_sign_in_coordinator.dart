@@ -1,5 +1,5 @@
 
-import 'dart:convert';
+import 'google_id_token_session.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class GoogleSignInCoordinator {
@@ -18,30 +18,20 @@ class GoogleSignInCoordinator {
   final GoogleSignIn _signIn;
   String? _serverClientId;
   Future<void>? _initialization;
-  GoogleSignInAccount? _account;
+  final GoogleIdTokenSession _tokenSession = GoogleIdTokenSession();
 
-  void rememberAccount(GoogleSignInAccount account) => _account = account;
-  void clearAccount() => _account = null;
+  void rememberAccount(GoogleSignInAccount account) {
+    _tokenSession.remember(account.authentication.idToken);
+  }
+
+  void clearAccount() => _tokenSession.clear();
 
   Future<String?> currentIdToken() async {
     await initialize();
-    final cached = _account?.authentication.idToken;
-    if (_isFresh(cached)) return cached;
-    final restored = await _signIn.attemptLightweightAuthentication();
-    if (restored != null) _account = restored;
-    final token = _account?.authentication.idToken;
-    return _isFresh(token) ? token : null;
-  }
-
-  bool _isFresh(String? token) {
-    if (token == null || token.trim().isEmpty) return false;
-    try {
-      final payload = jsonDecode(utf8.decode(base64Url.decode(base64Url.normalize(token.split('.')[1]))));
-      final exp = payload['exp'];
-      return exp is num && exp * 1000 > DateTime.now().millisecondsSinceEpoch + 60000;
-    } catch (_) {
-      return false;
-    }
+    return _tokenSession.current(() async {
+      final restored = await _signIn.attemptLightweightAuthentication();
+      return restored?.authentication.idToken;
+    });
   }
 
   GoogleSignIn get signIn => _signIn;

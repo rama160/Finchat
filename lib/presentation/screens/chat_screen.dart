@@ -89,6 +89,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         if (!mounted) return;
         setState(() {});
         if (_voice.status == SpeechSessionStatus.stopped &&
+            _voice.hasFinalResult &&
             _voice.transcript.trim().isNotEmpty &&
             !_voiceConsumePending) {
           _voiceConsumePending = true;

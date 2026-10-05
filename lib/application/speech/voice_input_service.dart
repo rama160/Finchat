@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:finchat/domain/speech/speech_recognition.dart';
 
 class VoiceInputService {
@@ -9,11 +11,13 @@ class VoiceInputService {
   SpeechSessionStatus _status = SpeechSessionStatus.idle;
   String _transcript = '';
   int _generation = 0;
+  bool _hasFinalResult = false;
   double? _confidence;
 
   SpeechSessionStatus get status => _status;
   String get transcript => _transcript;
   double? get confidence => _confidence;
+  bool get hasFinalResult => _hasFinalResult;
   bool get isListening => _status == SpeechSessionStatus.listening;
 
   void _notifyChanged() => _onChanged?.call();
@@ -53,6 +57,7 @@ class VoiceInputService {
 
     final generation = ++_generation;
     _transcript = '';
+    _hasFinalResult = false;
     _confidence = null;
     _status = SpeechSessionStatus.listening;
     _notifyChanged();
@@ -65,6 +70,7 @@ class VoiceInputService {
         if (generation != _generation) return;
         _transcript = result.text.trim();
         _confidence = result.confidence;
+        _hasFinalResult = result.isFinal;
         if (result.isFinal) {
           _status = SpeechSessionStatus.stopped;
         }
@@ -77,7 +83,12 @@ class VoiceInputService {
     if (!isListening) return;
     _status = SpeechSessionStatus.stopping;
     _notifyChanged();
+    final generation = _generation;
     await _provider.stop();
+    // Android may report notListening before delivering the final amount.
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    if (generation != _generation) return;
+    _hasFinalResult = _transcript.isNotEmpty;
     _status = SpeechSessionStatus.stopped;
     _notifyChanged();
   }
@@ -86,6 +97,7 @@ class VoiceInputService {
     _generation++;
     // Clear before cancel: the plugin may emit a synchronous stopped callback.
     _transcript = '';
+    _hasFinalResult = false;
     _confidence = null;
     await _provider.cancel();
     _status = SpeechSessionStatus.stopped;

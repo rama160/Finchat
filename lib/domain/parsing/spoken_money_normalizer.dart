@@ -8,6 +8,7 @@ String normalizeSpokenMoney(String input) {
       if (word == 'belas') { current += 10; }
       else if (word == 'puluh') { current *= 10; }
       else if (word == 'ratus') { total += current * 100; current = 0; }
+      else if (word == 'seratus') { total += 100; }
       else { current += units[word] ?? 0; }
     }
     final value = total + current;

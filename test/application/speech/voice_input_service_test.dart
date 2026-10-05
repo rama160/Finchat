@@ -8,12 +8,14 @@ class FakeSpeechProvider implements SpeechRecognitionProvider {
   int cancelCalls = 0;
   String? localeId;
   late void Function(SpeechRecognitionResult result) onResult;
+  late void Function(SpeechSessionStatus status) statusCallback;
 
   @override
   Future<bool> initialize({
     required void Function(SpeechSessionStatus status) onStatus,
     required void Function(SpeechRecognitionError error) onError,
   }) async {
+    statusCallback = onStatus;
     onStatus(SpeechSessionStatus.ready);
     return true;
   }
@@ -39,7 +41,30 @@ class FakeSpeechProvider implements SpeechRecognitionProvider {
   Future<void> cancel() async => cancelCalls++;
 }
 
+class PartialSpeechProvider extends FakeSpeechProvider {
+  @override
+  Future<void> listen({required void Function(SpeechRecognitionResult result) onResult, String? localeId, Duration? listenFor, Duration? pauseFor}) async {
+    this.onResult = onResult;
+    onResult(const SpeechRecognitionResult(text: 'nasi', isFinal: false));
+    statusCallback(SpeechSessionStatus.stopped);
+  }
+}
+
 void main() {
+  test('Android stopped status cannot submit partial nasi before final amount', () async {
+    final provider = PartialSpeechProvider();
+    final service = VoiceInputService(provider);
+    await service.initialize();
+    await service.startListening();
+    expect(service.status, SpeechSessionStatus.stopped);
+    expect(service.hasFinalResult, isFalse);
+    provider.onResult(const SpeechRecognitionResult(text: 'nasi 10 ribu', isFinal: true));
+    expect(service.hasFinalResult, isTrue);
+    expect(service.transcript, 'nasi 10 ribu');
+    await service.cancel();
+    expect(service.hasFinalResult, isFalse);
+  });
+
   test('notifies UI and keeps Indonesian locale through the provider', () async {
     final provider = FakeSpeechProvider();
     var changes = 0;

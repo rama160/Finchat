@@ -51,7 +51,10 @@ class GoogleAuthService implements GoogleAuthGateway {
   @override
   Future<void> signOut() async {
     await initialize();
-    await _signIn.signOut();
-    _coordinator.clearAccount();
+    try {
+      await _signIn.signOut();
+    } finally {
+      _coordinator.clearAccount();
+    }
   }
 }
