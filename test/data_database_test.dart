@@ -64,6 +64,21 @@ void main() {
     addTearDown(second.close);
   });
 
+  test('typed categories persist, reuse normalized names and learn for the user', () async {
+    await seedTestUser();
+    final custom = await categories.ensureCategory('  Acara   keluarga ', 'expense');
+    final duplicate = await categories.ensureCategory('acara keluarga', 'expense');
+    final income = await categories.ensureCategory('Acara keluarga', 'income');
+    expect(duplicate.id, custom.id);
+    expect(income.id, isNot(custom.id));
+    expect(custom.isSystem, false);
+    final learning = CategoryLearningService(categories);
+    await learning.recordCorrection(userId: 'user-1', text: 'konsumsi acara', categoryId: custom.id);
+    expect((await categories.findMapping('user-1', 'konsumsi acara'))!.categoryId, custom.id);
+    expect(await categories.findMapping('other-user', 'konsumsi acara'), isNull);
+    expect((await categories.getById(custom.id))!.name, 'Acara keluarga');
+  });
+
   test('creates schema and seeds system categories', () async {
     final result = await categories.getCategories();
     expect(result.map((e) => e.id), containsAll(<String>['makanan', 'belanja_dapur', 'lainnya']));

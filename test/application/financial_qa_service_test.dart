@@ -64,6 +64,13 @@ void main() {
     expect(nasi, contains('Nota pengeluaran'));
     expect(nasi, contains('Nasi: Rp 25.000'));
     expect(nasi, contains('Total: Rp 25.000'));
+    final exactDevice = await service.ask(userId: 'u1', question: 'berapa total pengeluaran dengan kata acara, buat dalam bentuk nota', start: now, end: now);
+    expect(exactDevice, contains('Tidak ada pengeluaran'));
+    expect(exactDevice, isNot(contains('Rp 25.000')));
+    final exactMatching = await service.ask(userId: 'u1', question: 'berapa total pengeluaran dengan kata nasi, buat dalam bentuk nota', start: now, end: now);
+    expect(exactMatching, contains('Nasi: Rp 25.000'));
+    expect(exactMatching, contains('Total: Rp 25.000'));
+    expect(provider.calls, 0);
     final advice = await service.ask(userId: 'u1', question: 'bagaimana agar saya bisa hemat', start: now, end: now);
     expect(advice, contains('anggaran harian'));
     expect(provider.calls, 0);

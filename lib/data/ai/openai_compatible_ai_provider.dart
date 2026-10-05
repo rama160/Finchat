@@ -136,6 +136,7 @@ class OpenAiCompatibleAiProvider
           401 => 'Sesi Google ditolak Gateway. Masuk ulang dengan Google; konfigurasi client ID aplikasi dan Gateway harus sama.',
           403 => 'Akses AI ditolak Gateway. Periksa otorisasi akun dan konfigurasi Gateway.',
           429 => 'Batas pemakaian AI tercapai. Coba lagi setelah batas pemakaian diperbarui.',
+          503 => 'Layanan AI sedang tidak tersedia (HTTP 503). Pertanyaan total, pencarian kata dan nota tetap dapat dijawab lokal. Coba AI lagi nanti.',
           413 => 'Data untuk AI terlalu besar. Pilih rentang tanggal lebih pendek.',
           _ => 'Layanan AI belum berhasil menjawab (HTTP ${result.statusCode}). Coba lagi; data transaksi tetap tersimpan lokal.',
         };

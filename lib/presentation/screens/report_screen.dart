@@ -26,7 +26,7 @@ class _ReportScreenState extends State<ReportScreen> {
   late final ReportService _reportService;
   late final ReportPdfService _reportPdfService;
   SelectedPeriod _period = SelectedPeriod.day(DateTime.now());
-  Future<ReportSummary>? _reportFuture;
+  Future<({ReportSummary report, List<DailyExpense> points})>? _reportFuture;
 
   @override
   void initState() {
@@ -47,12 +47,24 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   void _refreshReport() {
-    final future = _reportService.forRange(userId: widget.userId, start: _period.start!, end: _period.end!);
+    final future = _loadReport(_period);
     if (mounted) {
       setState(() {
         _reportFuture = future;
       });
     }
+  }
+
+  Future<({ReportSummary report, List<DailyExpense> points})> _loadReport(SelectedPeriod period) async {
+    final report = await _reportService.forRange(userId: widget.userId, start: period.start!, end: period.end!);
+    double? previousDayExpense;
+    if (period.kind == PeriodKind.day) {
+      final day = period.start!;
+      final previous = DateTime(day.year, day.month, day.day - 1);
+      final prior = await _reportService.forRange(userId: widget.userId, start: previous, end: previous);
+      previousDayExpense = prior.expenseTotal;
+    }
+    return (report: report, points: expenseChartPoints(report, previousDayExpense: previousDayExpense));
   }
 
   bool _exporting = false;
@@ -84,14 +96,15 @@ class _ReportScreenState extends State<ReportScreen> {
               _refreshReport();
             }),
             Expanded(
-              child: FutureBuilder<ReportSummary>(
+              child: FutureBuilder<({ReportSummary report, List<DailyExpense> points})>(
                 future: _reportFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
                   if (snapshot.hasError) return _ErrorState(message: 'Gagal memuat laporan: ${snapshot.error}', onRetry: _refreshReport);
-                  final report = snapshot.data;
+                  final data = snapshot.data;
+                  final report = data?.report;
                   if (report == null) return const _ErrorState(message: 'Data laporan tidak tersedia.');
-                  return _ReportBody(report: report, onExport: () => _exportPdf(report));
+                  return _ReportBody(report: report, points: data!.points, onExport: () => _exportPdf(report));
                 },
               ),
             ),
@@ -102,13 +115,14 @@ class _ReportScreenState extends State<ReportScreen> {
 }
 
 class _ReportBody extends StatelessWidget {
-  const _ReportBody({required this.report, required this.onExport});
+  const _ReportBody({required this.report, required this.points, required this.onExport});
+  final List<DailyExpense> points;
   final ReportSummary report;
   final VoidCallback onExport;
   @override
   Widget build(BuildContext context) {
     if (report.transactionCount == 0) {
-      return ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 24), children: [_SummaryCard(report: report), const SizedBox(height: 12), _DailyExpenseChart(report: report), const SizedBox(height: 12), const Card(child: Padding(padding: EdgeInsets.all(24), child: Column(children: [Icon(Icons.receipt_long_outlined, size: 44), SizedBox(height: 10), Text('Belum ada transaksi', style: TextStyle(fontWeight: FontWeight.bold)), SizedBox(height: 4), Text('Tidak ada transaksi pada periode yang dipilih.', textAlign: TextAlign.center)]))), const SizedBox(height: 12), OutlinedButton.icon(onPressed: onExport, icon: const Icon(Icons.picture_as_pdf), label: const Text('Bagikan PDF'))]);
+      return ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 24), children: [_SummaryCard(report: report), const SizedBox(height: 12), _DailyExpenseChart(report: report, points: points), const SizedBox(height: 12), const Card(child: Padding(padding: EdgeInsets.all(24), child: Column(children: [Icon(Icons.receipt_long_outlined, size: 44), SizedBox(height: 10), Text('Belum ada transaksi', style: TextStyle(fontWeight: FontWeight.bold)), SizedBox(height: 4), Text('Tidak ada transaksi pada periode yang dipilih.', textAlign: TextAlign.center)]))), const SizedBox(height: 12), OutlinedButton.icon(onPressed: onExport, icon: const Icon(Icons.picture_as_pdf), label: const Text('Bagikan PDF'))]);
     }
     return ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 24), children: [
       _SummaryCard(report: report),
@@ -117,7 +131,7 @@ class _ReportBody extends StatelessWidget {
       const SizedBox(height: 12),
       _CategoryChart(report: report),
       const SizedBox(height: 12),
-      _DailyExpenseChart(report: report),
+      _DailyExpenseChart(report: report, points: points),
       const SizedBox(height: 12),
       FilledButton.icon(onPressed: onExport, icon: const Icon(Icons.picture_as_pdf), label: const Text('Bagikan PDF')),
     ]);
@@ -268,12 +282,12 @@ Color _pieColor(int index) {
 }
 
 class _DailyExpenseChart extends StatelessWidget {
-  const _DailyExpenseChart({required this.report});
+  const _DailyExpenseChart({required this.report, required this.points});
+  final List<DailyExpense> points;
   final ReportSummary report;
 
   @override
   Widget build(BuildContext context) {
-    final points = dailyExpenses(report);
     final maxAmount = points.fold<double>(0, (max, point) => math.max(max, point.amount));
     return Card(child: Padding(padding: const EdgeInsets.all(14), child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -282,6 +296,8 @@ class _DailyExpenseChart extends StatelessWidget {
         const SizedBox(height: 4),
         Text('Total pengeluaran: ${_money(report.expenseTotal)}'),
         Text('${_date(report.start)} – ${_date(DateTime(report.endExclusive.year, report.endExclusive.month, report.endExclusive.day - 1))}'),
+        if (points.length == 2 && dailyExpenses(report).length == 1)
+          const Text('Perbandingan hari sebelumnya dan hari yang dipilih'),
         const SizedBox(height: 16),
         SizedBox(height: 205, child: LayoutBuilder(builder: (context, constraints) {
           final width = math.max(constraints.maxWidth, points.length * 66.0);

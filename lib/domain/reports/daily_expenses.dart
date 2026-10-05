@@ -21,3 +21,13 @@ List<DailyExpense> dailyExpenses(ReportSummary report) {
   }
   return result;
 }
+
+/// Comparison points do not alter the report's filtered totals or PDF data.
+List<DailyExpense> expenseChartPoints(ReportSummary report, {double? previousDayExpense}) {
+  final points = dailyExpenses(report);
+  if (points.length == 1 && previousDayExpense != null) {
+    final selected = points.single;
+    return [DailyExpense(DateTime(selected.date.year, selected.date.month, selected.date.day - 1), previousDayExpense), selected];
+  }
+  return points;
+}

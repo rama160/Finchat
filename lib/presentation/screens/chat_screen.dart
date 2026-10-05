@@ -61,6 +61,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   late DateTime _viewDay;
   DateTime _now() => widget.now?.call() ?? DateTime.now();
   Timer? _dayTimer;
+  Timer? _statusTimer;
+  String? _saveStatus;
   int _selectedTab = 0;
   final List<({String question, String answer})> _answers = [];
   bool _backupRunning = false;
@@ -117,6 +119,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _dayTimer?.cancel();
+    _statusTimer?.cancel();
     _inputController.dispose();
     unawaited(_voice.cancel().catchError((Object _) {}));
     _database.close();
@@ -251,7 +254,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     await _transactions.saveAll(transactions);
     await _loadTransactions();
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(successMessage.replaceFirst('{count}', '${results.length}'))));
+      _showSaved(successMessage.replaceFirst('{count}', '${results.length}'));
     }
   }
 
@@ -431,7 +434,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         return;
       }
 
-      final parsed = const ReceiptTransactionParser().parse(result.rawText);
+      final parsed = const ReceiptTransactionParser().parse(result.rawText, lines: result.lines);
       if (parsed.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Belum ada item transaksi yang dapat dikenali dari struk.')));
@@ -502,7 +505,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       }
       await _loadTransactions();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${reviewed.length} transaksi dari struk tersimpan.')));
+        _showSaved('${reviewed.length} transaksi dari struk tersimpan.');
       }
     } catch (error) {
       if (!mounted) return;
@@ -559,7 +562,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       if (!mounted) return;
       final result = await showDialog<TransactionEntity>(
         context: context,
-        builder: (_) => _EditTransactionDialog(transaction: transaction, categories: categories),
+        builder: (_) => _EditTransactionDialog(transaction: transaction, categories: categories, repository: _categories),
       );
       if (result == null) return;
 
@@ -577,7 +580,23 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
   }
 
+  void _showSaved(String message) {
+    _statusTimer?.cancel();
+    if (!mounted) return;
+    setState(() => _saveStatus = message);
+    _statusTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _saveStatus = null);
+    });
+  }
+
   Future<void> _deleteTransaction(TransactionEntity transaction) async {
+    final confirmed = await showDialog<bool>(context: context, builder: (context) => AlertDialog(
+      title: const Text('Hapus transaksi?'),
+      content: Text('${transaction.description} • ${_money(transaction.amount)}\nTransaksi ini akan dihapus dari catatan Anda.'),
+      actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
+        FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Hapus'))],
+    ));
+    if (confirmed != true || !mounted) return;
     try {
       await _transactions.delete(transaction.id);
       await _loadTransactions();
@@ -683,6 +702,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       },
                     ),
             ),
+            if (_saveStatus != null) Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Semantics(liveRegion: true, child: Row(children: [
+                const Icon(Icons.check_circle_outline, color: Colors.green, size: 18),
+                const SizedBox(width: 6), Expanded(child: Text(_saveStatus!, style: const TextStyle(fontSize: 12))),
+              ])),
+            ),
             _Composer(
               controller: _inputController,
               busy: _processing || _picking,
@@ -729,9 +755,10 @@ class _TransactionCard extends StatelessWidget {
 }
 
 class _EditTransactionDialog extends StatefulWidget {
-  const _EditTransactionDialog({required this.transaction, required this.categories});
+  const _EditTransactionDialog({required this.transaction, required this.categories, required this.repository});
   final TransactionEntity transaction;
   final List<CategoryEntity> categories;
+  final SqliteCategoryRepository repository;
 
   @override
   State<_EditTransactionDialog> createState() => _EditTransactionDialogState();
@@ -741,7 +768,9 @@ class _EditTransactionDialogState extends State<_EditTransactionDialog> {
   late final TextEditingController _description;
   late final TextEditingController _amount;
   late TransactionType _type;
-  late String _categoryId;
+  late final TextEditingController _categoryName;
+  bool _saving = false;
+  String? _categoryError;
   late DateTime _date;
 
   @override
@@ -751,7 +780,8 @@ class _EditTransactionDialogState extends State<_EditTransactionDialog> {
     _description = TextEditingController(text: widget.transaction.description);
     _amount = TextEditingController(text: widget.transaction.amount.toStringAsFixed(0));
     _type = widget.transaction.type;
-    _categoryId = widget.transaction.categoryId;
+    final matching = widget.categories.where((c) => c.id == widget.transaction.categoryId);
+    _categoryName = TextEditingController(text: matching.isEmpty ? widget.transaction.categoryId : matching.first.name);
     _date = widget.transaction.transactionDate;
   }
 
@@ -759,6 +789,7 @@ class _EditTransactionDialogState extends State<_EditTransactionDialog> {
   void dispose() {
     _description.dispose();
     _amount.dispose();
+    _categoryName.dispose();
     super.dispose();
   }
 
@@ -768,9 +799,23 @@ class _EditTransactionDialogState extends State<_EditTransactionDialog> {
         '${date.year}';
   }
 
-  void _save() {
+  Future<void> _save() async {
+    if (_saving) return;
     final amount = double.tryParse(_amount.text.replaceAll('.', '').replaceAll(',', '.'));
     if (amount == null || amount <= 0 || _description.text.trim().isEmpty) return;
+    if (_categoryName.text.trim().isEmpty || _categoryName.text.trim().length > 50) {
+      setState(() => _categoryError = 'Ketik kategori sepanjang 1–50 karakter.');
+      return;
+    }
+    setState(() { _saving = true; _categoryError = null; });
+    late final CategoryEntity category;
+    try {
+      category = await widget.repository.ensureCategory(_categoryName.text, _type.name);
+    } catch (_) {
+      if (mounted) setState(() { _saving = false; _categoryError = 'Kategori belum berhasil disimpan. Coba lagi.'; });
+      return;
+    }
+    if (!mounted) return;
     final now = DateTime.now();
     Navigator.of(context).pop(TransactionEntity(
       id: widget.transaction.id,
@@ -778,7 +823,7 @@ class _EditTransactionDialogState extends State<_EditTransactionDialog> {
       type: _type,
       amount: amount,
       description: _description.text.trim(),
-      categoryId: _categoryId,
+      categoryId: category.id,
       transactionDate: _date,
       transactionTime: widget.transaction.transactionTime,
       inputSource: widget.transaction.inputSource,
@@ -810,11 +855,17 @@ class _EditTransactionDialogState extends State<_EditTransactionDialog> {
                 onChanged: (value) => setState(() => _type = value ?? _type),
               ),
               const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: widget.categories.any((c) => c.id == _categoryId) ? _categoryId : null,
-                decoration: const InputDecoration(labelText: 'Kategori'),
-                items: widget.categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
-                onChanged: (value) => setState(() => _categoryId = value ?? _categoryId),
+              TextField(
+                controller: _categoryName,
+                maxLength: 50,
+                decoration: InputDecoration(labelText: 'Kategori', errorText: _categoryError,
+                  helperText: 'Ketik kategori sendiri atau pilih kategori',
+                  suffixIcon: PopupMenuButton<CategoryEntity>(tooltip: 'Pilih kategori',
+                    icon: const Icon(Icons.arrow_drop_down),
+                    itemBuilder: (_) => widget.categories.where((c) => c.type == _type.name).map((c) => PopupMenuItem(value: c, child: Text(c.name))).toList(),
+                    onSelected: (category) => setState(() => _categoryName.text = category.name),
+                  ),
+                ),
               ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -830,7 +881,7 @@ class _EditTransactionDialogState extends State<_EditTransactionDialog> {
         ),
         actions: [
           TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Batal')),
-          FilledButton(onPressed: _save, child: const Text('Simpan')),
+          FilledButton(onPressed: _saving ? null : _save, child: const Text('Simpan')),
         ],
       );
 }

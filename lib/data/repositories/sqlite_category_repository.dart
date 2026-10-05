@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 
 import '../../domain/entities/category_entity.dart';
@@ -10,6 +11,26 @@ class SqliteCategoryRepository implements CategoryRepository {
   SqliteCategoryRepository(this.database);
 
   final FinChatDatabase database;
+
+  Future<CategoryEntity> ensureCategory(String name, String type) async {
+    final trimmed = name.trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (trimmed.isEmpty || trimmed.length > 50 || !['income', 'expense'].contains(type)) {
+      throw ArgumentError('Kategori harus berisi 1–50 karakter.');
+    }
+    final db = await database.database;
+    return db.transaction((txn) async {
+      final rows = await txn.query('categories', where: 'type = ?', whereArgs: [type]);
+      for (final row in rows) {
+        if ((row['name'] as String).trim().toLowerCase() == trimmed.toLowerCase()) return _categoryFromRow(row);
+      }
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final id = 'custom_${type}_${base64Url.encode(utf8.encode(trimmed.toLowerCase())).replaceAll('=', '')}';
+      final row = <String, Object?>{'id': id, 'name': trimmed, 'type': type,
+        'is_system': 0, 'created_at': now, 'updated_at': now};
+      await txn.insert('categories', row);
+      return _categoryFromRow(row);
+    });
+  }
 
   @override
   Future<List<CategoryEntity>> getCategories({String? type}) async {

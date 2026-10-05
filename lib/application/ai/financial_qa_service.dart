@@ -30,9 +30,9 @@ class FinancialQaService {
       return '$detail Batasi belanja yang bisa ditunda, tentukan anggaran harian, dan sisihkan tabungan saat menerima pemasukan. Saran ini berdasarkan data lokal pada periode terpilih.';
     }
     if (RegExp(r'\b(bagaimana|mengapa|kenapa|saran|tips|strategi|cukup)\b').hasMatch(q)) return null;
-    final keywordMatch = RegExp(r'(?:mengandung\s+kata|mengandung|kata\s+kunci|berisi\s+kata|berisi|untuk)\s+["\x27]?(.*?)["\x27]?[?.!]*$', caseSensitive: false).firstMatch(q);
+    final keywordMatch = RegExp(r'(?:mengandung\s+kata|dengan\s+kata|mengandung|kata\s+kunci|berisi\s+kata|berisi|untuk)\s+["\x27]?(.*?)["\x27]?[?.!]*$', caseSensitive: false).firstMatch(q);
     if (keywordMatch != null) {
-      final keyword = keywordMatch[1]!.trim().replaceAll(RegExp(r'''["\x27]'''), '').replaceFirst(RegExp(r'\s+(?:hari ini|kemarin|bulan ini|bulan lalu|minggu ini)$'), '').trim();
+      final keyword = keywordMatch[1]!.split(RegExp(r'[,;]|\s+(?:buat|jadikan|tampilkan)\s', caseSensitive: false)).first.trim().replaceAll(RegExp(r'''["\x27]'''), '').replaceFirst(RegExp(r'\s+(?:hari ini|kemarin|bulan ini|bulan lalu|minggu ini)$'), '').trim();
       if (keyword.isEmpty) return 'Tuliskan kata yang ingin dicari pada deskripsi transaksi.';
       final income = q.contains('pemasukan') || q.contains('pendapatan');
       final type = income ? TransactionType.income : TransactionType.expense;
