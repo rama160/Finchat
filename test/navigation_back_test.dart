@@ -49,6 +49,8 @@ void main() {
     expect(find.text('Apakah anggaran 2 juta cukup?'), findsOneWidget);
     await tester.tap(find.byTooltip('Pengaturan'));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Backup & pemulihan'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Backup & pemulihan'));
     await tester.pumpAndSettle();
     await tester.binding.handlePopRoute();

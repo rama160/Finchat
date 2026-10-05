@@ -11,6 +11,7 @@ class AppRouter {
 
   RouterConfig<Object> get router => RouterConfig<Object>(
         routerDelegate: _Delegate(sessionManager),
+        backButtonDispatcher: RootBackButtonDispatcher(),
         routeInformationParser: const _Parser(),
         routeInformationProvider: PlatformRouteInformationProvider(
           initialRouteInformation: RouteInformation(uri: Uri.parse('/')),
