@@ -4,6 +4,20 @@ import 'package:finchat/domain/reports/selected_period.dart';
 import 'package:finchat/presentation/widgets/period_filter.dart';
 
 void main() {
+  testWidgets('opening an existing month or year does not silently change its filter', (tester) async {
+    for (final period in [SelectedPeriod.month(2026, 10), SelectedPeriod.year(2026)]) {
+      SelectedPeriod? selected;
+      await tester.pumpWidget(MaterialApp(home: Scaffold(body: PeriodFilter(period: period, onChanged: (value) => selected = value))));
+      await tester.tap(find.text(period.label));
+      await tester.pumpAndSettle();
+      expect(find.text('Min'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'Pilih'));
+      await tester.pumpAndSettle();
+      expect(selected!.start, period.start);
+      expect(selected!.end, period.end);
+      expect(selected!.kind, period.kind);
+    }
+  });
   testWidgets('filter opens calendar directly and highlights a selected range', (tester) async {
     SelectedPeriod? selected;
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: PeriodFilter(

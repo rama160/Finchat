@@ -54,7 +54,10 @@ class _PeriodCalendarDialogState extends State<PeriodCalendarDialog> {
     _first = DateTime(initial.year, initial.month, initial.day);
     _month = DateTime(_first.year, _first.month);
     _last = widget.period.end;
-    if (widget.period.kind == PeriodKind.range) _mode = PeriodKind.range;
+    if (widget.period.kind != PeriodKind.day && widget.period.kind != PeriodKind.all) {
+      // Open on the calendar while retaining the existing month/year bounds.
+      _mode = PeriodKind.range;
+    }
   }
 
   void _chooseDay(DateTime date) => setState(() {
