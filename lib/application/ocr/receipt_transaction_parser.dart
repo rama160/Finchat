@@ -30,7 +30,7 @@ class ReceiptTransactionParser {
       final quantityLine = RegExp(r'(?:pak|pcs|pc|pck|kg|gram|gr|ltr|liter|buah|unit|qty)\b', caseSensitive: false).hasMatch(prefix)
           || RegExp(r'^[\d\s.,xX*=|]+$').hasMatch(prefix);
       final description = (pendingName != null && (quantityLine || prefix.isEmpty))
-          ? pendingName! : prefix;
+          ? pendingName : prefix;
       pendingName = null;
       if (description.isEmpty || amountMatch.amount <= 0 || !RegExp(r'[a-zA-Z]').hasMatch(description)) continue;
       final parsed = LocalTransactionParser().parse('$description Rp ${amountMatch.amount.toStringAsFixed(0)}');
