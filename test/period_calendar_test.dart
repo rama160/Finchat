@@ -38,6 +38,8 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('calendar_2026_10_1')));
     await tester.pump();
+    await tester.ensureVisible(find.byKey(const ValueKey('calendar_2026_10_31')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('calendar_2026_10_31')));
     await tester.pump();
     await tester.tap(find.widgetWithText(FilledButton, 'Pilih'));
