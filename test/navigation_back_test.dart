@@ -31,6 +31,9 @@ void main() {
     await tester.tap(find.byTooltip('Proses transaksi'));
     await tester.pumpAndSettle();
     expect(find.text('nasi'), findsOneWidget);
+    // Wait for the successful-save snackbar before tapping the composer again.
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'berapa pengeluaran hari ini?');
     await tester.pump();
     await tester.tap(find.byTooltip('Proses transaksi'));
