@@ -59,6 +59,7 @@ void main() {
     expect(result.map((r) => r.description), ['nasi', 'bensin', 'parkir']);
     expect(provider.calls, 0);
     expect(categories.mappingReads, 1);
+    expect(normalizeVoiceTransactions('berapa pengeluaran tahun 2026?'), 'berapa pengeluaran tahun 2026?');
   });
   test('receipt batch preserves product names/amounts and reads mappings once', () async {
     final provider = FakeProvider(null);

@@ -1,5 +1,6 @@
 import 'daily_expenses.dart';
 import 'report_models.dart';
+import '../entities/transaction_entity.dart';
 
 class ReportInsight {
   const ReportInsight(this.title, this.text);
@@ -51,7 +52,7 @@ List<ReportInsight> reportInsights(ReportSummary report, List<DailyExpense> poin
   if (days.length == 1 && points.length == 2) {
     insights.add(ReportInsight('Perubahan harian', expenseComparison(points.first.amount, points.last.amount)));
   }
-  final repeated = report.groups.where((group) => group.type.name == 'expense' && group.transactionCount > 1).toList()
+  final repeated = report.groups.where((group) => group.type == TransactionType.expense && group.transactionCount > 1).toList()
     ..sort((a, b) => b.totalAmount.compareTo(a.totalAmount));
   if (repeated.isNotEmpty) {
     final top = repeated.first;

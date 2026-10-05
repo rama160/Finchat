@@ -16,15 +16,32 @@ SelectedPeriod questionPeriod(String question, DateTime now) {
     }
     throw const FormatException('Tanggal belum valid. Gunakan tanggal/bulan/tahun, misalnya 05/10/2026.');
   }
-  for (var month = 1; month <= 12; month++) {
-    final name = SelectedPeriod.months[month - 1].toLowerCase();
-    final named = RegExp('\\b(?:(\\d{1,2})\\s+)?$name(?:\\s+(\\d{4}))?\\b').firstMatch(q);
-    if (named == null) continue;
-    final year = int.tryParse(named[2] ?? '') ?? now.year;
-    if (named[1] == null) return SelectedPeriod.month(year, month);
-    final date = valid(year, month, int.parse(named[1]!));
-    if (date == null) throw const FormatException('Tanggal belum valid.');
-    return SelectedPeriod.day(date);
+  final names = SelectedPeriod.months.map((m) => m.toLowerCase()).join('|');
+  final named = RegExp('\\b(?:(\\d{1,2})\\s+)?($names)(?:\\s+(\\d{4}))?\\b').allMatches(q).toList();
+  if (named.isNotEmpty) {
+    final defaultYear = int.tryParse(named.last[3] ?? '') ?? now.year;
+    final dates = <DateTime>[];
+    for (final match in named) {
+      final month = SelectedPeriod.months.indexWhere((m) => m.toLowerCase() == match[2]) + 1;
+      final year = int.tryParse(match[3] ?? '') ?? defaultYear;
+      if (match[1] == null) return SelectedPeriod.month(year, month);
+      final date = valid(year, month, int.parse(match[1]!));
+      if (date == null) throw const FormatException('Tanggal belum valid.');
+      dates.add(date);
+    }
+    if (dates.length == 2) {
+      if (dates.last.isBefore(dates.first)) throw const FormatException('Tanggal akhir harus setelah tanggal awal.');
+      return SelectedPeriod.range(dates.first, dates.last);
+    }
+    final shortRange = RegExp(r'\b(\d{1,2})\s+(?:sampai|hingga|–|-)\s+\d{1,2}\s+').firstMatch(q);
+    if (shortRange != null) {
+      final last = dates.single;
+      final first = valid(last.year, last.month, int.parse(shortRange[1]!));
+      if (first == null || first.isAfter(last)) throw const FormatException('Rentang tanggal belum valid.');
+      return SelectedPeriod.range(first, last);
+    }
+    if (dates.length == 1) return SelectedPeriod.day(dates.single);
+    throw const FormatException('Gunakan satu tanggal atau dua tanggal untuk rentang.');
   }
   if (q.contains('semua tanggal') || q.contains('seluruh riwayat') || q.contains('sepanjang waktu')) return const SelectedPeriod.all();
   if (q.contains('hari ini')) return SelectedPeriod.day(now);

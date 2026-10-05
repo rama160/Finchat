@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:finchat/application/speech/voice_input_service.dart';
 import 'package:finchat/domain/speech/speech_recognition.dart';
+import 'package:finchat/application/transactions/local_transaction_parser.dart';
+import 'package:finchat/domain/parsing/voice_transaction_normalizer.dart';
 
 class FakeSpeechProvider implements SpeechRecognitionProvider {
   int listenCalls = 0;
@@ -51,6 +53,17 @@ class PartialSpeechProvider extends FakeSpeechProvider {
 }
 
 void main() {
+  test('a final voice result preserves all transactions after the early partial callback', () async {
+    final provider = PartialSpeechProvider();
+    final service = VoiceInputService(provider);
+    await service.initialize();
+    await service.startListening(localeId: 'id_ID', listenFor: const Duration(seconds: 60), pauseFor: const Duration(seconds: 5));
+    expect(service.hasFinalResult, isFalse);
+    provider.onResult(const SpeechRecognitionResult(text: 'nasi sepuluh ribu dan bensin 50000 lalu parkir dua ribu', isFinal: true));
+    expect(service.hasFinalResult, isTrue);
+    expect(LocalTransactionParser().parse(normalizeVoiceTransactions(service.transcript)).map((item) => item.amount), [10000, 50000, 2000]);
+    await service.cancel();
+  });
   test('Android stopped status cannot submit partial nasi before final amount', () async {
     final provider = PartialSpeechProvider();
     final service = VoiceInputService(provider);

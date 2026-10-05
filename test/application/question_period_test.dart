@@ -17,6 +17,8 @@ void main() {
   test('full-month question ranges normalize; invalid dates cannot silently select all data', () {
     expect(questionPeriod('pengeluaran 01/10/2026 sampai 31/10/2026', now).kind, PeriodKind.month);
     expect(questionPeriod('pengeluaran 05/10/2026 sampai 07/10/2026', now).end, DateTime(2026, 10, 7));
+    expect(questionPeriod('pengeluaran 6 Oktober sampai 7 Oktober 2025', now).start, DateTime(2025, 10, 6));
+    expect(questionPeriod('pengeluaran 1 sampai 31 Oktober 2026', now).kind, PeriodKind.month);
     expect(() => questionPeriod('pengeluaran 31/02/2026', now), throwsFormatException);
     expect(() => questionPeriod('pengeluaran 07/10/2026 sampai 05/10/2026', now), throwsFormatException);
   });

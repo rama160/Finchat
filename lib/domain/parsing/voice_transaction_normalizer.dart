@@ -8,7 +8,10 @@ String normalizeVoiceTransactions(String transcript) {
     final prefix = text.substring(0, m.start);
     final suffix = text.substring(m.end);
     if (RegExp(r'\brp\s*$', caseSensitive: false).hasMatch(prefix) ||
-        RegExp(r'^\s*(?:rb|ribu|k|jt|juta|miliar|milyar|rupiah)\b', caseSensitive: false).hasMatch(suffix)) return m[0]!;
+        RegExp(r'\b(?:tahun|tanggal|nomor|no)\s*$', caseSensitive: false).hasMatch(prefix) ||
+        RegExp(r'^\s*(?:rb|ribu|k|jt|juta|miliar|milyar|rupiah)\b', caseSensitive: false).hasMatch(suffix)) {
+      return m[0]!;
+    }
     return 'Rp ${m[0]}';
   });
 }

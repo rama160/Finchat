@@ -7,6 +7,12 @@ class PeriodFilter extends StatelessWidget {
   final ValueChanged<SelectedPeriod> onChanged;
   final bool allowAll;
 
+  bool _canShift(int direction) {
+    if (period.kind == PeriodKind.all) return false;
+    final shifted = period.shift(direction);
+    return shifted.start!.year >= 2000 && shifted.end!.year <= 2100;
+  }
+
   Future<void> _pick(BuildContext context) async {
     final value = await showDialog<SelectedPeriod>(
       context: context,
@@ -17,12 +23,12 @@ class PeriodFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(color: const Color(0xff009688), child: Row(children: [
-    IconButton(tooltip: 'Periode sebelumnya', color: Colors.white, onPressed: period.kind == PeriodKind.all ? null : () => onChanged(period.shift(-1)), icon: const Icon(Icons.chevron_left)),
+    IconButton(tooltip: 'Periode sebelumnya', color: Colors.white, onPressed: !_canShift(-1) ? null : () => onChanged(period.shift(-1)), icon: const Icon(Icons.chevron_left)),
     Expanded(child: TextButton(onPressed: () => _pick(context), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
       Flexible(child: Text(period.label, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
       const Icon(Icons.arrow_drop_down, color: Colors.white),
     ]))),
-    IconButton(tooltip: 'Periode berikutnya', color: Colors.white, onPressed: period.kind == PeriodKind.all ? null : () => onChanged(period.shift(1)), icon: const Icon(Icons.chevron_right)),
+    IconButton(tooltip: 'Periode berikutnya', color: Colors.white, onPressed: !_canShift(1) ? null : () => onChanged(period.shift(1)), icon: const Icon(Icons.chevron_right)),
   ]));
 }
 
@@ -44,7 +50,8 @@ class _PeriodCalendarDialogState extends State<PeriodCalendarDialog> {
   @override
   void initState() {
     super.initState();
-    _first = widget.period.start ?? DateTime.now();
+    final initial = widget.period.start ?? DateTime.now();
+    _first = DateTime(initial.year, initial.month, initial.day);
     _month = DateTime(_first.year, _first.month);
     _last = widget.period.end;
     if (widget.period.kind == PeriodKind.range) _mode = PeriodKind.range;
