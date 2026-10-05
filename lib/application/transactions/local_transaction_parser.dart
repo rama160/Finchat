@@ -1,4 +1,5 @@
 import '../../domain/parsing/money_amount_parser.dart';
+import '../../domain/parsing/spoken_money_normalizer.dart';
 
 class ParsedTransaction {
   const ParsedTransaction({
@@ -47,7 +48,7 @@ class LocalTransactionParser {
   };
 
   List<ParsedTransaction> parse(String input) {
-    final source = input.trim();
+    final source = normalizeSpokenMoney(input).trim();
     if (source.isEmpty) return const [];
 
     final money = MoneyAmountParser.findAll(source);

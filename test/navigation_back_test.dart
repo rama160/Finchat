@@ -26,7 +26,7 @@ void main() {
     });
     await tester.pumpWidget(FinChatApp(sessionManager: manager));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), 'nasi 25rb');
+    await tester.enterText(find.byType(TextField), 'nasi sepuluh ribu');
     await tester.pump();
     await tester.tap(find.byTooltip('Proses transaksi'));
     await tester.pumpAndSettle();
@@ -62,6 +62,10 @@ void main() {
     await tester.tap(find.byTooltip('Laporan'));
     await tester.pumpAndSettle();
     expect(find.text('Laporan'), findsWidgets);
+    await tester.scrollUntilVisible(find.text('Grafik pengeluaran harian'), 300, scrollable: find.byType(Scrollable).first);
+    expect(find.text('Grafik pengeluaran harian'), findsOneWidget);
+    expect(find.text('Jumlah transaksi'), findsNothing);
+    expect(find.text('Detail transaksi'), findsNothing);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(find.text('FinChat'), findsOneWidget);

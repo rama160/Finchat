@@ -44,6 +44,23 @@ class FakeProvider implements AiCategoryProvider {
 }
 
 void main() {
+  test('production capture never waits for AI even for unknown multi items', () async {
+    final provider = FakeProvider(null);
+    final service = TransactionIntelligenceService(
+      categoryLearning: CategoryLearningService(FakeCategoryRepository()),
+      aiFallback: AiCategoryFallback(provider: provider, categoryExists: (_) async => true),
+    );
+    final results = await service.process(userId: 'u1', input: 'nasi 10 ribu, baju 150 ribu, mobil 3.5 juta', allowAi: false);
+    expect(results.length, 3);
+    expect(results.first.amount, 10000);
+    expect(results.first.categoryId, 'makanan');
+    expect(provider.calls, 0);
+    expect(results.every((item) => item.processedBy == ProcessedBy.localParser), isTrue);
+    final spoken = await service.process(userId: 'u1', input: 'nasi sepuluh ribu', allowAi: false);
+    expect(spoken.single.amount, 10000);
+    expect(provider.calls, 0);
+  });
+
   test('uses AI only when local category is unresolved', () async {
     final provider = FakeProvider(
       const AiCategorySuggestion(categoryId: 'lainnya', confidence: 0.9),

@@ -1,5 +1,6 @@
 import '../../domain/ai/financial_ai_provider.dart';
 import '../../domain/reports/report_models.dart';
+import '../../domain/entities/transaction_entity.dart';
 import '../reports/report_service.dart';
 
 class FinancialQaService {
@@ -23,7 +24,27 @@ class FinancialQaService {
 
   String? _answerLocally(String question, ReportSummary report) {
     final q = question.toLowerCase();
-    if (RegExp(r'\b(bagaimana|mengapa|kenapa|saran|tips|strategi|cukup|hemat|menabung)\b').hasMatch(q)) return null;
+    if (RegExp(r'\b(hemat|menabung)\b').hasMatch(q)) {
+      final top = report.expenseCategories;
+      final detail = top.isEmpty ? 'Belum ada pengeluaran untuk dianalisis.' : 'Pengeluaran terbesar pada periode ini adalah ${top.first.categoryName}: ${_money(top.first.totalAmount)}.';
+      return '$detail Batasi belanja yang bisa ditunda, tentukan anggaran harian, dan sisihkan tabungan saat menerima pemasukan. Saran ini berdasarkan data lokal pada periode terpilih.';
+    }
+    if (RegExp(r'\b(bagaimana|mengapa|kenapa|saran|tips|strategi|cukup)\b').hasMatch(q)) return null;
+    final keywordMatch = RegExp(r'(?:mengandung\s+kata|mengandung|kata\s+kunci|berisi\s+kata|berisi|untuk)\s+["\x27]?(.*?)["\x27]?[?.!]*$', caseSensitive: false).firstMatch(q);
+    if (keywordMatch != null) {
+      final keyword = keywordMatch[1]!.trim().replaceAll(RegExp(r'''["\x27]'''), '');
+      if (keyword.isEmpty) return 'Tuliskan kata yang ingin dicari pada deskripsi transaksi.';
+      final income = q.contains('pemasukan') || q.contains('pendapatan');
+      final type = income ? TransactionType.income : TransactionType.expense;
+      final items = report.transactions.where((item) => item.type == type && item.description.toLowerCase().contains(keyword)).toList();
+      final total = items.fold<double>(0, (sum, item) => sum + item.amount);
+      final title = income ? 'pemasukan' : 'pengeluaran';
+      if (items.isEmpty) return 'Tidak ada $title dengan deskripsi yang mengandung "$keyword" pada periode ini.';
+      final rows = items.map((item) => '${item.transactionDate.day}/${item.transactionDate.month}/${item.transactionDate.year} • ${item.description}: ${_money(item.amount)}').join('\n');
+      return 'Nota $title • "$keyword"\n$rows\nTotal: ${_money(total)} (${items.length} transaksi).';
+    }
+    // Do not silently discard unsupported constraints and answer a global total.
+    if (RegExp(r'\b(kategori|nota|kecuali|selain|dibanding|perbandingan|lebih dari|kurang dari|terakhir)\b').hasMatch(q) && !q.contains('terbesar')) return null;
     if ((q.contains('pemasukan') || q.contains('pendapatan')) && q.contains('pengeluaran')) {
       return 'Pemasukan ${_money(report.incomeTotal)}, pengeluaran ${_money(report.expenseTotal)}, saldo ${_money(report.balance)} pada periode ini.';
     }

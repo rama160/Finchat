@@ -32,6 +32,7 @@ class GoogleAuthService implements GoogleAuthGateway {
     }
 
     final account = await _signIn.authenticate();
+    _coordinator.rememberAccount(account);
     final authentication = account.authentication;
     final email = account.email.trim().toLowerCase();
     final googleUserId = account.id.trim();
@@ -51,5 +52,6 @@ class GoogleAuthService implements GoogleAuthGateway {
   Future<void> signOut() async {
     await initialize();
     await _signIn.signOut();
+    _coordinator.clearAccount();
   }
 }

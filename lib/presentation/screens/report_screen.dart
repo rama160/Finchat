@@ -10,6 +10,7 @@ import '../../data/repositories/sqlite_category_repository.dart';
 import '../../data/repositories/sqlite_transaction_repository.dart';
 import '../../domain/entities/transaction_entity.dart';
 import '../../domain/reports/report_models.dart';
+import '../../domain/reports/daily_expenses.dart';
 import '../../domain/reports/selected_period.dart';
 import '../widgets/period_filter.dart';
 
@@ -107,7 +108,7 @@ class _ReportBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (report.transactionCount == 0) {
-      return ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 24), children: [const _SummaryCard(report: null), const SizedBox(height: 12), const Card(child: Padding(padding: EdgeInsets.all(24), child: Column(children: [Icon(Icons.receipt_long_outlined, size: 44), SizedBox(height: 10), Text('Belum ada transaksi', style: TextStyle(fontWeight: FontWeight.bold)), SizedBox(height: 4), Text('Tidak ada transaksi pada periode yang dipilih.', textAlign: TextAlign.center)]))), const SizedBox(height: 12), OutlinedButton.icon(onPressed: onExport, icon: const Icon(Icons.picture_as_pdf), label: const Text('Bagikan PDF'))]);
+      return ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 24), children: [_SummaryCard(report: report), const SizedBox(height: 12), _DailyExpenseChart(report: report), const SizedBox(height: 12), const Card(child: Padding(padding: EdgeInsets.all(24), child: Column(children: [Icon(Icons.receipt_long_outlined, size: 44), SizedBox(height: 10), Text('Belum ada transaksi', style: TextStyle(fontWeight: FontWeight.bold)), SizedBox(height: 4), Text('Tidak ada transaksi pada periode yang dipilih.', textAlign: TextAlign.center)]))), const SizedBox(height: 12), OutlinedButton.icon(onPressed: onExport, icon: const Icon(Icons.picture_as_pdf), label: const Text('Bagikan PDF'))]);
     }
     return ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 24), children: [
       _SummaryCard(report: report),
@@ -116,9 +117,7 @@ class _ReportBody extends StatelessWidget {
       const SizedBox(height: 12),
       _CategoryChart(report: report),
       const SizedBox(height: 12),
-      _CountChart(report: report),
-      const SizedBox(height: 12),
-      _GroupList(report: report),
+      _DailyExpenseChart(report: report),
       const SizedBox(height: 12),
       FilledButton.icon(onPressed: onExport, icon: const Icon(Icons.picture_as_pdf), label: const Text('Bagikan PDF')),
     ]);
@@ -135,7 +134,6 @@ class _SummaryCard extends StatelessWidget {
       _Metric('Pemasukan', _money(r?.incomeTotal ?? 0), Icons.south_west, onTap: r == null ? null : () => _showTypeDetails(context, TransactionType.income, r.transactions)),
       _Metric('Pengeluaran', _money(r?.expenseTotal ?? 0), Icons.north_east, onTap: r == null ? null : () => _showTypeDetails(context, TransactionType.expense, r.transactions)),
       _Metric('Saldo', _money(r?.balance ?? 0), Icons.account_balance_wallet_outlined),
-      _Metric('Transaksi', '${r?.transactionCount ?? 0}', Icons.receipt_long_outlined),
     ])));
   }
 }
@@ -269,29 +267,44 @@ Color _pieColor(int index) {
   return colors[index % colors.length];
 }
 
-class _CountChart extends StatelessWidget {
-  const _CountChart({required this.report});
+class _DailyExpenseChart extends StatelessWidget {
+  const _DailyExpenseChart({required this.report});
   final ReportSummary report;
+
   @override
   Widget build(BuildContext context) {
-    final max = report.incomeCount > report.expenseCount ? report.incomeCount : report.expenseCount;
-    return Card(child: Padding(padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('Jumlah transaksi', style: TextStyle(fontWeight: FontWeight.bold)), const SizedBox(height: 12), _CountBar(label: 'Pemasukan', count: report.incomeCount, max: max), const SizedBox(height: 10), _CountBar(label: 'Pengeluaran', count: report.expenseCount, max: max)])));
+    final points = dailyExpenses(report);
+    final maxAmount = points.fold<double>(0, (max, point) => math.max(max, point.amount));
+    return Card(child: Padding(padding: const EdgeInsets.all(14), child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Grafik pengeluaran harian', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 4),
+        Text('Total pengeluaran: ${_money(report.expenseTotal)}'),
+        Text('${_date(report.start)} – ${_date(DateTime(report.endExclusive.year, report.endExclusive.month, report.endExclusive.day - 1))}'),
+        const SizedBox(height: 16),
+        SizedBox(height: 205, child: LayoutBuilder(builder: (context, constraints) {
+          final width = math.max(constraints.maxWidth, points.length * 66.0);
+          return SingleChildScrollView(scrollDirection: Axis.horizontal, child: SizedBox(width: width, child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: points.map((point) => Expanded(child: Tooltip(
+              message: '${_date(point.date)}: ${_money(point.amount)}',
+              child: Semantics(label: '${_date(point.date)}: ${_money(point.amount)}', child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(_money(point.amount), style: const TextStyle(fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 4),
+                  Container(width: 24, height: maxAmount == 0 ? 2 : math.max(2, point.amount / maxAmount * 150), decoration: BoxDecoration(color: Colors.teal, borderRadius: BorderRadius.circular(4))),
+                  const SizedBox(height: 8),
+                  Text('${point.date.day}/${point.date.month}', style: const TextStyle(fontSize: 11)),
+                ],
+              )),
+            ))).toList(),
+          )));
+        })),
+      ],
+    )));
   }
-}
-
-class _CountBar extends StatelessWidget {
-  const _CountBar({required this.label, required this.count, required this.max});
-  final String label;
-  final int count, max;
-  @override
-  Widget build(BuildContext context) => Row(children: [SizedBox(width: 90, child: Text(label)), Expanded(child: LinearProgressIndicator(value: max == 0 ? 0 : count / max)), const SizedBox(width: 8), Text('$count')]);
-}
-
-class _GroupList extends StatelessWidget {
-  const _GroupList({required this.report});
-  final ReportSummary report;
-  @override
-  Widget build(BuildContext context) => Card(child: Column(children: [const ListTile(title: Text('Detail transaksi', style: TextStyle(fontWeight: FontWeight.bold))), ...report.groups.map((group) => ListTile(leading: Icon(group.type == TransactionType.income ? Icons.arrow_downward : Icons.arrow_upward), title: Text(group.description), subtitle: Text('${group.categoryName} • ${group.transactionCount} transaksi'), trailing: Text(_money(group.totalAmount)), onTap: () => _showGroupDetails(context, group, report.transactions)))]));
 }
 
 void _showTypeDetails(BuildContext context, TransactionType type, List<TransactionEntity> transactions) {
@@ -320,50 +333,6 @@ void _showTransactionDetails(BuildContext context, String title, List<Transactio
                 subtitle: Text('${_date(item.transactionDate)} • ${item.categoryId}'),
                 trailing: Text(_money(item.amount)),
               )),
-        ],
-      ),
-    ),
-  );
-}
-
-void _showGroupDetails(
-  BuildContext context,
-  ReportTransactionGroup group,
-  List<TransactionEntity> transactions,
-) {
-  final normalizedGroupDescription = group.description
-      .trim()
-      .toLowerCase()
-      .replaceAll(RegExp(r'\s+'), ' ');
-  final items = transactions
-      .where(
-        (item) =>
-            item.type == group.type &&
-            item.categoryId == group.categoryId &&
-            item.description.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ') ==
-                normalizedGroupDescription,
-      )
-      .toList();
-
-  showModalBottomSheet<void>(
-    context: context,
-    showDragHandle: true,
-    builder: (context) => SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text(
-            group.description,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          Text('${group.categoryName} • ${_money(group.totalAmount)}'),
-          const Divider(),
-          ...items.map(
-            (item) => ListTile(
-              title: Text(_money(item.amount)),
-              subtitle: Text(_date(item.transactionDate)),
-            ),
-          ),
         ],
       ),
     ),

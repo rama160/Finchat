@@ -42,7 +42,7 @@ class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   final _inputController = TextEditingController();
   final ImagePicker _imagePicker = ImagePicker();
   late final FinChatDatabase _database;
@@ -54,7 +54,9 @@ class _ChatScreenState extends State<ChatScreen> {
   late final AutomaticBackupService _automaticBackup;
 
   List<TransactionEntity> _items = const [];
-  SelectedPeriod _period = const SelectedPeriod.all();
+  SelectedPeriod _period = SelectedPeriod.day(DateTime.now());
+  DateTime _viewDay = DateTime.now();
+  Timer? _dayTimer;
   int _selectedTab = 0;
   final List<({String question, String answer})> _answers = [];
   bool _backupRunning = false;
@@ -67,6 +69,8 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _scheduleDayRollover();
     _database = FinChatDatabase();
     _transactions = SqliteTransactionRepository(_database);
     _categories = SqliteCategoryRepository(_database);
@@ -104,10 +108,38 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _dayTimer?.cancel();
     _inputController.dispose();
     unawaited(_voice.cancel().catchError((Object _) {}));
     _database.close();
     super.dispose();
+  }
+
+  void _scheduleDayRollover() {
+    _dayTimer?.cancel();
+    final now = DateTime.now();
+    final midnight = DateTime(now.year, now.month, now.day + 1);
+    _dayTimer = Timer(midnight.difference(now), _checkDayRollover);
+  }
+
+  void _checkDayRollover() {
+    if (!mounted) return;
+    final now = DateTime.now();
+    if (_viewDay.year != now.year || _viewDay.month != now.month || _viewDay.day != now.day) {
+      setState(() {
+        _viewDay = now;
+        _period = SelectedPeriod.day(now);
+        _answers.clear();
+      });
+      unawaited(_loadTransactions());
+    }
+    _scheduleDayRollover();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _checkDayRollover();
   }
 
   Future<void> _loadTransactions() async {
@@ -171,7 +203,7 @@ class _ChatScreenState extends State<ChatScreen> {
         start: period.start ?? DateTime(2000), end: period.end ?? DateTime(2100, 12, 31));
       if (mounted) setState(() => _answers.insert(0, (question: input, answer: '${period.label}\n$answer')));
     } catch (error) {
-      if (mounted) setState(() => _answers.insert(0, (question: input, answer: 'Gagal memproses pertanyaan: $error')));
+      if (mounted) setState(() => _answers.insert(0, (question: input, answer: 'Pertanyaan belum berhasil diproses. Silakan coba lagi.')));
     } finally { if (mounted) setState(() => _processing = false); }
   }
 
@@ -185,7 +217,7 @@ class _ChatScreenState extends State<ChatScreen> {
     TransactionValidator.validateInput(input);
 
     await _database.ensureUser(userId: session.userId, email: session.email);
-    final results = await _intelligence.process(userId: session.userId, input: input);
+    final results = await _intelligence.process(userId: session.userId, input: input, allowAi: false);
     if (results.isEmpty) {
       throw StateError('Transaksi belum dikenali.');
     }
@@ -403,7 +435,7 @@ class _ChatScreenState extends State<ChatScreen> {
       final reviewItems = <ReceiptReviewItem>[];
       for (final item in parsed) {
         final parserInput = '${item.description} ${_parserMoney(item.amount)}';
-        final intelligent = await _intelligence.process(userId: session.userId, input: parserInput);
+        final intelligent = await _intelligence.process(userId: session.userId, input: parserInput, allowAi: false);
         final resolved = intelligent.isEmpty ? null : intelligent.first;
         if (resolved == null) continue;
         reviewItems.add(
@@ -467,9 +499,9 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal membaca struk: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Struk belum berhasil dibaca. Coba foto yang lebih jelas atau masukkan transaksi lewat teks.'), duration: Duration(seconds: 4)));
     } finally {
-      await provider?.close();
+      try { await provider?.close(); } catch (_) { /* Cleanup must not replace the OCR result. */ }
       if (mounted) setState(() => _processing = false);
     }
   }
@@ -596,10 +628,18 @@ class _ChatScreenState extends State<ChatScreen> {
                       itemBuilder: (context, index) {
                         if (index < _answers.length) {
                           final message = _answers[index];
-                          return Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(message.question, style: const TextStyle(fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 8), SelectableText(message.answer),
-                          ])));
+                          return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                            Align(alignment: Alignment.centerRight, child: Container(
+                              constraints: const BoxConstraints(maxWidth: 340),
+                              margin: const EdgeInsets.only(left: 40, bottom: 6), padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(color: Theme.of(context).colorScheme.primaryContainer, borderRadius: BorderRadius.circular(18)),
+                              child: Text(message.question),
+                            )),
+                            Align(alignment: Alignment.centerLeft, child: Card(
+                              margin: const EdgeInsets.only(right: 24, bottom: 14),
+                              child: Padding(padding: const EdgeInsets.all(14), child: SelectableText(message.answer)),
+                            )),
+                          ]);
                         }
                         final transaction = visibleItems[index - _answers.length];
                         return Dismissible(
@@ -700,6 +740,7 @@ class _EditTransactionDialogState extends State<_EditTransactionDialog> {
   @override
   void initState() {
     super.initState();
+
     _description = TextEditingController(text: widget.transaction.description);
     _amount = TextEditingController(text: widget.transaction.amount.toStringAsFixed(0));
     _type = widget.transaction.type;

@@ -17,23 +17,26 @@ class TransactionIntelligenceService {
   Future<List<IntelligentTransaction>> process({
     required String userId,
     required String input,
+    bool allowAi = true,
   }) async {
     final localResults = LocalTransactionParser().parse(input);
     final results = <IntelligentTransaction>[];
     List<String>? availableCategoryIds;
+    final mappings = !allowAi && localResults.isNotEmpty ? await categoryLearning.repository.getMappings(userId) : null;
 
     for (final local in localResults) {
       final learnedCategory = await categoryLearning.resolve(
         userId: userId,
         text: local.description,
         fallbackCategoryId: local.categoryId,
+        mappings: mappings,
       );
 
       final resolvedCategory = learnedCategory ?? local.categoryId;
       final localIsConfident = local.confidence >= aiTriggerConfidence &&
           resolvedCategory != 'lainnya';
 
-      if (localIsConfident) {
+      if (localIsConfident || !allowAi) {
         results.add(IntelligentTransaction.fromLocal(local, resolvedCategory));
         continue;
       }

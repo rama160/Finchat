@@ -102,7 +102,7 @@ class OpenAiCompatibleAiProvider
       }
 
       if (idToken == null || idToken.trim().isEmpty) {
-        failureMessage = 'AI memerlukan sesi Google. Masuk dengan Google; jika sudah masuk, masuk ulang untuk memperbarui sesi.';
+        failureMessage = 'Sesi AI Google belum dapat diperbarui. Coba lagi; bila tetap gagal, perbarui sesi melalui Pengaturan.';
         return null;
       }
 
@@ -171,13 +171,7 @@ class OpenAiCompatibleAiProvider
 
   Future<String?> _currentGoogleIdToken() async {
     try {
-      await _googleSignInCoordinator.initialize();
-      final signIn = _googleSignInCoordinator.signIn;
-      final account = await signIn.attemptLightweightAuthentication();
-      if (account == null) return null;
-
-      final authentication = account.authentication;
-      return authentication.idToken;
+      return await _googleSignInCoordinator.currentIdToken();
     } catch (_) {
       return null;
     }

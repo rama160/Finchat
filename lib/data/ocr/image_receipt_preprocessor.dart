@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:image/image.dart' as img;
+import 'package:flutter/foundation.dart' show compute;
 
 import '../../domain/ocr/receipt_image_preprocessor.dart';
 
@@ -11,7 +12,11 @@ class ImageReceiptPreprocessor implements ReceiptImagePreprocessor {
   Future<Uint8List> preprocess(
     Uint8List input, {
     ReceiptImagePreprocessConfig config = const ReceiptImagePreprocessConfig(),
-  }) async {
+  }) => compute(_preprocessReceipt, (input, config));
+}
+
+Uint8List _preprocessReceipt((Uint8List, ReceiptImagePreprocessConfig) request) {
+    final (input, config) = request;
     if (input.isEmpty) {
       throw const FormatException('Receipt image is empty.');
     }
@@ -43,5 +48,4 @@ class ImageReceiptPreprocessor implements ReceiptImagePreprocessor {
     return Uint8List.fromList(
       img.encodeJpg(image, quality: config.jpegQuality),
     );
-  }
 }
