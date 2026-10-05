@@ -71,7 +71,7 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle();
     expect(find.text('nasi'), findsNothing);
-    expect(find.textContaining('06 Oktober 2026'), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_drop_down), findsNothing);
     final db = await FinChatDatabase().database;
     final rows = await db.query('transactions', where: 'deleted_at IS NULL');
     expect(rows.length, 1);

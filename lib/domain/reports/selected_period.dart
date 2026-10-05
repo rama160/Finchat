@@ -1,4 +1,4 @@
-enum PeriodKind { day, range, month, all }
+enum PeriodKind { day, range, month, year, all }
 
 class SelectedPeriod {
   SelectedPeriod.range(DateTime first, DateTime last)
@@ -10,6 +10,8 @@ class SelectedPeriod {
   SelectedPeriod.day(DateTime date) : this.range(date, date);
   SelectedPeriod.month(int year, int month)
       : this.range(DateTime(year, month), DateTime(year, month + 1, 0));
+  SelectedPeriod.year(int year)
+      : this.range(DateTime(year), DateTime(year, 12, 31));
   const SelectedPeriod.all() : start = null, end = null;
 
   final DateTime? start;
@@ -20,6 +22,9 @@ class SelectedPeriod {
     final last = end;
     if (first == null || last == null) return PeriodKind.all;
     if (first == last) return PeriodKind.day;
+    if (first == DateTime(first.year) && last == DateTime(first.year, 12, 31)) {
+      return PeriodKind.year;
+    }
     if (first.day == 1 && first.year == last.year &&
         first.month == last.month &&
         last.day == DateTime(first.year, first.month + 1, 0).day) {
@@ -34,6 +39,7 @@ class SelectedPeriod {
   SelectedPeriod shift(int direction) {
     if (kind == PeriodKind.all) return this;
     if (kind == PeriodKind.month) return SelectedPeriod.month(start!.year, start!.month + direction);
+    if (kind == PeriodKind.year) return SelectedPeriod.year(start!.year + direction);
     final days = DateTime.utc(end!.year, end!.month, end!.day)
         .difference(DateTime.utc(start!.year, start!.month, start!.day)).inDays + 1;
     // Calendar arithmetic preserves boundaries across daylight-saving changes.
@@ -47,6 +53,7 @@ class SelectedPeriod {
     PeriodKind.all => 'Semua tanggal',
     PeriodKind.day => '${weekdays[start!.weekday - 1]}, ${formatDate(start!)}',
     PeriodKind.month => '${months[start!.month - 1]} ${start!.year}',
+    PeriodKind.year => 'Tahun ${start!.year}',
     PeriodKind.range => '${formatDate(start!)} – ${formatDate(end!)}',
   };
 

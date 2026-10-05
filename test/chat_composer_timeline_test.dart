@@ -1,0 +1,73 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:finchat/application/session/session_manager.dart';
+import 'package:finchat/data/repositories/in_memory_session_repository.dart';
+import 'package:finchat/data/local/finchat_database.dart';
+import 'package:finchat/main.dart';
+import 'package:finchat/presentation/screens/chat_screen.dart';
+import 'package:finchat/presentation/widgets/period_filter.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(() async {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfiNoIsolate;
+    final directory = await Directory.systemTemp.createTemp('finchat_composer_');
+    await databaseFactoryFfiNoIsolate.setDatabasesPath(directory.path);
+  });
+  testWidgets('sending holds keyboard/input position and interleaves new transactions with Q&A', (tester) async {
+    final manager = SessionManager(InMemorySessionRepository());
+    await manager.initialize();
+    await manager.login(email: 'composer@finchat.local');
+    await tester.runAsync(() => FinChatDatabase().ensureUser(userId: 'composer@finchat.local'));
+    var now = DateTime(2026, 10, 5, 10);
+    await tester.pumpWidget(SessionScope(sessionManager: manager, child: MaterialApp(home: ChatScreen(now: () => now))));
+    await tester.pumpAndSettle();
+    expect(find.byType(PeriodFilter), findsNothing);
+    final input = find.byKey(const ValueKey('chat_input'));
+    await tester.showKeyboard(input);
+    tester.view.viewInsets = const FakeViewPadding(bottom: 220);
+    addTearDown(tester.view.resetViewInsets);
+    await tester.enterText(input, 'nasi 10 ribu');
+    await tester.pump();
+    final rect = tester.getRect(input);
+    await tester.testTextInput.receiveAction(TextInputAction.send);
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(input).focusNode!.hasFocus, isTrue);
+    expect(tester.testTextInput.isVisible, isTrue);
+    expect(tester.getRect(input), rect);
+    await tester.pump(const Duration(seconds: 4));
+    expect(tester.getRect(input), rect);
+    now = now.add(const Duration(seconds: 1));
+    await tester.enterText(input, 'berapa pengeluaran hari ini?');
+    await tester.pump();
+    await tester.testTextInput.receiveAction(TextInputAction.send);
+    await tester.pumpAndSettle();
+    expect(tester.getRect(input), rect);
+    expect(tester.widget<TextField>(input).focusNode!.hasFocus, isTrue);
+    now = now.add(const Duration(seconds: 1));
+    await tester.enterText(input, 'bensin 20 ribu');
+    await tester.pump();
+    await tester.tap(find.byTooltip('Proses transaksi'));
+    // A following draft must not be cleared when the previous save completes.
+    await tester.enterText(input, 'draft berikutnya');
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(input).controller!.text, 'draft berikutnya');
+    expect(tester.getRect(input), rect);
+    tester.view.resetViewInsets();
+    await tester.pumpAndSettle();
+    final nasi = tester.getTopLeft(find.text('nasi')).dy;
+    final question = tester.getTopLeft(find.text('berapa pengeluaran hari ini?')).dy;
+    final bensin = tester.getTopLeft(find.text('bensin')).dy;
+    expect(nasi, lessThan(question));
+    expect(question, lessThan(bensin));
+    final db = await FinChatDatabase().database;
+    expect(await db.query('transactions', where: 'user_id = ?', whereArgs: ['composer@finchat.local']), hasLength(2));
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    await db.close();
+    manager.dispose();
+  });
+}

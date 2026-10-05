@@ -17,7 +17,8 @@ import '../../application/transactions/input_intent.dart';
 import '../../application/ai/financial_qa_service.dart';
 import '../../application/reports/report_service.dart';
 import '../../domain/reports/selected_period.dart';
-import '../widgets/period_filter.dart';
+import '../../application/ai/question_period.dart';
+import '../../domain/parsing/voice_transaction_normalizer.dart';
 import '../../data/local/finchat_database.dart';
 import '../../data/ocr/image_receipt_preprocessor.dart';
 import '../../data/ocr/mlkit_receipt_ocr_provider.dart';
@@ -58,14 +59,17 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   List<TransactionEntity> _items = const [];
   Map<String, String> _categoryNames = const {};
-  late SelectedPeriod _period;
+  final _inputFocus = FocusNode();
+  final _chatScroll = ScrollController();
+  MlKitReceiptOcrProvider? _ocrProvider;
   late DateTime _viewDay;
   DateTime _now() => widget.now?.call() ?? DateTime.now();
   Timer? _dayTimer;
   Timer? _statusTimer;
   String? _saveStatus;
   int _selectedTab = 0;
-  final List<({String question, String answer})> _answers = [];
+  final List<({int id, DateTime at, String question, String? answer})> _answers = [];
+  int _questionId = 0;
   bool _backupRunning = false;
   bool _backupPending = false;
   bool _picking = false;
@@ -77,7 +81,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     _viewDay = _now();
-    _period = SelectedPeriod.day(_viewDay);
     WidgetsBinding.instance.addObserver(this);
     _scheduleDayRollover();
     _database = FinChatDatabase();
@@ -122,6 +125,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     _dayTimer?.cancel();
     _statusTimer?.cancel();
     _inputController.dispose();
+    _inputFocus.dispose();
+    _chatScroll.dispose();
+    unawaited(_ocrProvider?.close().catchError((Object _) {}) ?? Future<void>.value());
     unawaited(_voice.cancel().catchError((Object _) {}));
     _database.close();
     super.dispose();
@@ -140,7 +146,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     if (_viewDay.year != now.year || _viewDay.month != now.month || _viewDay.day != now.day) {
       setState(() {
         _viewDay = now;
-        _period = SelectedPeriod.day(now);
         _answers.clear();
       });
       unawaited(_loadTransactions());
@@ -191,33 +196,43 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   bool _looksLikeFinancialQuestion(String input) => detectInputIntent(input) == InputIntent.question;
 
+  void _scrollToLatest() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _selectedTab == 0 && _chatScroll.hasClients) {
+        unawaited(_chatScroll.animateTo(0, duration: const Duration(milliseconds: 180), curve: Curves.easeOut));
+      }
+    });
+  }
+
   Future<void> _askInChat(String input) async {
     final session = SessionScope.of(context).session;
     if (session == null || _processing) return;
-    setState(() => _processing = true);
+    final id = ++_questionId;
+    final at = _now();
+    setState(() {
+      _processing = true;
+      _answers.add((id: id, at: at, question: input, answer: null));
+    });
+    _scrollToLatest();
+    String answer;
     try {
-      final now = _now();
-      var period = _period;
-      final question = input.toLowerCase();
-      if (question.contains('hari ini')) {
-        period = SelectedPeriod.day(now);
-      } else if (question.contains('kemarin')) {
-        period = SelectedPeriod.day(DateTime(now.year, now.month, now.day - 1));
-      } else if (question.contains('bulan ini')) {
-        period = SelectedPeriod.month(now.year, now.month);
-      } else if (question.contains('bulan lalu')) {
-        period = SelectedPeriod.month(now.year, now.month - 1);
-      } else if (question.contains('minggu ini')) {
-        final first = DateTime(now.year, now.month, now.day - now.weekday + 1);
-        period = SelectedPeriod.range(first, DateTime(first.year, first.month, first.day + 6));
-      }
+      final period = questionPeriod(input, at);
       final service = FinancialQaService(reports: ReportService(transactions: _transactions, categories: _categories), provider: OpenAiCompatibleAiProvider());
-      final answer = await service.ask(userId: session.userId, question: input,
+      final result = await service.ask(userId: session.userId, question: input,
         start: period.start ?? DateTime(2000), end: period.end ?? DateTime(2100, 12, 31));
-      if (mounted) setState(() => _answers.insert(0, (question: input, answer: '${period.label}\n$answer')));
-    } catch (error) {
-      if (mounted) setState(() => _answers.insert(0, (question: input, answer: 'Pertanyaan belum berhasil diproses. Silakan coba lagi.')));
-    } finally { if (mounted) setState(() => _processing = false); }
+      answer = '${period.label}\n$result';
+    } on FormatException catch (error) {
+      answer = error.message;
+    } catch (_) {
+      answer = 'Pertanyaan belum berhasil diproses. Silakan coba lagi.';
+    }
+    if (!mounted) return;
+    setState(() {
+      final index = _answers.indexWhere((message) => message.id == id);
+      if (index >= 0) _answers[index] = (id: id, at: at, question: input, answer: answer);
+      _processing = false;
+    });
+    _scrollToLatest();
   }
 
   Future<void> _saveIntelligentResults({
@@ -258,11 +273,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     await _loadTransactions();
     if (mounted) {
       _showSaved(successMessage.replaceFirst('{count}', '${results.length}'));
+      _scrollToLatest();
     }
   }
 
   Future<void> _consumeVoiceTranscript() async {
-    final input = _voice.transcript.trim();
+    final input = normalizeVoiceTransactions(_voice.transcript.trim());
     if (input.isEmpty || !mounted) {
       _voiceConsumePending = false;
       return;
@@ -319,8 +335,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       }
       await _voice.startListening(
         localeId: 'id_ID',
-        listenFor: const Duration(seconds: 30),
-        pauseFor: const Duration(seconds: 3),
+        listenFor: const Duration(seconds: 60),
+        pauseFor: const Duration(seconds: 5),
       );
     } catch (error) {
       if (mounted) {
@@ -342,6 +358,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       return;
     }
 
+    _inputController.clear();
     setState(() => _processing = true);
     try {
       await _saveIntelligentResults(
@@ -349,9 +366,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         source: InputSource.text,
         successMessage: '{count} transaksi langsung tersimpan.',
       );
-      _inputController.clear();
     } catch (error) {
       if (!mounted) return;
+      if (_inputController.text.isEmpty) _inputController.text = input;
       final message = error is StateError && error.message == 'Transaksi belum dikenali.'
           ? 'Transaksi belum dikenali. Contoh: nasi 25rb dan bensin 50k.'
           : inputFailureMessage(error, 'Transaksi belum berhasil disimpan. Coba lagi.');
@@ -368,7 +385,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     final picked = await _imagePicker.pickImage(
       source: source,
       imageQuality: 95,
-      maxWidth: 2400,
+      maxWidth: 1800,
     );
     if (picked == null) return;
     await _processReceiptBytes(
@@ -417,10 +434,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     if (session == null || _processing) return;
 
     setState(() => _processing = true);
-    MlKitReceiptOcrProvider? provider;
     try {
       await _database.ensureUser(userId: session.userId, email: session.email);
-      provider = MlKitReceiptOcrProvider();
+      final provider = _ocrProvider ??= MlKitReceiptOcrProvider();
       final ocr = ReceiptOcrService(
         preprocessor: const ImageReceiptPreprocessor(),
         provider: provider,
@@ -445,23 +461,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         return;
       }
 
-      final reviewItems = <ReceiptReviewItem>[];
-      for (final item in parsed) {
-        final parserInput = '${item.description} ${_parserMoney(item.amount)}';
-        final intelligent = await _intelligence.process(userId: session.userId, input: parserInput, allowAi: false);
-        final resolved = intelligent.isEmpty ? null : intelligent.first;
-        if (resolved == null) continue;
-        reviewItems.add(
-          ReceiptReviewItem(
-            description: resolved.description,
-            amount: resolved.amount,
-            type: resolved.type == ParsedTransactionType.income ? TransactionType.income : TransactionType.expense,
-            categoryId: resolved.categoryId,
-            processedBy: resolved.processedBy,
-            confidence: resolved.confidence,
-          ),
-        );
-      }
+      final intelligent = await _intelligence.processParsed(userId: session.userId, localResults: parsed);
+      final reviewItems = intelligent.map((resolved) => ReceiptReviewItem(
+        description: resolved.description,
+        amount: resolved.amount,
+        type: resolved.type == ParsedTransactionType.income ? TransactionType.income : TransactionType.expense,
+        categoryId: resolved.categoryId,
+        processedBy: resolved.processedBy,
+        confidence: resolved.confidence,
+      )).toList();
 
       if (reviewItems.isEmpty) throw StateError('Item struk tidak dapat diubah menjadi transaksi.');
       if (!mounted) return;
@@ -509,12 +517,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       await _loadTransactions();
       if (mounted) {
         _showSaved('${reviewed.length} transaksi dari struk tersimpan.');
+        _scrollToLatest();
       }
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Struk belum berhasil dibaca. Coba foto yang lebih jelas atau masukkan transaksi lewat teks.'), duration: Duration(seconds: 4)));
     } finally {
-      try { await provider?.close(); } catch (_) { /* Cleanup must not replace the OCR result. */ }
       if (mounted) setState(() => _processing = false);
     }
   }
@@ -611,7 +619,17 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final session = SessionScope.of(context).session;
-    final visibleItems = _items.where((item) => _period.contains(item.transactionDate)).toList();
+    final today = SelectedPeriod.day(_viewDay);
+    final visibleItems = _items.where((item) => today.contains(item.transactionDate)).toList();
+    final timeline = <({DateTime at, int order, TransactionEntity? transaction, int? answerIndex})>[
+      for (var i = 0; i < visibleItems.length; i++)
+        (at: visibleItems[i].createdAt, order: i, transaction: visibleItems[i], answerIndex: null),
+      for (var i = 0; i < _answers.length; i++)
+        (at: _answers[i].at, order: visibleItems.length + _answers[i].id, transaction: null, answerIndex: i),
+    ]..sort((a, b) {
+      final time = a.at.compareTo(b.at);
+      return time == 0 ? a.order.compareTo(b.order) : time;
+    });
     return PopScope(
       canPop: _selectedTab == 0,
       onPopInvokedWithResult: (didPop, result) {
@@ -645,19 +663,20 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       body: _selectedTab == 1 && session != null ? ReportScreen(userId: session.userId) : SafeArea(
         child: Column(
           children: [
-            PeriodFilter(period: _period, allowAll: true, onChanged: (value) => setState(() => _period = value)),
-            if (_voice.isListening || _voiceConsumePending)
-              Padding(padding: const EdgeInsets.all(8), child: Text(_voice.transcript.isEmpty ? 'Mendengarkan…' : _voice.transcript)),
             Expanded(
               child: visibleItems.isEmpty && _answers.isEmpty
                   ? _EmptyChat(email: session?.email ?? '')
                   : ListView.builder(
+                      key: const PageStorageKey('chat_timeline'),
+                      controller: _chatScroll,
+                      reverse: true,
                       padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-                      itemCount: visibleItems.length + _answers.length,
+                      itemCount: timeline.length,
                       itemBuilder: (context, index) {
-                        if (index < _answers.length) {
-                          final message = _answers[index];
-                          return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                        final entry = timeline[timeline.length - 1 - index];
+                        if (entry.answerIndex != null) {
+                          final message = _answers[entry.answerIndex!];
+                          return Column(key: ValueKey('question_${message.id}'), crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                             Align(alignment: Alignment.centerRight, child: Container(
                               constraints: const BoxConstraints(maxWidth: 340),
                               margin: const EdgeInsets.only(left: 40, bottom: 6), padding: const EdgeInsets.all(14),
@@ -666,11 +685,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                             )),
                             Align(alignment: Alignment.centerLeft, child: Card(
                               margin: const EdgeInsets.only(right: 24, bottom: 14),
-                              child: Padding(padding: const EdgeInsets.all(14), child: SelectableText(message.answer)),
+                              child: Padding(padding: const EdgeInsets.all(14), child: message.answer == null ? const Text('Sedang menyiapkan jawaban…') : SelectableText(message.answer!)),
                             )),
                           ]);
                         }
-                        final transaction = visibleItems[index - _answers.length];
+                        final transaction = entry.transaction!;
                         return Dismissible(
                           key: ValueKey(transaction.id),
                           direction: DismissDirection.horizontal,
@@ -706,15 +725,18 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       },
                     ),
             ),
-            if (_saveStatus != null) Padding(
+            SizedBox(height: 28, child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Semantics(liveRegion: true, child: Row(children: [
-                const Icon(Icons.check_circle_outline, color: Colors.green, size: 18),
-                const SizedBox(width: 6), Expanded(child: Text(_saveStatus!, style: const TextStyle(fontSize: 12))),
-              ])),
-            ),
+              child: Semantics(liveRegion: true, child: Text(
+                _voice.isListening || _voiceConsumePending
+                    ? (_voice.transcript.isEmpty ? 'Mendengarkan…' : _voice.transcript)
+                    : _saveStatus ?? (_processing || _picking ? 'Sedang memproses…' : ''),
+                maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12),
+              )),
+            )),
             _Composer(
               controller: _inputController,
+              focusNode: _inputFocus,
               busy: _processing || _picking,
               listening: _voice.isListening,
               onSubmit: _processAndSave,
@@ -897,7 +919,7 @@ class _EmptyChat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Padding(
+        child: SingleChildScrollView(child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -914,13 +936,14 @@ class _EmptyChat extends StatelessWidget {
               const Text('Contoh: Beli nasi 25rb dan bensin 50k'),
             ],
           ),
-        ),
+        )),
       );
 }
 
 class _Composer extends StatelessWidget {
-  const _Composer({required this.controller, required this.busy, required this.listening, required this.onSubmit, required this.onReceipt, required this.onVoice, required this.onCamera});
+  const _Composer({required this.controller, required this.focusNode, required this.busy, required this.listening, required this.onSubmit, required this.onReceipt, required this.onVoice, required this.onCamera});
   final TextEditingController controller;
+  final FocusNode focusNode;
   final bool busy;
   final bool listening;
   final VoidCallback onSubmit, onReceipt, onVoice, onCamera;
@@ -942,7 +965,8 @@ class _Composer extends StatelessWidget {
     decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(32), boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)]),
     child: ValueListenableBuilder<TextEditingValue>(valueListenable: controller, builder: (context, value, _) => Row(children: [
       IconButton(onPressed: busy || listening ? null : () => _emoji(context), icon: const Icon(Icons.sentiment_satisfied_alt), tooltip: 'Emoji'),
-      Expanded(child: TextField(controller: controller, readOnly: busy || listening, minLines: 1, maxLines: 4, textInputAction: TextInputAction.send,
+      Expanded(child: TextField(key: const ValueKey('chat_input'), controller: controller, focusNode: focusNode, readOnly: listening, minLines: 1, maxLines: 1, textInputAction: TextInputAction.send,
+        onEditingComplete: () {},
         decoration: const InputDecoration(hintText: 'Pesan', border: InputBorder.none, contentPadding: EdgeInsets.symmetric(vertical: 12)), onSubmitted: (_) => onSubmit())),
       IconButton(onPressed: busy || listening ? null : onReceipt, icon: const Icon(Icons.attach_file), tooltip: 'Tambah struk'),
       IconButton(onPressed: busy || listening ? null : onCamera, icon: const Icon(Icons.camera_alt_outlined), tooltip: 'Kamera'),
@@ -956,5 +980,4 @@ class _Composer extends StatelessWidget {
 
 
 String _money(double value) => 'Rp ${value.toStringAsFixed(0).replaceAllMapped(RegExp(r'(?=(\d{3})+(?!\d))'), (m) => '.') }';
-String _parserMoney(double value) => 'Rp ${value.toStringAsFixed(0).replaceAllMapped(RegExp(r'(?=(\d{3})+(?!\d))'), (m) => '.') }';
 String _date(DateTime value) => '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';

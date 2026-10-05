@@ -19,7 +19,16 @@ class TransactionIntelligenceService {
     required String input,
     bool allowAi = true,
   }) async {
-    final localResults = LocalTransactionParser().parse(input);
+    return processParsed(userId: userId, localResults: LocalTransactionParser().parse(input), originalInput: input, allowAi: allowAi);
+  }
+
+  /// Resolve an OCR batch once, preserving amounts and category corrections.
+  Future<List<IntelligentTransaction>> processParsed({
+    required String userId,
+    required List<ParsedTransaction> localResults,
+    String originalInput = '',
+    bool allowAi = false,
+  }) async {
     final results = <IntelligentTransaction>[];
     List<String>? availableCategoryIds;
     final mappings = !allowAi && localResults.isNotEmpty ? await categoryLearning.repository.getMappings(userId) : null;
@@ -46,7 +55,7 @@ class TransactionIntelligenceService {
       final suggestion = await aiFallback.resolve(
         AiCategoryRequest(
           userId: userId,
-          originalText: input,
+          originalText: originalInput,
           description: local.description,
           type: local.type == ParsedTransactionType.income
               ? TransactionType.income

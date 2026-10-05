@@ -6,8 +6,12 @@ import 'package:finchat/domain/entities/category_entity.dart';
 import 'package:finchat/domain/entities/transaction_entity.dart';
 import 'package:finchat/domain/repositories/category_repository.dart';
 import 'package:finchat/domain/services/category_learning_service.dart';
+import 'package:finchat/application/ocr/receipt_transaction_parser.dart';
+import 'package:finchat/application/transactions/local_transaction_parser.dart';
+import 'package:finchat/domain/parsing/voice_transaction_normalizer.dart';
 
 class FakeCategoryRepository implements CategoryRepository {
+  int mappingReads = 0;
   @override
   Future<List<CategoryEntity>> getCategories({String? type}) async => const [];
 
@@ -27,7 +31,7 @@ class FakeCategoryRepository implements CategoryRepository {
   }) async {}
 
   @override
-  Future<List<CategoryMapping>> getMappings(String userId) async => const [];
+  Future<List<CategoryMapping>> getMappings(String userId) async { mappingReads++; return const []; }
 }
 
 class FakeProvider implements AiCategoryProvider {
@@ -44,6 +48,34 @@ class FakeProvider implements AiCategoryProvider {
 }
 
 void main() {
+  test('one spoken multi transaction input remains local with numeric and word prices', () async {
+    final provider = FakeProvider(null);
+    final categories = FakeCategoryRepository();
+    final service = TransactionIntelligenceService(categoryLearning: CategoryLearningService(categories),
+      aiFallback: AiCategoryFallback(provider: provider, categoryExists: (_) async => true));
+    final input = normalizeVoiceTransactions('nasi sepuluh ribu dan bensin 50000 lalu parkir dua rebu');
+    final result = await service.process(userId: 'u1', input: input, allowAi: false);
+    expect(result.map((r) => r.amount), [10000, 50000, 2000]);
+    expect(result.map((r) => r.description), ['nasi', 'bensin', 'parkir']);
+    expect(provider.calls, 0);
+    expect(categories.mappingReads, 1);
+  });
+  test('receipt batch preserves product names/amounts and reads mappings once', () async {
+    final provider = FakeProvider(null);
+    final categories = FakeCategoryRepository();
+    final service = TransactionIntelligenceService(categoryLearning: CategoryLearningService(categories),
+      aiFallback: AiCategoryFallback(provider: provider, categoryExists: (_) async => true));
+    final parsed = const ReceiptTransactionParser().parse('PIA SARI RASA COKLAT\n1 PAK x 20,000 = 20,000\nDAIA POWDER DET BAG\n1 PCS x 18,800 = 18,800\nSLEEK BABY CLEANSER\n1 PCS x 30,259 = 30,259\nTunai = 70,000\nKembali = 941');
+    final result = await service.processParsed(userId: 'u1', localResults: parsed);
+    expect(result, hasLength(3));
+    expect(result.map((r) => r.description), parsed.map((r) => r.description));
+    expect(result.fold<double>(0, (sum, r) => sum + r.amount), 69059);
+    expect(provider.calls, 0);
+    expect(categories.mappingReads, 1);
+    final large = List.generate(40, (i) => ParsedTransaction(amount: 10000, description: 'Produk $i', type: ParsedTransactionType.expense, categoryId: 'lainnya', confidence: .9));
+    expect(await service.processParsed(userId: 'u1', localResults: large), hasLength(40));
+    expect(categories.mappingReads, 2);
+  });
   test('production capture never waits for AI even for unknown multi items', () async {
     final provider = FakeProvider(null);
     final service = TransactionIntelligenceService(

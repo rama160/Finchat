@@ -12,6 +12,7 @@ import '../../domain/entities/transaction_entity.dart';
 import '../../domain/reports/report_models.dart';
 import '../../domain/reports/daily_expenses.dart';
 import '../../domain/reports/selected_period.dart';
+import '../../domain/reports/report_insights.dart';
 import '../widgets/period_filter.dart';
 
 class ReportScreen extends StatefulWidget {
@@ -73,7 +74,7 @@ class _ReportScreenState extends State<ReportScreen> {
     if (_exporting) return;
     setState(() => _exporting = true);
     try {
-      final title = switch (_period.kind) { PeriodKind.day => 'Laporan Harian', PeriodKind.month => 'Laporan Bulanan', _ => 'Laporan Rentang' };
+      final title = switch (_period.kind) { PeriodKind.day => 'Laporan Harian', PeriodKind.month => 'Laporan Bulanan', PeriodKind.year => 'Laporan Tahunan', _ => 'Laporan Rentang' };
       final bytes = await _reportPdfService.generate(report: report, reportTitle: title);
       if (!mounted) return;
       await Printing.sharePdf(bytes: bytes, filename: reportPdfFileName(title, report.start));
@@ -127,7 +128,7 @@ class _ReportBody extends StatelessWidget {
     return ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 24), children: [
       _SummaryCard(report: report),
       const SizedBox(height: 12),
-      _InsightCard(report: report),
+      _InsightCard(report: report, points: points),
       const SizedBox(height: 12),
       _CategoryChart(report: report),
       const SizedBox(height: 12),
@@ -197,15 +198,19 @@ class _Metric extends StatelessWidget {
 }
 
 class _InsightCard extends StatelessWidget {
-  const _InsightCard({required this.report});
+  const _InsightCard({required this.report, required this.points});
   final ReportSummary report;
+  final List<DailyExpense> points;
   @override
-  Widget build(BuildContext context) {
-    final expenses = report.expenseCategories;
-    final top = expenses.isEmpty ? null : expenses.first;
-    final text = top == null ? 'Belum ada kategori pengeluaran untuk dianalisis.' : 'Kategori pengeluaran terbesar adalah ${top.categoryName} sebesar ${_money(top.totalAmount)} (${_percent(top.totalAmount, report.expenseTotal)}).';
-    return Card(child: ListTile(leading: const Icon(Icons.lightbulb_outline), title: const Text('Insight'), subtitle: Text(text)));
-  }
+  Widget build(BuildContext context) => Card(child: Padding(
+    padding: const EdgeInsets.all(14),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text('Insight', style: TextStyle(fontWeight: FontWeight.bold)),
+      for (final insight in reportInsights(report, points))
+        ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.lightbulb_outline),
+          title: Text(insight.title), subtitle: Text(insight.text)),
+    ]),
+  ));
 }
 
 class _CategoryChart extends StatelessWidget {
@@ -221,8 +226,6 @@ class _CategoryChart extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('Pengeluaran per kategori', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            const Text('Diagram lingkaran berdasarkan nominal; legenda menampilkan jumlah transaksi per kategori.'),
             const SizedBox(height: 12),
             if (items.isEmpty)
               const Text('Tidak ada data kategori.')
@@ -247,6 +250,8 @@ class _CategoryChart extends StatelessWidget {
                 );
               }),
             ],
+            const SizedBox(height: 12),
+            Text(categoryChartCaption(report), key: const ValueKey('category_chart_caption')),
           ],
         ),
       ),
@@ -293,11 +298,6 @@ class _DailyExpenseChart extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Grafik pengeluaran harian', style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 4),
-        Text('Total pengeluaran: ${_money(report.expenseTotal)}'),
-        Text('${_date(report.start)} – ${_date(DateTime(report.endExclusive.year, report.endExclusive.month, report.endExclusive.day - 1))}'),
-        if (points.length == 2 && dailyExpenses(report).length == 1)
-          const Text('Perbandingan hari sebelumnya dan hari yang dipilih'),
         const SizedBox(height: 16),
         SizedBox(height: 205, child: LayoutBuilder(builder: (context, constraints) {
           final width = math.max(constraints.maxWidth, points.length * 66.0);
@@ -318,6 +318,8 @@ class _DailyExpenseChart extends StatelessWidget {
             ))).toList(),
           )));
         })),
+        const SizedBox(height: 12),
+        Text(dailyChartCaption(report, points), key: const ValueKey('daily_chart_caption')),
       ],
     )));
   }

@@ -1,3 +1,7 @@
+## Perubahan produk terbaru — 0.3.2+14
+
+Chat tersusun berdasarkan waktu dengan pesan terbaru di bawah, composer/keyboard stabil, filter Input digantikan periode dalam pertanyaan. Laporan mempertahankan header filter; klik langsung menampilkan kalender dengan tanggal/rentang/bulan/tahun. Ringkasan grafik ditempatkan di bawah dan berisi angka/data periode. Insight mencakup arus kas, pola harian, perubahan, dan pengeluaran berulang. Input suara mendukung multi transaksi lokal; pemrosesan struk menghindari query/parse berulang dan tetap melalui review. Referensi audit: AUDIT_0.3.2+14.md.
+
 ## Verified GitHub CI — 0.3.2+13 (5 Oktober 2026)
 
 - Tested code commit `02ea7a394e0af7afaedc85db5f44bf1ccef4aec3`, branch `codex/finchat-input-navigation-audit`.
