@@ -22,15 +22,18 @@ void main() {
     await tester.pumpWidget(FinChatApp(sessionManager: manager));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'nasi 25rb');
+    await tester.pump();
     await tester.tap(find.byTooltip('Proses transaksi'));
     await tester.pumpAndSettle();
     expect(find.text('nasi'), findsOneWidget);
     await tester.enterText(find.byType(TextField), 'berapa pengeluaran hari ini?');
+    await tester.pump();
     await tester.tap(find.byTooltip('Proses transaksi'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Total pengeluaran'), findsOneWidget);
     final beforeQuestion = await (await FinChatDatabase().database).query('transactions');
     await tester.enterText(find.byType(TextField), 'Apakah anggaran 2 juta cukup?');
+    await tester.pump();
     await tester.tap(find.byTooltip('Proses transaksi'));
     await tester.pumpAndSettle();
     final afterQuestion = await (await FinChatDatabase().database).query('transactions');

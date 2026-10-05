@@ -93,8 +93,8 @@ class BackupService {
       for (final row in snapshot.tables['transactions'] ?? <Map<String, Object?>>[]) {
         final fields = row.keys.where((key) => key != 'sync_status').toList();
         await txn.update('transactions', {'sync_status': 'backed_up'},
-          where: fields.map((key) => '$key IS ?').join(' AND '),
-          whereArgs: fields.map((key) => row[key]).toList());
+          where: fields.map((key) => row[key] == null ? '$key IS NULL' : '$key = ?').join(' AND '),
+          whereArgs: fields.where((key) => row[key] != null).map((key) => row[key]).toList());
       }
     });
   }
