@@ -47,7 +47,11 @@ class _ReportScreenState extends State<ReportScreen> {
 
   void _refreshReport() {
     final future = _reportService.forRange(userId: widget.userId, start: _period.start!, end: _period.end!);
-    if (mounted) setState(() => _reportFuture = future);
+    if (mounted) {
+      setState(() {
+        _reportFuture = future;
+      });
+    }
   }
 
   bool _exporting = false;
