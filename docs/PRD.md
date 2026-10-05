@@ -48,3 +48,14 @@ A technical phase may be marked as a baseline when its contracts/services/tests 
 - UI operation failures are surfaced without crashing the application.
 - Release metadata is versioned without embedding signing credentials.
 - Final acceptance requires CI plus one complete Android device QA cycle.
+
+## Perbaikan produk 5 Oktober 2026
+
+- Input bersama untuk transaksi pengeluaran/pemasukan dan pertanyaan lokal/AI; jawaban tampil di chat.
+- Composer putih membulat dengan emoji, attachment, kamera langsung dan tombol biru mic/send/stop.
+- Edit transaksi melalui swipe kanan, hapus melalui swipe kiri; ikon edit/hapus di row dihilangkan.
+- Satu centang membuktikan penyimpanan SQLite; dua centang setelah backup Google Drive berhasil untuk versi transaksi tersebut.
+- Laporan berada di bottom navigation dengan income/expense/saldo/count, pie kategori, detail, insight dan PDF.
+- Filter hijau memiliki panah dan dropdown tanggal, rentang, bulan/tahun. Rentang satu hari menjadi tanggal; satu bulan lengkap menjadi bulan secara otomatis.
+- System Back kembali ke submenu/halaman sebelumnya; dari tab Laporan kembali ke Input.
+- Keberhasilan AI terdeploy dan plugin Android harus dikonfirmasi melalui CI dan QA perangkat, sesuai `AUDIT_0.3.2+11.md`.

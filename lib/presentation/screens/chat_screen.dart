@@ -12,7 +12,11 @@ import '../../core/validation/transaction_validator.dart';
 import '../../application/ocr/receipt_transaction_parser.dart';
 import '../../application/transactions/transaction_intelligence_service.dart';
 import '../../application/transactions/local_transaction_parser.dart';
-import '../../domain/parsing/money_amount_parser.dart';
+import '../../application/transactions/input_intent.dart';
+import '../../application/ai/financial_qa_service.dart';
+import '../../application/reports/report_service.dart';
+import '../../domain/reports/selected_period.dart';
+import '../widgets/period_filter.dart';
 import '../../data/local/finchat_database.dart';
 import '../../data/ocr/image_receipt_preprocessor.dart';
 import '../../data/ocr/mlkit_receipt_ocr_provider.dart';
@@ -30,7 +34,6 @@ import '../../main.dart';
 import 'receipt_review_screen.dart';
 import 'report_screen.dart';
 import 'settings_screen.dart';
-import 'financial_qa_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -51,6 +54,12 @@ class _ChatScreenState extends State<ChatScreen> {
   late final AutomaticBackupService _automaticBackup;
 
   List<TransactionEntity> _items = const [];
+  SelectedPeriod _period = const SelectedPeriod.all();
+  int _selectedTab = 0;
+  final List<({String question, String answer})> _answers = [];
+  bool _backupRunning = false;
+  bool _backupPending = false;
+  bool _picking = false;
   bool _processing = false;
   bool _voiceConsumePending = false;
   bool _initialLoadStarted = false;
@@ -96,6 +105,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void dispose() {
     _inputController.dispose();
+    unawaited(_voice.cancel().catchError((Object _) {}));
     _database.close();
     super.dispose();
   }
@@ -115,19 +125,54 @@ class _ChatScreenState extends State<ChatScreen> {
 
 
   Future<void> _runAutomaticBackupSilently() async {
+    if (_backupRunning) { _backupPending = true; return; }
+    _backupRunning = true;
     try {
-      await _automaticBackup.runIfEnabled();
+      do {
+        _backupPending = false;
+        final uploaded = await _automaticBackup.runIfEnabled();
+        if (uploaded && mounted) {
+          final session = SessionScope.of(context).session;
+          if (session != null) {
+            final items = await _transactions.getByUser(session.userId);
+            if (mounted) setState(() => _items = items);
+          }
+        }
+      } while (_backupPending && mounted);
     } catch (_) {
-      // Automatic backup must never block transaction capture. The user can
-      // inspect/retry cloud backup from Settings > Backup & pemulihan.
-    }
+      // Drive failures do not interrupt local input. Pending rows keep one tick.
+    } finally { _backupRunning = false; }
   }
 
-  bool _looksLikeFinancialQuestion(String input) {
-    if (MoneyAmountParser.findAll(input).isNotEmpty) return false;
-    final normalized = input.toLowerCase().trim();
-    if (normalized.endsWith('?')) return true;
-    return RegExp(r'\b(berapa|total|pengeluaran|pemasukan|saldo|terbesar|terkecil|kategori|bulan ini|minggu ini|hari ini|laporan)\b').hasMatch(normalized);
+  bool _looksLikeFinancialQuestion(String input) => detectInputIntent(input) == InputIntent.question;
+
+  Future<void> _askInChat(String input) async {
+    final session = SessionScope.of(context).session;
+    if (session == null || _processing) return;
+    setState(() => _processing = true);
+    try {
+      final now = DateTime.now();
+      var period = _period;
+      final question = input.toLowerCase();
+      if (question.contains('hari ini')) {
+        period = SelectedPeriod.day(now);
+      } else if (question.contains('kemarin')) {
+        period = SelectedPeriod.day(DateTime(now.year, now.month, now.day - 1));
+      } else if (question.contains('bulan ini')) {
+        period = SelectedPeriod.month(now.year, now.month);
+      } else if (question.contains('bulan lalu')) {
+        period = SelectedPeriod.month(now.year, now.month - 1);
+      } else if (question.contains('minggu ini')) {
+        final first = DateTime(now.year, now.month, now.day - now.weekday + 1);
+        period = SelectedPeriod.range(first, DateTime(first.year, first.month, first.day + 6));
+      }
+      final service = FinancialQaService(reports: ReportService(transactions: _transactions, categories: _categories), provider: OpenAiCompatibleAiProvider());
+      final answer = await service.ask(userId: session.userId, question: input,
+        start: period.start ?? DateTime(2000), end: period.end ?? DateTime(2100, 12, 31));
+      if (mounted) setState(() => _answers.insert(0, (question: input, answer: '${period.label}\n$answer')));
+    } catch (error) {
+      if (mounted) setState(() => _answers.insert(0, (question: input, answer: 'Gagal memproses pertanyaan: $error')));
+    } finally { if (mounted) setState(() => _processing = false); }
   }
 
   Future<void> _saveIntelligentResults({
@@ -180,18 +225,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
     final session = SessionScope.of(context).session;
     if (session != null && _looksLikeFinancialQuestion(input)) {
-      await _voice.cancel();
-      _voiceConsumePending = false;
-      if (!mounted) return;
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => FinancialQaScreen(
-            userId: session.userId,
-            initialQuestion: input,
-            autoAsk: true,
-          ),
-        ),
-      );
+      try {
+        await _voice.cancel();
+        if (mounted) await _askInChat(input);
+      } finally { _voiceConsumePending = false; }
       return;
     }
 
@@ -216,7 +253,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _toggleVoice() async {
-    if (_processing) return;
+    if (_processing || _picking || _voiceConsumePending) return;
     if (_voice.isListening) {
       await _voice.stopListening();
       return;
@@ -251,20 +288,12 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _processAndSave() async {
     final input = _inputController.text.trim();
-    if (input.isEmpty || _processing) return;
+    if (input.isEmpty || _processing || _picking || _voice.isListening) return;
 
     final session = SessionScope.of(context).session;
     if (session != null && _looksLikeFinancialQuestion(input)) {
       _inputController.clear();
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => FinancialQaScreen(
-            userId: session.userId,
-            initialQuestion: input,
-            autoAsk: true,
-          ),
-        ),
-      );
+      await _askInChat(input);
       return;
     }
 
@@ -288,7 +317,9 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _scanReceipt(ImageSource source) async {
-    if (_processing) return;
+    if (_processing || _picking || _voice.isListening) return;
+    setState(() => _picking = true);
+    try {
     final picked = await _imagePicker.pickImage(
       source: source,
       imageQuality: 95,
@@ -299,10 +330,17 @@ class _ChatScreenState extends State<ChatScreen> {
       bytes: await picked.readAsBytes(),
       source: source == ImageSource.camera ? InputSource.camera : InputSource.attachment,
     );
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal membuka kamera/galeri: $error')));
+    } finally {
+      if (mounted) setState(() => _picking = false);
+    }
   }
 
   Future<void> _scanReceiptFile() async {
-    if (_processing) return;
+    if (_processing || _picking || _voice.isListening) return;
+    setState(() => _picking = true);
+    try {
     final picked = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp'],
@@ -321,9 +359,15 @@ class _ChatScreenState extends State<ChatScreen> {
       throw StateError('File struk tidak dapat dibaca.');
     }
     await _processReceiptBytes(bytes: bytes, source: InputSource.attachment);
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal membuka lampiran: $error')));
+    } finally {
+      if (mounted) setState(() => _picking = false);
+    }
   }
 
   Future<void> _processReceiptBytes({required Uint8List bytes, required InputSource source}) async {
+    if (!mounted) return;
     final session = SessionScope.of(context).session;
     if (session == null || _processing) return;
 
@@ -506,34 +550,58 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final session = SessionScope.of(context).session;
-    return Scaffold(
-      appBar: AppBar(
+    final visibleItems = _items.where((item) => _period.contains(item.transactionDate)).toList();
+    return PopScope(
+      canPop: _selectedTab == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _selectedTab != 0) setState(() => _selectedTab = 0);
+      },
+      child: Scaffold(
+      appBar: _selectedTab == 0 ? AppBar(
         title: const Text('FinChat'),
         actions: [
           IconButton(
-            onPressed: session == null ? null : () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ReportScreen(userId: session.userId))),
-            tooltip: 'Laporan',
-            icon: const Icon(Icons.analytics_outlined),
-          ),
-          IconButton(
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
-            tooltip: 'Pengaturan',
-            icon: const Icon(Icons.settings_outlined),
-          ),
+            onPressed: () async {
+              await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
+              if (mounted) await _loadTransactions();
+            },
+            tooltip: 'Pengaturan', icon: const Icon(Icons.settings_outlined)),
           IconButton(onPressed: SessionScope.of(context).logout, tooltip: 'Keluar', icon: const Icon(Icons.logout)),
         ],
-      ),
-      body: SafeArea(
+      ) : null,
+      bottomNavigationBar: NavigationBar(selectedIndex: _selectedTab,
+        onDestinationSelected: (index) async {
+          if (_selectedTab == index) return;
+          if (_voice.isListening) await _voice.cancel();
+          if (!mounted) return;
+          setState(() => _selectedTab = index);
+          if (index == 0) await _loadTransactions();
+        },
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.chat_bubble_outline), label: 'Input', tooltip: 'Input'),
+          NavigationDestination(icon: Icon(Icons.analytics_outlined), label: 'Laporan', tooltip: 'Laporan'),
+        ]),
+      body: _selectedTab == 1 && session != null ? ReportScreen(userId: session.userId) : SafeArea(
         child: Column(
           children: [
+            PeriodFilter(period: _period, allowAll: true, onChanged: (value) => setState(() => _period = value)),
+            if (_voice.isListening || _voiceConsumePending)
+              Padding(padding: const EdgeInsets.all(8), child: Text(_voice.transcript.isEmpty ? 'Mendengarkan…' : _voice.transcript)),
             Expanded(
-              child: _items.isEmpty
+              child: visibleItems.isEmpty && _answers.isEmpty
                   ? _EmptyChat(email: session?.email ?? '')
                   : ListView.builder(
                       padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-                      itemCount: _items.length,
+                      itemCount: visibleItems.length + _answers.length,
                       itemBuilder: (context, index) {
-                        final transaction = _items[index];
+                        if (index < _answers.length) {
+                          final message = _answers[index];
+                          return Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(message.question, style: const TextStyle(fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 8), SelectableText(message.answer),
+                          ])));
+                        }
+                        final transaction = visibleItems[index - _answers.length];
                         return Dismissible(
                           key: ValueKey(transaction.id),
                           direction: DismissDirection.horizontal,
@@ -563,8 +631,6 @@ class _ChatScreenState extends State<ChatScreen> {
                           },
                           child: _TransactionCard(
                             transaction: transaction,
-                            onEdit: () => _editTransaction(transaction),
-                            onDelete: () => _deleteTransaction(transaction),
                           ),
                         );
                       },
@@ -572,26 +638,25 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             _Composer(
               controller: _inputController,
-              busy: _processing,
+              busy: _processing || _picking,
               listening: _voice.isListening,
               onSubmit: _processAndSave,
               onReceipt: _chooseReceiptSource,
               onVoice: _toggleVoice,
+              onCamera: () => _scanReceipt(ImageSource.camera),
             ),
           ],
         ),
       ),
-    );
+    ));
   }
 }
 
 enum _ReceiptSourceAction { camera, gallery, file }
 
 class _TransactionCard extends StatelessWidget {
-  const _TransactionCard({required this.transaction, required this.onEdit, required this.onDelete});
+  const _TransactionCard({required this.transaction});
   final TransactionEntity transaction;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -606,8 +671,9 @@ class _TransactionCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(_money(transaction.amount)),
-            IconButton(onPressed: onEdit, icon: const Icon(Icons.edit_outlined), tooltip: 'Edit'),
-            IconButton(onPressed: onDelete, icon: const Icon(Icons.delete_outline), tooltip: 'Hapus'),
+            const SizedBox(width: 8),
+            Tooltip(message: transaction.syncStatus == 'backed_up' ? 'Tersimpan di SQLite dan backup Google Drive' : 'Tersimpan di SQLite; belum dikonfirmasi ke Google Drive',
+              child: Icon(transaction.syncStatus == 'backed_up' ? Icons.done_all : Icons.check, color: transaction.syncStatus == 'backed_up' ? Colors.blue : Colors.green, size: 20)),
           ],
         ),
       ),
@@ -749,54 +815,39 @@ class _EmptyChat extends StatelessWidget {
 }
 
 class _Composer extends StatelessWidget {
-  const _Composer({required this.controller, required this.busy, required this.listening, required this.onSubmit, required this.onReceipt, required this.onVoice});
+  const _Composer({required this.controller, required this.busy, required this.listening, required this.onSubmit, required this.onReceipt, required this.onVoice, required this.onCamera});
   final TextEditingController controller;
   final bool busy;
   final bool listening;
-  final VoidCallback onSubmit;
-  final VoidCallback onReceipt;
-  final VoidCallback onVoice;
+  final VoidCallback onSubmit, onReceipt, onVoice, onCamera;
+
+  Future<void> _emoji(BuildContext context) async {
+    final emoji = await showModalBottomSheet<String>(context: context, builder: (context) => SafeArea(child: Wrap(children: [
+      for (final value in ['😊', '🍚', '☕', '🛒', '⛽', '💰', '🏠', '📚'])
+        TextButton(onPressed: () => Navigator.pop(context, value), child: Text(value, style: const TextStyle(fontSize: 28))),
+    ])));
+    if (emoji == null || !context.mounted) return;
+    final selection = controller.selection;
+    final start = selection.isValid ? selection.start : controller.text.length;
+    final end = selection.isValid ? selection.end : start;
+    controller.value = TextEditingValue(text: controller.text.replaceRange(start, end, emoji), selection: TextSelection.collapsed(offset: start + emoji.length));
+  }
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(
-              child: TextField(
-                controller: controller,
-                minLines: 1,
-                maxLines: 4,
-                textInputAction: TextInputAction.newline,
-                decoration: const InputDecoration(
-                  hintText: 'Contoh: makan 25rb dan bensin 50k',
-                  border: OutlineInputBorder(),
-                ),
-                onSubmitted: (_) => onSubmit(),
-              ),
-            ),
-            const SizedBox(width: 4),
-            IconButton.filled(
-              onPressed: busy ? null : onVoice,
-              icon: Icon(listening ? Icons.stop : Icons.mic_none),
-              tooltip: listening ? 'Hentikan suara' : 'Input suara',
-            ),
-            IconButton(
-              onPressed: busy || listening ? null : onReceipt,
-              icon: const Icon(Icons.attach_file),
-              tooltip: 'Tambah struk',
-            ),
-            IconButton.filled(
-              onPressed: busy ? null : onSubmit,
-              icon: busy
-                  ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.send),
-              tooltip: 'Proses transaksi',
-            ),
-          ],
-        ),
-      );
+  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.fromLTRB(8, 8, 8, 12), child: DecoratedBox(
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(32), boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)]),
+    child: ValueListenableBuilder<TextEditingValue>(valueListenable: controller, builder: (context, value, _) => Row(children: [
+      IconButton(onPressed: busy || listening ? null : () => _emoji(context), icon: const Icon(Icons.sentiment_satisfied_alt), tooltip: 'Emoji'),
+      Expanded(child: TextField(controller: controller, readOnly: busy || listening, minLines: 1, maxLines: 4, textInputAction: TextInputAction.send,
+        decoration: const InputDecoration(hintText: 'Pesan', border: InputBorder.none, contentPadding: EdgeInsets.symmetric(vertical: 12)), onSubmitted: (_) => onSubmit())),
+      IconButton(onPressed: busy || listening ? null : onReceipt, icon: const Icon(Icons.attach_file), tooltip: 'Tambah struk'),
+      IconButton(onPressed: busy || listening ? null : onCamera, icon: const Icon(Icons.camera_alt_outlined), tooltip: 'Kamera'),
+      IconButton.filled(style: IconButton.styleFrom(backgroundColor: const Color(0xff1da1e8), foregroundColor: Colors.white),
+        onPressed: busy ? null : listening || value.text.trim().isEmpty ? onVoice : onSubmit,
+        icon: busy ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Icon(listening ? Icons.stop : value.text.trim().isEmpty ? Icons.mic : Icons.send),
+        tooltip: listening ? 'Hentikan suara' : value.text.trim().isEmpty ? 'Input suara' : 'Proses transaksi'),
+    ])),
+  ));
 }
 
 

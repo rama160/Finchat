@@ -14,21 +14,29 @@ class FinancialQaService {
     final local = _answerLocally(trimmed, report);
     if (local != null) return local;
     final answer = await provider.answer(FinancialAiRequest(question: trimmed, start: report.start, endExclusive: report.endExclusive, transactions: report.transactions, incomeTotal: report.incomeTotal, expenseTotal: report.expenseTotal, balance: report.balance));
+    if (answer == null && provider is FinancialAiAvailability) {
+      final message = (provider as FinancialAiAvailability).failureMessage;
+      if (message != null) return message;
+    }
     return answer ?? 'Pertanyaan belum dapat dijawab secara lokal dan AI tidak tersedia. Coba pertanyaan seperti total pengeluaran, pemasukan, saldo, jumlah transaksi, atau kategori pengeluaran terbesar.';
   }
 
   String? _answerLocally(String question, ReportSummary report) {
     final q = question.toLowerCase();
-    if (q.contains('saldo')) return 'Saldo pada periode ini adalah ${_money(report.balance)}.';
-    if (q.contains('pemasukan') || q.contains('pendapatan')) return 'Total pemasukan pada periode ini adalah ${_money(report.incomeTotal)} dari ${report.incomeCount} transaksi.';
-    if (q.contains('pengeluaran') && (q.contains('total') || q.contains('berapa'))) return 'Total pengeluaran pada periode ini adalah ${_money(report.expenseTotal)} dari ${report.expenseCount} transaksi.';
-    if (q.contains('jumlah transaksi') || q.contains('berapa transaksi')) return 'Ada ${report.transactionCount} transaksi pada periode ini: ${report.incomeCount} pemasukan dan ${report.expenseCount} pengeluaran.';
+    if (RegExp(r'\b(bagaimana|mengapa|kenapa|saran|tips|strategi|cukup|hemat|menabung)\b').hasMatch(q)) return null;
+    if ((q.contains('pemasukan') || q.contains('pendapatan')) && q.contains('pengeluaran')) {
+      return 'Pemasukan ${_money(report.incomeTotal)}, pengeluaran ${_money(report.expenseTotal)}, saldo ${_money(report.balance)} pada periode ini.';
+    }
     if ((q.contains('kategori') || q.contains('pengeluaran')) && q.contains('terbesar')) {
       final items = report.expenseCategories;
       if (items.isEmpty) return 'Belum ada pengeluaran pada periode ini.';
       final top = items.first;
       return 'Kategori pengeluaran terbesar adalah ${top.categoryName} sebesar ${_money(top.totalAmount)} dari ${top.transactionCount} transaksi.';
     }
+    if (q.contains('saldo')) return 'Saldo pada periode ini adalah ${_money(report.balance)}.';
+    if (q.contains('pemasukan') || q.contains('pendapatan')) return 'Total pemasukan pada periode ini adalah ${_money(report.incomeTotal)} dari ${report.incomeCount} transaksi.';
+    if (q.contains('pengeluaran') && (q.contains('total') || q.contains('berapa'))) return 'Total pengeluaran pada periode ini adalah ${_money(report.expenseTotal)} dari ${report.expenseCount} transaksi.';
+    if (q.contains('jumlah transaksi') || q.contains('berapa transaksi')) return 'Ada ${report.transactionCount} transaksi pada periode ini: ${report.incomeCount} pemasukan dan ${report.expenseCount} pengeluaran.';
     return null;
   }
 

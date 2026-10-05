@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -8,7 +9,12 @@ import 'package:finchat/domain/entities/transaction_entity.dart';
 import 'package:finchat/domain/services/category_learning_service.dart';
 
 void main() {
-  setUpAll(sqfliteFfiInit);
+  setUpAll(() async {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+    final directory = await Directory.systemTemp.createTemp('finchat_database_');
+    await databaseFactoryFfi.setDatabasesPath(directory.path);
+  });
 
   late FinChatDatabase database;
   late SqliteTransactionRepository transactions;
@@ -44,6 +50,7 @@ void main() {
     expect(identical(first, second), isTrue);
 
     final db = await first.database;
+    addTearDown(db.close);
     await second.close();
     expect(db.isOpen, isTrue);
     expect((await first.database).isOpen, isTrue);

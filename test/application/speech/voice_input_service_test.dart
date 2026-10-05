@@ -77,6 +77,17 @@ void main() {
     expect(provider.stopCalls, 0);
   });
 
+  test('late final result after cancel cannot repopulate an old transcript', () async {
+    final provider = FakeSpeechProvider();
+    final service = VoiceInputService(provider);
+    await service.initialize();
+    await service.startListening();
+    final oldCallback = provider.onResult;
+    await service.cancel();
+    oldCallback(const SpeechRecognitionResult(text: 'nasi 25rb', isFinal: true));
+    expect(service.transcript, isEmpty);
+  });
+
   test('cancel clears transcript', () async {
     final provider = FakeSpeechProvider();
     final service = VoiceInputService(provider);

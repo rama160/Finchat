@@ -10,6 +10,7 @@ UPDATE_GITHUB.bat
 analysis_options.yaml
 docs/AI_CONTRACT.md
 docs/ARCHITECTURE.md
+docs/AUDIT_0.3.2+11.md
 docs/BUGFIX_0.3.2+6_DATABASE_AI.md
 docs/FINCHAT_MASTER_CONTEXT.md
 docs/FULL_REPOSITORY_AUDIT.md
@@ -43,6 +44,7 @@ lib/application/reports/report_pdf_service.dart
 lib/application/reports/report_service.dart
 lib/application/session/session_manager.dart
 lib/application/speech/voice_input_service.dart
+lib/application/transactions/input_intent.dart
 lib/application/transactions/local_transaction_parser.dart
 lib/application/transactions/transaction_intelligence_service.dart
 lib/application/update/update_service.dart
@@ -74,6 +76,7 @@ lib/domain/ocr/receipt_image_preprocessor.dart
 lib/domain/ocr/receipt_ocr.dart
 lib/domain/parsing/money_amount_parser.dart
 lib/domain/reports/report_models.dart
+lib/domain/reports/selected_period.dart
 lib/domain/repositories/category_repository.dart
 lib/domain/repositories/session_repository.dart
 lib/domain/repositories/transaction_repository.dart
@@ -90,12 +93,15 @@ lib/presentation/screens/receipt_review_screen.dart
 lib/presentation/screens/report_screen.dart
 lib/presentation/screens/settings_screen.dart
 lib/presentation/screens/splash_screen.dart
+lib/presentation/widgets/period_filter.dart
 pubspec.yaml
 test/application/automatic_backup_service_test.dart
 test/application/backup_preference_service_test.dart
 test/application/backup_service_test.dart
 test/application/backup_snapshot_validation_test.dart
+test/application/cloud_acknowledgement_test.dart
 test/application/financial_qa_service_test.dart
+test/application/input_intent_test.dart
 test/application/ocr/receipt_ocr_service_test.dart
 test/application/ocr/receipt_transaction_parser_test.dart
 test/application/report_pdf_service_test.dart
@@ -107,6 +113,7 @@ test/application/transaction_entry_flow_test.dart
 test/application/transaction_intelligence_service_test.dart
 test/application/transactions/local_transaction_parser_test.dart
 test/core/transaction_validator_test.dart
+test/data/gateway_contract_test.dart
 test/data/openai_compatible_ai_provider_test.dart
 test/data/openai_phase12_hardening_test.dart
 test/data/sqlite_transaction_repository_phase12_test.dart
@@ -116,8 +123,10 @@ test/domain/backup_models_test.dart
 test/domain/billing_subscription_models_test.dart
 test/domain/ocr/receipt_image_preprocessor_test.dart
 test/domain/parsing/money_amount_parser_test.dart
+test/domain/selected_period_test.dart
 test/domain/speech/speech_recognition_test.dart
 test/domain/update_service_test.dart
+test/navigation_back_test.dart
 test/widget_test.dart
 tooling/android/configure_android_ci.py
 tooling/android/proguard-rules.pro

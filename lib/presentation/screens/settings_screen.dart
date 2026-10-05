@@ -7,7 +7,6 @@ import '../../data/update/github_release_update_provider.dart';
 import '../../domain/update/app_update.dart';
 import '../../main.dart';
 import 'backup_screen.dart';
-import 'financial_qa_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -74,13 +73,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ],
           if (session != null) ...[
-            ListTile(
-              leading: const Icon(Icons.auto_awesome_outlined),
-              title: const Text('Tanya Keuangan dengan AI'),
-              subtitle: const Text('Jawaban memakai data transaksi yang dihitung FinChat.'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => FinancialQaScreen(userId: session.userId))),
-            ),
             const Card(
               child: ListTile(
                 leading: Icon(Icons.cloud_done_outlined),

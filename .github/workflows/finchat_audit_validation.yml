@@ -1,0 +1,96 @@
+name: FinChat Audit Validation
+
+on:
+  push:
+    branches: [codex/finchat-input-navigation-audit]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Show Flutter version
+        run: flutter --version
+      - name: Get dependencies
+        run: flutter pub get
+      - name: Analyze
+        run: flutter analyze
+      - name: Test
+        run: flutter test
+      - name: Ensure Android platform exists
+        shell: bash
+        run: |
+          if [ ! -f android/app/build.gradle ] && [ ! -f android/app/build.gradle.kts ]; then
+            flutter create --platforms=android --project-name finchat --org com.finchat --no-pub .
+          fi
+          test -f android/app/build.gradle || test -f android/app/build.gradle.kts
+      - name: Configure Android release, permissions, and R8
+        run: python3 tooling/android/configure_android_ci.py
+      - name: Configure release signing
+        env:
+          FINCHAT_UPLOAD_KEYSTORE_BASE64: ${{ secrets.FINCHAT_UPLOAD_KEYSTORE_BASE64 }}
+          FINCHAT_KEY_ALIAS: ${{ secrets.FINCHAT_KEY_ALIAS }}
+          FINCHAT_KEY_PASSWORD: ${{ secrets.FINCHAT_KEY_PASSWORD }}
+          FINCHAT_STORE_PASSWORD: ${{ secrets.FINCHAT_STORE_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p android/app
+          if [ -n "${FINCHAT_UPLOAD_KEYSTORE_BASE64:-}" ] && [ -n "${FINCHAT_KEY_ALIAS:-}" ] && [ -n "${FINCHAT_KEY_PASSWORD:-}" ] && [ -n "${FINCHAT_STORE_PASSWORD:-}" ]; then
+            echo "Using permanent FinChat release keystore."
+            printf '%s' "$FINCHAT_UPLOAD_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+            KEY_ALIAS="$FINCHAT_KEY_ALIAS"
+            KEY_PASSWORD="$FINCHAT_KEY_PASSWORD"
+            STORE_PASSWORD="$FINCHAT_STORE_PASSWORD"
+          else
+            echo "Permanent signing secrets are not configured; generating an ephemeral CI signing key."
+            keytool -genkeypair -v \
+              -keystore android/app/ci-upload-keystore.jks \
+              -storepass ci-store-password \
+              -keypass ci-key-password \
+              -alias finchat-ci \
+              -keyalg RSA -keysize 2048 -validity 3650 \
+              -dname "CN=FinChat CI, OU=CI, O=FinChat, L=CI, ST=CI, C=ID"
+            mv android/app/ci-upload-keystore.jks android/app/upload-keystore.jks
+            KEY_ALIAS="finchat-ci"
+            KEY_PASSWORD="ci-key-password"
+            STORE_PASSWORD="ci-store-password"
+          fi
+          test -s android/app/upload-keystore.jks
+          cat > android/key.properties <<EOF
+          storePassword=$STORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=upload-keystore.jks
+          EOF
+          chmod 600 android/key.properties android/app/upload-keystore.jks
+
+      - name: Show release signing certificate SHA-1
+        shell: bash
+        run: |
+          set -euo pipefail
+          KEY_ALIAS=$(sed -n 's/^keyAlias=//p' android/key.properties)
+          STORE_PASSWORD=$(sed -n 's/^storePassword=//p' android/key.properties)
+          keytool -list -v -keystore android/app/upload-keystore.jks -alias "$KEY_ALIAS" -storepass "$STORE_PASSWORD" | grep -E 'SHA1:|SHA-1:'
+      - name: Build release APK
+        env:
+          FINCHAT_GOOGLE_SERVER_CLIENT_ID: ${{ secrets.FINCHAT_GOOGLE_SERVER_CLIENT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -n "${FINCHAT_GOOGLE_SERVER_CLIENT_ID:-}" ]; then
+            flutter build apk --release --dart-define=FINCHAT_GOOGLE_SERVER_CLIENT_ID="$FINCHAT_GOOGLE_SERVER_CLIENT_ID"
+          else
+            echo "FINCHAT_GOOGLE_SERVER_CLIENT_ID is not configured; using the app's built-in Google client ID."
+            flutter build apk --release
+          fi
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: finchat-audit-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error

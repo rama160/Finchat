@@ -8,6 +8,7 @@ class AiCategoryRequest {
     required this.type,
     required this.amount,
     required this.localCategoryId,
+    this.availableCategoryIds = const [],
   });
 
   final String userId;
@@ -16,6 +17,7 @@ class AiCategoryRequest {
   final TransactionType type;
   final double amount;
   final String localCategoryId;
+  final List<String> availableCategoryIds;
 }
 
 class AiCategorySuggestion {

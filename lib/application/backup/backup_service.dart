@@ -84,7 +84,19 @@ class BackupService {
     if (provider == null) {
       throw StateError('Cloud backup provider belum dikonfigurasi.');
     }
-    await provider.upload(await createSnapshot());
+    final snapshot = await createSnapshot();
+    await provider.upload(snapshot);
+    // Acknowledge only versions included in the successful cloud upload.
+    // A transaction edited while uploading must remain locally pending.
+    final db = await database.database;
+    await db.transaction((txn) async {
+      for (final row in snapshot.tables['transactions'] ?? <Map<String, Object?>>[]) {
+        final fields = row.keys.where((key) => key != 'sync_status').toList();
+        await txn.update('transactions', {'sync_status': 'backed_up'},
+          where: fields.map((key) => '$key IS ?').join(' AND '),
+          whereArgs: fields.map((key) => row[key]).toList());
+      }
+    });
   }
 
   Future<bool> restoreFromCloud() async {

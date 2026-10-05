@@ -1,5 +1,12 @@
 # AI START HERE — FINCHAT
 
+## Current patch — 0.3.2+11 (2026-10-05)
+
+Authoritative current audit: `docs/AUDIT_0.3.2+11.md`. Fixes RouterDelegate navigatorKey/system Back, CI FFI factory setup, integrated local/AI questions, money-in-question routing, guarded camera/file pickers, voice cancel callbacks, Google Drive snapshot acknowledgements, bottom navigation reports and shared smart period filter. Transaction cards use gestures only; white rounded composer includes emoji/attachment/camera/mic/send.
+
+SQLite schema and existing workflows unchanged. Source is matched to main commit `91252bddf4a4eadaa99dafe095f72c2e04a4bab1`. Flutter SDK unavailable locally; CI and real Android device acceptance are required. Baseline CI had 72 passed / 1 failed (global FFI factory test setup); do not describe the baseline result as verification of this patch.
+
+
 ## Current continuation point — Bugfix package 0.3.2+10
 
 Read this file first, then:
@@ -30,7 +37,7 @@ Read this file first, then:
 - Local parser/category history first; AI only as fallback/support.
 - AI never writes directly to SQLite.
 - Text/voice transactions save immediately when recognized.
-- Saved transactions expose Edit/Delete; swipe right edits and swipe left deletes.
+- Saved transactions expose swipe right to edit and swipe left to delete; no edit/delete buttons on transaction rows.
 - User category corrections must be learned locally.
 - Receipt images are preprocessed/compressed before OCR and reviewed before persistence.
 - Common financial questions are answered from application-computed local report data before AI fallback.

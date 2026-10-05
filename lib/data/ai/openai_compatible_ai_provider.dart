@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:http/http.dart' as http;
 
@@ -8,7 +9,7 @@ import '../../domain/ai/ai_category_fallback.dart';
 import '../../domain/ai/financial_ai_provider.dart';
 
 class OpenAiCompatibleAiProvider
-    implements AiCategoryProvider, FinancialAiProvider {
+    implements AiCategoryProvider, FinancialAiProvider, FinancialAiAvailability {
   OpenAiCompatibleAiProvider({
     AiSecureConfigService? config,
     http.Client? client,
@@ -24,6 +25,9 @@ class OpenAiCompatibleAiProvider
   final GoogleSignInCoordinator _googleSignInCoordinator;
   final Future<String?> Function()? _idTokenProvider;
 
+  @override
+  String? failureMessage;
+
   static const String _gatewayEndpoint =
       'https://finchat-ai-gateway.finchat-ai-gateway.workers.dev/v1/ai/chat';
 
@@ -38,7 +42,8 @@ class OpenAiCompatibleAiProvider
     }
 
     try {
-      final decoded = jsonDecode(response);
+      final clean = response.replaceFirst(RegExp(r'^```(?:json)?\s*', caseSensitive: false), '').replaceFirst(RegExp(r'\s*```$'), '');
+      final decoded = jsonDecode(clean);
 
       if (decoded is! Map) {
         return null;
@@ -77,6 +82,7 @@ class OpenAiCompatibleAiProvider
   /// Kirim prompt ke Cloudflare Gateway menggunakan Google ID Token.
   /// Gemini API Key tetap hanya berada di server/Gateway.
   Future<String?> _chat(String prompt) async {
+    failureMessage = null;
     try {
       // The production provider is Gateway-first. The old local AI enable
       // switch is only honored when a config object is explicitly injected,
@@ -96,10 +102,23 @@ class OpenAiCompatibleAiProvider
       }
 
       if (idToken == null || idToken.trim().isEmpty) {
+        failureMessage = 'AI memerlukan sesi Google. Masuk dengan Google; jika sudah masuk, masuk ulang untuk memperbarui sesi.';
         return null;
       }
 
       final uri = Uri.parse(_gatewayEndpoint);
+      final text = 'Anda adalah asisten keuangan pribadi. Jangan mengarang data. '
+          'Gunakan data aplikasi untuk angka keuangan pengguna. '
+          'Untuk klasifikasi kategori, keluarkan JSON yang diminta.\n\n$prompt';
+      final payload = jsonEncode({
+        'messages': [{'role': 'user', 'text': text}],
+        'temperature': 0.1,
+        'maxOutputTokens': 1024,
+      });
+      if (text.length > 10000 || utf8.encode(payload).length > 20000) {
+        failureMessage = 'Pertanyaan terlalu panjang. Gunakan pertanyaan yang lebih singkat.';
+        return null;
+      }
 
       final result = await _client
           .post(
@@ -108,25 +127,18 @@ class OpenAiCompatibleAiProvider
               'Authorization': 'Bearer ${idToken.trim()}',
               'Content-Type': 'application/json',
             },
-            body: jsonEncode({
-              'messages': [
-                {
-                  'role': 'user',
-                  'text':
-                      'Anda adalah asisten keuangan pribadi. '
-                      'Jangan mengarang data. Gunakan hanya data '
-                      'yang diberikan aplikasi. Untuk klasifikasi '
-                      'kategori, keluarkan JSON yang diminta.\n\n'
-                      '$prompt',
-                },
-              ],
-              'temperature': 0.1,
-              'maxOutputTokens': 1024,
-            }),
+            body: payload,
           )
-          .timeout(const Duration(seconds: 25));
+          .timeout(const Duration(seconds: 65));
 
       if (result.statusCode < 200 || result.statusCode >= 300) {
+        failureMessage = switch (result.statusCode) {
+          401 => 'Sesi Google ditolak Gateway. Masuk ulang dengan Google; konfigurasi client ID aplikasi dan Gateway harus sama.',
+          403 => 'Akses AI ditolak Gateway. Periksa otorisasi akun dan konfigurasi Gateway.',
+          429 => 'Batas pemakaian AI tercapai. Coba lagi setelah batas pemakaian diperbarui.',
+          413 => 'Data untuk AI terlalu besar. Pilih rentang tanggal lebih pendek.',
+          _ => 'Layanan AI belum berhasil menjawab (HTTP ${result.statusCode}). Coba lagi; data transaksi tetap tersimpan lokal.',
+        };
         return null;
       }
 
@@ -137,6 +149,7 @@ class OpenAiCompatibleAiProvider
       final body = jsonDecode(result.body);
 
       if (body is! Map || body['text'] is! String) {
+        failureMessage = 'Jawaban Gateway tidak sesuai format. Periksa layanan AI Gateway.';
         return null;
       }
 
@@ -147,7 +160,11 @@ class OpenAiCompatibleAiProvider
       }
 
       return content;
+    } on TimeoutException {
+      failureMessage = 'Layanan AI melewati batas waktu. Coba lagi; pertanyaan umum tetap dapat dijawab lokal.';
+      return null;
     } catch (_) {
+      failureMessage = 'AI belum dapat dihubungi. Periksa koneksi internet dan coba lagi.';
       return null;
     }
   }
@@ -156,10 +173,6 @@ class OpenAiCompatibleAiProvider
     try {
       await _googleSignInCoordinator.initialize();
       final signIn = _googleSignInCoordinator.signIn;
-      if (!signIn.supportsAuthenticate()) {
-        return null;
-      }
-
       final account = await signIn.attemptLightweightAuthentication();
       if (account == null) return null;
 
@@ -175,6 +188,7 @@ class OpenAiCompatibleAiProvider
 Klasifikasikan transaksi ke salah satu category_id yang sudah tersedia
 di aplikasi. Jangan membuat category_id baru.
 
+Daftar category_id valid: ${jsonEncode(request.availableCategoryIds)}
 category_id lokal: ${request.localCategoryId}
 deskripsi: ${request.description}
 tipe: ${request.type.name}
@@ -190,13 +204,14 @@ confidence harus 0 sampai 1.
 
   String _qaPrompt(FinancialAiRequest request) {
     final transactions = request.transactions
+        .take(25)
         .map(
           (item) => {
             'date':
                 item.transactionDate.toIso8601String().substring(0, 10),
             'type': item.type.name,
             'amount': item.amount,
-            'description': item.description,
+            'description': item.description.length > 80 ? item.description.substring(0, 80) : item.description,
             'category_id': item.categoryId,
           },
         )
@@ -213,7 +228,9 @@ ${request.endExclusive.toIso8601String()}
 Pemasukan: ${request.incomeTotal}
 Pengeluaran: ${request.expenseTotal}
 Saldo: ${request.balance}
-Transaksi: ${jsonEncode(transactions)}
+Jumlah transaksi seluruh periode: ${request.transactions.length}
+Cuplikan maksimal 25 transaksi; cuplikan bukan seluruh transaksi. Jangan menyimpulkan rincian yang tidak tersedia dari cuplikan.
+Transaksi cuplikan: ${jsonEncode(transactions)}
 
 Pertanyaan: ${request.question}
 ''';

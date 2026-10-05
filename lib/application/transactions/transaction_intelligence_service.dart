@@ -20,6 +20,7 @@ class TransactionIntelligenceService {
   }) async {
     final localResults = LocalTransactionParser().parse(input);
     final results = <IntelligentTransaction>[];
+    List<String>? availableCategoryIds;
 
     for (final local in localResults) {
       final learnedCategory = await categoryLearning.resolve(
@@ -37,6 +38,8 @@ class TransactionIntelligenceService {
         continue;
       }
 
+      availableCategoryIds ??= (await categoryLearning.repository.getCategories())
+          .map((category) => category.id).toList();
       final suggestion = await aiFallback.resolve(
         AiCategoryRequest(
           userId: userId,
@@ -47,6 +50,7 @@ class TransactionIntelligenceService {
               : TransactionType.expense,
           amount: local.amount,
           localCategoryId: resolvedCategory,
+          availableCategoryIds: availableCategoryIds,
         ),
       );
 

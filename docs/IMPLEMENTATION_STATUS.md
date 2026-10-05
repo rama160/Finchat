@@ -1,4 +1,11 @@
 ### Phase 11.1.2 CI fix — file_picker 13 API
+
+## Current patch — 0.3.2+11 (2026-10-05)
+
+Authoritative current audit: `AUDIT_0.3.2+11.md`. Fixes RouterDelegate navigatorKey/system Back, CI FFI factory setup, integrated local/AI questions, money-in-question routing, guarded camera/file pickers, voice cancel callbacks, Google Drive snapshot acknowledgements, bottom navigation reports and shared smart period filter. Transaction cards use gestures only; white rounded composer includes emoji/attachment/camera/mic/send.
+
+SQLite schema and existing workflows unchanged. Source is matched to main commit `91252bddf4a4eadaa99dafe095f72c2e04a4bab1`. Flutter SDK unavailable locally; CI and real Android device acceptance are required. Baseline CI had 72 passed / 1 failed (global FFI factory test setup); do not describe the baseline result as verification of this patch.
+
 `ChatScreen` now uses the `file_picker` 13 API (`FilePicker.pickFiles()` and `PlatformFile.readAsBytes()`) instead of the removed `FilePicker.platform`/`withData` pattern. Attachment receipt behavior is unchanged.
 
 # FinChat Implementation Status

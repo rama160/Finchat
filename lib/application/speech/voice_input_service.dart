@@ -8,6 +8,7 @@ class VoiceInputService {
 
   SpeechSessionStatus _status = SpeechSessionStatus.idle;
   String _transcript = '';
+  int _generation = 0;
   double? _confidence;
 
   SpeechSessionStatus get status => _status;
@@ -50,6 +51,7 @@ class VoiceInputService {
       throw StateError('Speech recognition is not ready.');
     }
 
+    final generation = ++_generation;
     _transcript = '';
     _confidence = null;
     _status = SpeechSessionStatus.listening;
@@ -60,6 +62,7 @@ class VoiceInputService {
       listenFor: listenFor,
       pauseFor: pauseFor,
       onResult: (result) {
+        if (generation != _generation) return;
         _transcript = result.text.trim();
         _confidence = result.confidence;
         if (result.isFinal) {
@@ -80,9 +83,11 @@ class VoiceInputService {
   }
 
   Future<void> cancel() async {
-    await _provider.cancel();
+    _generation++;
+    // Clear before cancel: the plugin may emit a synchronous stopped callback.
     _transcript = '';
     _confidence = null;
+    await _provider.cancel();
     _status = SpeechSessionStatus.stopped;
     _notifyChanged();
   }

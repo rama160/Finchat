@@ -13,14 +13,14 @@ void main() {
     await manager.initialize();
     await tester.pumpWidget(FinChatApp(sessionManager: manager));
 
-    expect(find.text('Masuk'), findsOneWidget);
+    expect(find.text('Masuk tanpa Google'), findsOneWidget);
     await tester.enterText(find.byType(TextField), 'qa@finchat.local');
-    await tester.tap(find.text('Masuk'));
+    await tester.tap(find.text('Masuk tanpa Google'));
     await tester.pumpAndSettle();
 
     expect(find.text('FinChat'), findsOneWidget);
     expect(find.byTooltip('Laporan'), findsOneWidget);
     expect(find.byTooltip('Pengaturan'), findsOneWidget);
-    expect(find.byTooltip('Proses transaksi'), findsOneWidget);
+    expect(find.byTooltip('Input suara'), findsOneWidget);
   });
 }

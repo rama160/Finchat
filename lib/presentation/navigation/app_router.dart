@@ -42,8 +42,9 @@ class _Delegate extends RouterDelegate<Object>
   @override
   Widget build(BuildContext context) {
     if (!sessionManager.initialized) {
-      return const Navigator(
-        pages: [MaterialPage(child: SplashScreen())],
+      return Navigator(
+        key: navigatorKey,
+        pages: const [MaterialPage(child: SplashScreen())],
         onDidRemovePage: _onDidRemovePage,
       );
     }
@@ -53,6 +54,7 @@ class _Delegate extends RouterDelegate<Object>
         : const MaterialPage(child: LoginScreen());
 
     return Navigator(
+      key: navigatorKey,
       pages: [page],
       onDidRemovePage: _onDidRemovePage,
     );
