@@ -11,14 +11,19 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() async {
     sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
+    databaseFactory = databaseFactoryFfiNoIsolate;
     final directory = await Directory.systemTemp.createTemp('finchat_navigation_');
-    await databaseFactoryFfi.setDatabasesPath(directory.path);
+    await databaseFactoryFfiNoIsolate.setDatabasesPath(directory.path);
   });
   testWidgets('system back returns backup to settings, settings to input, reports to input', (tester) async {
     final manager = SessionManager(InMemorySessionRepository());
     await manager.initialize();
     await manager.login(email: 'qa@finchat.local');
+    // Widget tests use a fake clock; open SQLite outside it and execute native
+    // queries without a background isolate to avoid pumpAndSettle deadlocks.
+    await tester.runAsync(() async {
+      await FinChatDatabase().ensureUser(userId: 'qa@finchat.local');
+    });
     await tester.pumpWidget(FinChatApp(sessionManager: manager));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'nasi 25rb');
