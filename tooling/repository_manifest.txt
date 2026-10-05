@@ -1,5 +1,6 @@
 .gitattributes
 .github/workflows/build_android.yml
+.github/workflows/finchat_audit_validation.yml
 .github/workflows/flutter_test.yml
 .github/workflows/release.yml
 .gitignore
@@ -13,6 +14,7 @@ docs/ARCHITECTURE.md
 docs/AUDIT_0.3.2+11.md
 docs/AUDIT_0.3.2+12.md
 docs/AUDIT_0.3.2+13.md
+docs/AUDIT_0.3.2+14.md
 docs/BUGFIX_0.3.2+6_DATABASE_AI.md
 docs/FINCHAT_MASTER_CONTEXT.md
 docs/FULL_REPOSITORY_AUDIT.md
@@ -31,6 +33,7 @@ docs/VOICE_INPUT.md
 integration_test/phase_11_end_to_end_test.dart
 lib/application/ai/ai_secure_config_service.dart
 lib/application/ai/financial_qa_service.dart
+lib/application/ai/question_period.dart
 lib/application/auth/google_auth_service.dart
 lib/application/auth/google_id_token_session.dart
 lib/application/auth/google_sign_in_coordinator.dart
@@ -80,7 +83,9 @@ lib/domain/ocr/receipt_image_preprocessor.dart
 lib/domain/ocr/receipt_ocr.dart
 lib/domain/parsing/money_amount_parser.dart
 lib/domain/parsing/spoken_money_normalizer.dart
+lib/domain/parsing/voice_transaction_normalizer.dart
 lib/domain/reports/daily_expenses.dart
+lib/domain/reports/report_insights.dart
 lib/domain/reports/report_models.dart
 lib/domain/reports/selected_period.dart
 lib/domain/repositories/category_repository.dart
@@ -111,6 +116,7 @@ test/application/google_id_token_session_test.dart
 test/application/input_intent_test.dart
 test/application/ocr/receipt_ocr_service_test.dart
 test/application/ocr/receipt_transaction_parser_test.dart
+test/application/question_period_test.dart
 test/application/report_pdf_service_test.dart
 test/application/report_service_test.dart
 test/application/session_manager_google_test.dart
@@ -119,6 +125,7 @@ test/application/speech/voice_input_service_test.dart
 test/application/transaction_entry_flow_test.dart
 test/application/transaction_intelligence_service_test.dart
 test/application/transactions/local_transaction_parser_test.dart
+test/chat_composer_timeline_test.dart
 test/core/input_failure_message_test.dart
 test/core/transaction_validator_test.dart
 test/daily_input_reset_test.dart
@@ -133,11 +140,13 @@ test/domain/billing_subscription_models_test.dart
 test/domain/daily_expenses_test.dart
 test/domain/ocr/receipt_image_preprocessor_test.dart
 test/domain/parsing/money_amount_parser_test.dart
+test/domain/report_insights_test.dart
 test/domain/selected_period_test.dart
 test/domain/speech/speech_recognition_test.dart
 test/domain/spoken_money_test.dart
 test/domain/update_service_test.dart
 test/navigation_back_test.dart
+test/period_calendar_test.dart
 test/widget_test.dart
 tooling/android/configure_android_ci.py
 tooling/android/proguard-rules.pro
