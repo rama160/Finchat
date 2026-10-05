@@ -1,3 +1,9 @@
+## Current voice capture — 0.3.2+14
+
+Halaman Input menerima satu atau beberapa transaksi suara. Dictation menghasilkan teks final, lalu normalisasi nominal kata/angka masuk ke pipeline lokal yang sama dengan teks. Input yang valid dipetakan kategorinya sebagai satu batch dan disimpan melalui repository; tidak memanggil AI untuk nominal lokal yang sudah jelas. Pertanyaan mengikuti jalur Q&A dan membaca periode dari ucapan. Speech provider sendiri tetap tidak menulis SQLite.
+
+111 tes lulus pada commit `f36a3c11f0bd581e0a4d50f4d9d5d1b20959aa86`, termasuk multi transaksi tanpa AI dan partial/final speech. Android dapat membatasi durasi dan jeda sesi; microphone/perilaku platform masih memerlukan pengujian HP. Catatan Phase 6 di bawah adalah rancangan historis; jalur capture terbaru ini menjadi acuan saat berbeda.
+
 # Phase 6 — Voice Input
 
 ## Scope

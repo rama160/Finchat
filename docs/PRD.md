@@ -1,3 +1,15 @@
+## Verified GitHub CI — 0.3.2+14 (5 Oktober 2026)
+
+- Runtime/test commit `f36a3c11f0bd581e0a4d50f4d9d5d1b20959aa86`, branch `codex/finchat-input-navigation-audit`. Dokumen verifikasi sesudah commit ini tidak mengubah runtime.
+- Audit https://github.com/rama160/Finchat/actions/runs/37329235611 dan workflow Flutter asli https://github.com/rama160/Finchat/actions/runs/37329255297 berhasil: Flutter 3.47.6, analyze No issues found, **111 tests passed** pada kedua workflow.
+- Signed release APK **92.3 MB**, menggunakan permanent FinChat release keystore: https://github.com/rama160/Finchat/actions/runs/37329235611/artifacts/11353523044 . Versi pubspec dan Pengaturan sama-sama `0.3.2+14`.
+- ZIP artifact SHA-256 `c8a394280e1099888345c81a26f3dcdc4803e2387d11f96a69ca6d50f1b2a224`; ini hash arsip artifact, bukan hash APK di dalamnya.
+- Regresi: fokus/keyboard/posisi composer, draft berikutnya, timeline campuran, kalender hari/rentang/bulan/tahun termasuk mempertahankan filter saat dibuka kembali, periode pertanyaan, insight/ringkasan grafik, suara multi transaksi tanpa AI, serta batch kategori struk sekali baca.
+- Manifest uploader mencakup seluruh 153 file tracked termasuk helper, test dan workflow audit baru. Tiga workflow asli, schema/lifecycle database, repository transaksi, money parser dan OAuth/secrets dipertahankan. Main tetap `91252bddf4a4eadaa99dafe095f72c2e04a4bab1`.
+- Gateway 0.1.1 sudah diverifikasi terpisah HTTP200/622 ms: https://github.com/rama160/AI-Gateway/actions/runs/37316536289 . Catatan lama HTTP403/belum deploy di bawah adalah riwayat, bukan status terkini.
+- **Uji HP masih diperlukan:** IME asli saat kirim, microphone multi transaksi, kamera/attach OCR dan pengukuran latency struk. Tes batch membuktikan satu pembacaan pemetaan kategori, bukan peningkatan waktu OCR pada perangkat.
+- Bagian ini menggantikan status verifikasi tertunda dan hasil versi lama di bawah.
+
 ## Perubahan produk terbaru — 0.3.2+14
 
 Chat tersusun berdasarkan waktu dengan pesan terbaru di bawah, composer/keyboard stabil, filter Input digantikan periode dalam pertanyaan. Laporan mempertahankan header filter; klik langsung menampilkan kalender dengan tanggal/rentang/bulan/tahun. Ringkasan grafik ditempatkan di bawah dan berisi angka/data periode. Insight mencakup arus kas, pola harian, perubahan, dan pengeluaran berulang. Input suara mendukung multi transaksi lokal; pemrosesan struk menghindari query/parse berulang dan tetap melalui review. Referensi audit: AUDIT_0.3.2+14.md.
