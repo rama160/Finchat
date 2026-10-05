@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../application/backup/automatic_backup_service.dart';
 import '../../application/ocr/receipt_ocr_service.dart';
 import '../../core/validation/transaction_validator.dart';
+import '../../core/errors/input_failure_message.dart';
 import '../../application/ocr/receipt_transaction_parser.dart';
 import '../../application/transactions/transaction_intelligence_service.dart';
 import '../../application/transactions/local_transaction_parser.dart';
@@ -36,7 +37,9 @@ import 'report_screen.dart';
 import 'settings_screen.dart';
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key});
+  const ChatScreen({super.key, this.now});
+
+  final DateTime Function()? now;
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -54,8 +57,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   late final AutomaticBackupService _automaticBackup;
 
   List<TransactionEntity> _items = const [];
-  SelectedPeriod _period = SelectedPeriod.day(DateTime.now());
-  DateTime _viewDay = DateTime.now();
+  late SelectedPeriod _period;
+  late DateTime _viewDay;
+  DateTime _now() => widget.now?.call() ?? DateTime.now();
   Timer? _dayTimer;
   int _selectedTab = 0;
   final List<({String question, String answer})> _answers = [];
@@ -69,6 +73,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    _viewDay = _now();
+    _period = SelectedPeriod.day(_viewDay);
     WidgetsBinding.instance.addObserver(this);
     _scheduleDayRollover();
     _database = FinChatDatabase();
@@ -119,14 +125,14 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   void _scheduleDayRollover() {
     _dayTimer?.cancel();
-    final now = DateTime.now();
+    final now = _now();
     final midnight = DateTime(now.year, now.month, now.day + 1);
     _dayTimer = Timer(midnight.difference(now), _checkDayRollover);
   }
 
   void _checkDayRollover() {
     if (!mounted) return;
-    final now = DateTime.now();
+    final now = _now();
     if (_viewDay.year != now.year || _viewDay.month != now.month || _viewDay.day != now.day) {
       setState(() {
         _viewDay = now;
@@ -152,7 +158,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       if (mounted) setState(() => _items = items);
       unawaited(_runAutomaticBackupSilently());
     } catch (error) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal memuat transaksi: $error')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(inputFailureMessage(error, 'Transaksi belum berhasil dimuat. Coba buka kembali halaman Input.'))));
     }
   }
 
@@ -184,7 +190,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     if (session == null || _processing) return;
     setState(() => _processing = true);
     try {
-      final now = DateTime.now();
+      final now = _now();
       var period = _period;
       final question = input.toLowerCase();
       if (question.contains('hari ini')) {
@@ -223,7 +229,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       throw StateError('Transaksi belum dikenali.');
     }
 
-    final now = DateTime.now();
+    final now = _now();
     final transactions = <TransactionEntity>[];
     for (var index = 0; index < results.length; index++) {
       final item = results[index];
@@ -275,7 +281,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memproses suara: $error')),
+          SnackBar(content: Text(inputFailureMessage(error, 'Suara belum berhasil diproses. Coba ulangi dengan menyebutkan nominal transaksi.'))),
         );
       }
     } finally {
@@ -313,7 +319,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memulai suara: $error')),
+          SnackBar(content: Text(inputFailureMessage(error, 'Mikrofon belum dapat digunakan. Periksa izin mikrofon dan coba lagi.'))),
         );
       }
     }
@@ -342,7 +348,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       if (!mounted) return;
       final message = error is StateError && error.message == 'Transaksi belum dikenali.'
           ? 'Transaksi belum dikenali. Contoh: nasi 25rb dan bensin 50k.'
-          : 'Gagal menyimpan transaksi: $error';
+          : inputFailureMessage(error, 'Transaksi belum berhasil disimpan. Coba lagi.');
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) setState(() => _processing = false);
@@ -364,7 +370,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       source: source == ImageSource.camera ? InputSource.camera : InputSource.attachment,
     );
     } catch (error) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal membuka kamera/galeri: $error')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(inputFailureMessage(error, 'Kamera/galeri belum dapat dibuka. Periksa izin aplikasi dan coba lagi.'))));
     } finally {
       if (mounted) setState(() => _picking = false);
     }
@@ -393,7 +399,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
     await _processReceiptBytes(bytes: bytes, source: InputSource.attachment);
     } catch (error) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal membuka lampiran: $error')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(inputFailureMessage(error, 'Lampiran belum dapat dibuka. Coba pilih gambar JPG atau PNG lainnya.'))));
     } finally {
       if (mounted) setState(() => _picking = false);
     }
@@ -462,7 +468,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       );
       if (reviewed == null || reviewed.isEmpty) return;
 
-      final now = DateTime.now();
+      final now = _now();
       final transactions = <TransactionEntity>[];
       for (var index = 0; index < reviewed.length; index++) {
         final item = reviewed[index];
@@ -567,7 +573,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       }
       await _loadTransactions();
     } catch (error) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal mengubah transaksi: $error')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(inputFailureMessage(error, 'Transaksi belum berhasil diubah. Coba lagi.'))));
     }
   }
 
@@ -576,7 +582,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       await _transactions.delete(transaction.id);
       await _loadTransactions();
     } catch (error) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal menghapus transaksi: $error')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(inputFailureMessage(error, 'Transaksi belum berhasil dihapus. Coba lagi.'))));
     }
   }
 

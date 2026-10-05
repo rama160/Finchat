@@ -32,7 +32,7 @@ class FinancialQaService {
     if (RegExp(r'\b(bagaimana|mengapa|kenapa|saran|tips|strategi|cukup)\b').hasMatch(q)) return null;
     final keywordMatch = RegExp(r'(?:mengandung\s+kata|mengandung|kata\s+kunci|berisi\s+kata|berisi|untuk)\s+["\x27]?(.*?)["\x27]?[?.!]*$', caseSensitive: false).firstMatch(q);
     if (keywordMatch != null) {
-      final keyword = keywordMatch[1]!.trim().replaceAll(RegExp(r'''["\x27]'''), '');
+      final keyword = keywordMatch[1]!.trim().replaceAll(RegExp(r'''["\x27]'''), '').replaceFirst(RegExp(r'\s+(?:hari ini|kemarin|bulan ini|bulan lalu|minggu ini)$'), '').trim();
       if (keyword.isEmpty) return 'Tuliskan kata yang ingin dicari pada deskripsi transaksi.';
       final income = q.contains('pemasukan') || q.contains('pendapatan');
       final type = income ? TransactionType.income : TransactionType.expense;
@@ -58,6 +58,7 @@ class FinancialQaService {
     if (q.contains('pemasukan') || q.contains('pendapatan')) return 'Total pemasukan pada periode ini adalah ${_money(report.incomeTotal)} dari ${report.incomeCount} transaksi.';
     if (q.contains('pengeluaran') && (q.contains('total') || q.contains('berapa'))) return 'Total pengeluaran pada periode ini adalah ${_money(report.expenseTotal)} dari ${report.expenseCount} transaksi.';
     if (q.contains('jumlah transaksi') || q.contains('berapa transaksi')) return 'Ada ${report.transactionCount} transaksi pada periode ini: ${report.incomeCount} pemasukan dan ${report.expenseCount} pengeluaran.';
+    if (q.split(RegExp(r'\s+')).length <= 2 && !q.endsWith('?')) return 'Untuk mencatat transaksi, sertakan nominal. Contoh: nasi 10 ribu. Untuk bertanya, tuliskan pertanyaan lengkap.';
     return null;
   }
 

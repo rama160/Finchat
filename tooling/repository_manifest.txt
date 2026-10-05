@@ -11,6 +11,7 @@ analysis_options.yaml
 docs/AI_CONTRACT.md
 docs/ARCHITECTURE.md
 docs/AUDIT_0.3.2+11.md
+docs/AUDIT_0.3.2+12.md
 docs/BUGFIX_0.3.2+6_DATABASE_AI.md
 docs/FINCHAT_MASTER_CONTEXT.md
 docs/FULL_REPOSITORY_AUDIT.md
@@ -30,6 +31,7 @@ integration_test/phase_11_end_to_end_test.dart
 lib/application/ai/ai_secure_config_service.dart
 lib/application/ai/financial_qa_service.dart
 lib/application/auth/google_auth_service.dart
+lib/application/auth/google_id_token_session.dart
 lib/application/auth/google_sign_in_coordinator.dart
 lib/application/backup/automatic_backup_service.dart
 lib/application/backup/backup_preference_service.dart
@@ -50,6 +52,7 @@ lib/application/transactions/transaction_intelligence_service.dart
 lib/application/update/update_service.dart
 lib/core/constants/app_constants.dart
 lib/core/errors/app_failure.dart
+lib/core/errors/input_failure_message.dart
 lib/core/validation/transaction_validator.dart
 lib/data/ai/openai_compatible_ai_provider.dart
 lib/data/backup/google_drive_backup_provider.dart
@@ -75,6 +78,8 @@ lib/domain/entities/transaction_entity.dart
 lib/domain/ocr/receipt_image_preprocessor.dart
 lib/domain/ocr/receipt_ocr.dart
 lib/domain/parsing/money_amount_parser.dart
+lib/domain/parsing/spoken_money_normalizer.dart
+lib/domain/reports/daily_expenses.dart
 lib/domain/reports/report_models.dart
 lib/domain/reports/selected_period.dart
 lib/domain/repositories/category_repository.dart
@@ -101,6 +106,7 @@ test/application/backup_service_test.dart
 test/application/backup_snapshot_validation_test.dart
 test/application/cloud_acknowledgement_test.dart
 test/application/financial_qa_service_test.dart
+test/application/google_id_token_session_test.dart
 test/application/input_intent_test.dart
 test/application/ocr/receipt_ocr_service_test.dart
 test/application/ocr/receipt_transaction_parser_test.dart
@@ -112,7 +118,9 @@ test/application/speech/voice_input_service_test.dart
 test/application/transaction_entry_flow_test.dart
 test/application/transaction_intelligence_service_test.dart
 test/application/transactions/local_transaction_parser_test.dart
+test/core/input_failure_message_test.dart
 test/core/transaction_validator_test.dart
+test/daily_input_reset_test.dart
 test/data/gateway_contract_test.dart
 test/data/openai_compatible_ai_provider_test.dart
 test/data/openai_phase12_hardening_test.dart
@@ -121,10 +129,12 @@ test/data_database_test.dart
 test/domain/ai_category_fallback_test.dart
 test/domain/backup_models_test.dart
 test/domain/billing_subscription_models_test.dart
+test/domain/daily_expenses_test.dart
 test/domain/ocr/receipt_image_preprocessor_test.dart
 test/domain/parsing/money_amount_parser_test.dart
 test/domain/selected_period_test.dart
 test/domain/speech/speech_recognition_test.dart
+test/domain/spoken_money_test.dart
 test/domain/update_service_test.dart
 test/navigation_back_test.dart
 test/widget_test.dart
