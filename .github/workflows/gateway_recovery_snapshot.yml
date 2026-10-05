@@ -16,6 +16,10 @@ jobs:
         with:
           node-version: 22
       - run: npm install --no-audit --no-fund
+      - name: Export resolved dependency lock
+        run: |
+          node -e "const s = require('fs').readFileSync('package-lock.json').toString('base64'); console.log('GATEWAY_LOCK_START'); for (let i=0; i<s.length; i+=4000) console.log('GATEWAY_LOCK_CHUNK:'+s.slice(i,i+4000)); console.log('GATEWAY_LOCK_END');"
+      - run: npm ci --no-audit --no-fund
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
