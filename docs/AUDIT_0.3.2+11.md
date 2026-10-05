@@ -1,3 +1,23 @@
+## Hasil CI GitHub — 5 Oktober 2026
+
+- Workflow: https://github.com/rama160/Finchat/actions/runs/37281161336 — SUCCESS.
+- Commit kode teruji: d40976563b27c55395672c9428ef2c49ae4ea9cf, branch codex/finchat-input-navigation-audit.
+- Flutter stable 3.47.6: pub get lulus; analyze No issues found; **84 tests passed**; release APK berhasil (91.8 MB).
+- APK: https://github.com/rama160/Finchat/actions/runs/37281161336/artifacts/11332107826 (finchat-audit-release-apk).
+- Signing memakai permanent FinChat release keystore; Google server client ID diberikan dari secret build. Tidak ada perubahan secrets.
+- Perbaikan hasil CI: RootBackButtonDispatcher, callback void pada setState laporan, null-safe SQL acknowledgement; fixture tes widget memakai SQLite FFI tanpa isolate, runAsync untuk membuka DB, frame pump dan snackbar wait.
+- Main dan tiga workflow lama tidak diubah. Workflow tambahan untuk validasi hanya aktif pada branch audit. Kamera/mic/OAuth/Gateway/Drive langsung pada Android masih membutuhkan QA perangkat; CI tidak membuktikan konektivitas layanan terdeploy.
+
+# Pembaruan verifikasi GitHub — 5 Oktober 2026
+
+Workflow FinChat Audit Validation: https://github.com/rama160/Finchat/actions/runs/37281161336
+
+Commit kode: d40976563b27c55395672c9428ef2c49ae4ea9cf. Pub get, analyze (No issues found), seluruh 84 flutter test, konfigurasi Android dan signing lulus. Build APK release lulus (91.8 MB), menggunakan permanent keystore; artifact 11332107826 tersedia. Main tetap pada baseline 91252bddf4a4eadaa99dafe095f72c2e04a4bab1. Tiga workflow lama tetap identik; workflow validasi tambahan hanya dipicu di branch audit.
+
+Temuan CI tambahan: RootBackButtonDispatcher diperlukan untuk system Back pada RouterConfig; ReportScreen setState harus memakai callback void saat menetapkan Future; SQL cloud acknowledgement tidak boleh mengirim null sebagai whereArg. Ketiganya sudah diperbaiki. Tes widget memakai SQLite FFI tanpa isolate, database dibuka melalui runAsync, memompa frame setelah mengubah teks, menunggu snackbar dan menggulir ke submenu sebelum menekan tombol.
+
+Catatan audit awal di bawah merupakan riwayat sebelum CI dan tidak menggantikan hasil verifikasi terbaru di atas.
+
 # Audit dan perbaikan FinChat 0.3.2+11 — 5 Oktober 2026
 
 ## Sumber dan batas verifikasi
@@ -10,7 +30,7 @@ Log CI baseline: Flutter Test run `37245576604`, job `111562693997`: **72 passed
 
 | Masalah | Temuan | Perbaikan |
 |---|---|---|
-| Tombol kembali keluar dari submenu | Navigator tidak menggunakan navigatorKey RouterDelegate | Hubungkan key; PopScope Laporan mengembalikan tab Input; submenu memakai stack Navigator yang sama |
+| Tombol kembali keluar dari submenu | Navigator tidak menggunakan navigatorKey RouterDelegate dan RouterConfig tidak memiliki root back dispatcher | Hubungkan key dan RootBackButtonDispatcher pada RouterConfig; PopScope Laporan mengembalikan tab Input; submenu memakai stack Navigator yang sama |
 | CI databaseFactory not initialized | setUpAll hanya sqfliteFfiInit | Pasang databaseFactoryFfi secara eksplisit; isolasi database tes ke direktori sementara |
 | database_closed pada perangkat | Baseline terbaru sudah memiliki shared DB dan protected close | Pertahankan perbaikan produksi; layar baru memakai singleton yang sama; jangan menutup shared DB |
 | AI tidak tersedia | Null menutupi auth, kuota, HTTP, timeout; request panjang melampaui kontrak | Pesan diagnostik aman; batas 10.000 karakter/20.000 byte; cuplikan 25 transaksi, total dihitung dari seluruh periode; timeout 65 detik untuk enam upaya model Gateway |
@@ -21,7 +41,7 @@ Log CI baseline: Flutter Test run `37245576604`, job `111562693997`: **72 passed
 | Voice cancel memicu transcript lama | Callback stopped saat cancel sebelum transcript dibersihkan | Bersihkan transcript sebelum cancel; abaikan final result dari sesi yang dibatalkan; satu consume pending; batalkan microphone saat ganti tab/dispose |
 | Tampilan input | Field kotak + tombol terpisah | Field putih rounded, emoji, paperclip, kamera, tombol biru mic/send/stop, preview transcript |
 | Edit/hapus menghabiskan ruang | Ikon di setiap row | Hapus ikon row; swipe kanan edit, kiri hapus tetap memakai handler repository dan category learning |
-| Centang cloud tidak memiliki bukti | sync_status belum dikonfirmasi setelah upload | Satu centang SQLite; dua centang biru setelah upload sukses, hanya versi row dalam snapshot yang seluruh field datanya masih cocok (termasuk edit pada milidetik yang sama) |
+| Centang cloud tidak memiliki bukti | sync_status belum dikonfirmasi setelah upload | Satu centang SQLite; dua centang biru setelah upload sukses, hanya versi row dalam snapshot yang seluruh field datanya masih cocok (termasuk edit pada milidetik yang sama); field null memakai IS NULL tanpa parameter null |
 | Laporan di app bar | Akses via route | Bottom navigation Input/Laporan; detail, pie, count, insight, drill-down dan PDF dipertahankan |
 | Filter tanggal | Selector/tab terpisah | Header hijau, panah sebelumnya/berikutnya, dropdown tanggal/rentang/bulan+tahun; satu model shared; bulan otomatis untuk rentang persis tanggal 1 sampai akhir bulan |
 | Pie/detail memotong data | Pie hanya 8 kategori; detail hanya 30 group | Tampilkan seluruh kategori/group agar proporsi dan rincian sesuai total |
@@ -64,4 +84,4 @@ Tambahan: `selected_period_test.dart`, `input_intent_test.dart`, `gateway_contra
 4. Setelah CI hijau, unduh app-release.apk dan pasang sebagai update dengan key yang sama; jalankan matriks di atas.
 5. Bila AI menghasilkan pesan auth/configuration, periksa Google server client ID di aplikasi vs GOOGLE_SERVER_CLIENT_ID pada Worker. Gemini secret saja belum cukup untuk autentikasi Gateway.
 
-Tidak ada push/merge ke main, deployment Worker, atau perubahan secrets dilakukan oleh audit ini.
+Tidak ada push/merge ke main, deployment Worker, atau perubahan secrets dilakukan oleh audit ini. Perbaikan diunggah ke branch codex/finchat-input-navigation-audit untuk validasi CI.
