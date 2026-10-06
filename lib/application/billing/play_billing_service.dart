@@ -79,12 +79,12 @@ class PlayBillingService extends ChangeNotifier {
     if (response.statusCode != 200) throw StateError('Google Play belum berhasil memverifikasi langganan.');
     return VerifiedEntitlement.fromServer(jsonDecode(response.body) as Map<String, dynamic>, await accountId());
   }
-  Future<Map<String, dynamic>> quotaRequest(String action, {String? resource, String? operationId, bool? success, String? event, bool backgroundOnly = false}) async {
+  Future<Map<String, dynamic>> quotaRequest(String action, {String? resource, String? operationId, bool? success, String? event, int? count, bool backgroundOnly = false}) async {
     if (!PlayReleaseConfig.billingConfigured) throw StateError('Layanan kuota belum diaktifkan. Pencatatan teks tetap tersedia.');
     final token = await purchaseToken;
     final response = await client.post(Uri.parse('${PlayReleaseConfig.backend}/v1/quota/$action'),
       headers: {...await _headers(backgroundOnly: backgroundOnly), if (token != null) 'X-Play-Purchase-Token': token},
-      body: jsonEncode({if (resource != null) 'resource': resource, if (operationId != null) 'operationId': operationId, if (success != null) 'success': success, if (event != null) 'event': event})).timeout(const Duration(seconds: 20));
+      body: jsonEncode({if (resource != null) 'resource': resource, if (operationId != null) 'operationId': operationId, if (success != null) 'success': success, if (event != null) 'event': event, if (count != null) 'count': count})).timeout(const Duration(seconds: 20));
     if (response.statusCode == 429) throw StateError('Kuota ${resource == 'ocr' ? 'Scan' : resource == 'voice' ? 'Voice' : 'fitur'} bulan ini telah digunakan. Lihat Paket Spenva untuk pilihan upgrade.');
     if (response.statusCode != 200) throw StateError('Kuota belum dapat diverifikasi. Coba lagi; pencatatan teks tetap tersedia.');
     final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -138,7 +138,7 @@ class PlayBillingService extends ChangeNotifier {
           // The server acknowledges only verified purchases; this completes
           // the plugin transaction. Never acknowledge on a verification error.
           // Acknowledgement is performed by the verification server, not twice by the client.
-          message = 'Paket ${verified.tier.name} aktif hingga ${verified.expiresAt.toLocal().day}/${verified.expiresAt.toLocal().month}/${verified.expiresAt.toLocal().year}.';
+          message = 'Paket ${offerFor(verified.tier).displayName} aktif hingga ${verified.expiresAt.toLocal().day}/${verified.expiresAt.toLocal().month}/${verified.expiresAt.toLocal().year}.';
         } catch (_) { message = 'Verifikasi belum selesai. Pulihkan pembelian setelah koneksi kembali; akses lokal tetap tersedia.'; }
       } else if (purchase.status == PurchaseStatus.error) { message = 'Pembelian belum berhasil. Tidak ada paket yang dibuka.'; }
       notifyListeners();

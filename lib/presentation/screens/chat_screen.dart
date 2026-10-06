@@ -333,7 +333,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       ));
     }
     await _transactions.saveAll(transactions);
-    if (PlayReleaseConfig.billingConfigured && results.every((item) => item.processedBy != ProcessedBy.aiFallback)) unawaited(PlayBillingService.instance.quotaRequest('event', event: 'local_success').catchError((Object _) => <String, dynamic>{}));
+    if (PlayReleaseConfig.billingConfigured) {
+      final local = results.where((item) => item.processedBy != ProcessedBy.aiFallback).length;
+      final cloud = results.length - local;
+      if (local > 0) unawaited(PlayBillingService.instance.quotaRequest('event', event: 'local_success', count: local).catchError((Object _) => <String, dynamic>{}));
+      if (cloud > 0) unawaited(PlayBillingService.instance.quotaRequest('event', event: 'cloud_success', count: cloud).catchError((Object _) => <String, dynamic>{}));
+    }
     await _loadTransactions();
     if (mounted) {
       _showSaved(successMessage.replaceFirst('{count}', '${results.length}'));

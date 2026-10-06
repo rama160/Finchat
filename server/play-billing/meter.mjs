@@ -29,8 +29,10 @@ export async function metered(state,input,now=Date.now()) {
     const snapshot=()=>({tier:plan.tier,plan_id:plan.id,subscription_status:input.entitlement?.status ?? 'FREE',billing_period_start:new Date(ledger.start).toISOString(),billing_period_end:new Date(ledger.end).toISOString(),used:ledger.used,limits,voice_used:ledger.used.voice,ocr_used:ledger.used.ocr,ai_used:ledger.used.ai,events:ledger.events});
     if(input.action==='state') {await state.storage.put('meter',ledger);await state.storage.setAlarm(ledger.end+30*86400000);return response(snapshot());}
     if(input.action==='event') {
-      if(!['local_success','fallback','ai_error','timeout','rate_limit'].includes(input.event))return response({error:'invalid_event'},400);
-      ledger.events[input.event]=(ledger.events[input.event]??0)+1;
+      if(!['local_success','cloud_success','fallback','ai_error','timeout','rate_limit'].includes(input.event))return response({error:'invalid_event'},400);
+      const count=input.count ?? 1;
+      if(!Number.isInteger(count) || count<1 || count>1000)return response({error:'invalid_event_count'},400);
+      ledger.events[input.event]=(ledger.events[input.event]??0)+count;
     } else if(input.action==='settle') {
       const reservation=ledger.pending[input.operationId];
       if(reservation) {

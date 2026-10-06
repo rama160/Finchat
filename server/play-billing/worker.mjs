@@ -187,7 +187,7 @@ export async function handle(request,env,net=fetch) {
       if(!['state','reserve','settle','event'].includes(action))throw new Fault(404,'not_found');
       if(body.resource==='ai')throw new Fault(403,'ai_server_only');
       const entitlement=await accountEntitlement(request,account,env,net);
-      const result=await objectCall(env,account,{action,entitlement,resource:body.resource,operationId:body.operationId,success:body.success,event:body.event});
+      const result=await objectCall(env,account,{action,entitlement,resource:body.resource,operationId:body.operationId,success:body.success,event:body.event,count:body.count});
       if(action==='state' && result.ok)return json({...await result.json(),personalAiEnabled:env.PAID_AI_CONFIRMED==='true',educationAiEnabled:env.UNPAID_EDUCATION_ENABLED==='true',entitlement});
       return result;
     }
@@ -205,7 +205,7 @@ export async function handle(request,env,net=fetch) {
         const priority=catalog.find(p=>p.tier===entitlement?.tier)?.priority===true;
         const capacity=await objectCall(env,'global-ai-capacity',{action:'capacity',operationId:token,priority});
         if(!capacity.ok)throw new Fault(429,'ai_busy');
-        try {const level=catalog.find(p=>p.tier===entitlement?.tier)?.priority ? "Berikan analisis terstruktur, alasan dan langkah praktis berdasarkan data yang tersedia. Jangan mengarang." : "Berikan jawaban ringkas dan praktis. Jangan mengarang.";
+        try {const level=catalog.find(p=>p.tier===entitlement?.tier)?.aiLevel==='advanced' ? "Berikan analisis terstruktur, alasan dan langkah praktis berdasarkan data yang tersedia. Jangan mengarang." : "Berikan jawaban ringkas dan praktis. Jangan mengarang.";
           const text=await gemini(level+"\n"+prompt,env,net);await quota(env,account,entitlement,token,'settle');return json({text});}
         finally {await objectCall(env,'global-ai-capacity',{action:'capacity',operationId:token,release:true});}
       }

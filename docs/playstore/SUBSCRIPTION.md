@@ -31,7 +31,7 @@ Cloudflare tetap dapat di-deploy pada free plan; tidak ada perubahan plan otomat
 
 Untuk personalAI, butuh keputusan eksplisit provider/project sesuai terms; jika billed dipilih, idealnya recurringrevenue>=5×estimasicost sebagai syarat bisnis. Alert bukan spendingcap. KuotaAI tetap melindungi batasuser; tetap perlu limitglobalprovider danmonitorcost. Tidak ada switching gratis-ke-berbayar otomatis.
 
-Monitoring ledger tanpa isi transaksi: total percobaan AI/per paket, usedVoice/Scan/AI/PDF, local_success, fallback, ai_error, timeout, rate_limit. Endpoint adminreports menyajikan feedback opsional; aksesadminbearersecret. Belum ada dashboardanalytics lintasakun/konversi/churn: perlu operasionalConsole/analytics opt-in, tidak mengirim histori ke thirdparty hanyauntukmonitoring.
+Monitoring ledger tanpa isi transaksi: total percobaan AI/per paket, usedVoice/Scan/AI/PDF, local_success/cloud_success per jumlah transaksi tersimpan (rasio lokal/cloud dapat dihitung), fallback, ai_error, timeout, rate_limit. Endpoint adminreports menyajikan feedback opsional; aksesadminbearersecret. Belum ada dashboardanalytics lintasakun/konversi/churn: perlu operasionalConsole/analytics opt-in, tidak mengirim histori ke thirdparty hanyauntukmonitoring.
 
 ## Aktivasi dan pengujian
 

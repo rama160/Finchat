@@ -109,7 +109,10 @@ class _ReportScreenState extends State<ReportScreen> {
         if (saved != null && mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('PDF tersimpan di lokasi pilihan Anda.')));
       } else {
         if (widget.sharePdf != null) { await widget.sharePdf!(bytes, filename); }
-        else { await Printing.sharePdf(bytes: bytes, filename: filename); }
+        else {
+          final shared = await Printing.sharePdf(bytes: bytes, filename: filename);
+          if (!shared) return;
+        }
         await lease.finish(true); lease = null;
       }
     } catch (error) {

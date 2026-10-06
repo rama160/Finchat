@@ -6,6 +6,14 @@ import 'package:finchat/application/auth/google_id_token_session.dart';
 String token(int seconds) => 'header.${base64Url.encode(utf8.encode(jsonEncode({'exp': DateTime.now().millisecondsSinceEpoch ~/ 1000 + seconds})))}.signature';
 
 void main() {
+  test('background token lookup never starts authentication and rejects stale tokens', () {
+    final session = GoogleIdTokenSession();
+    expect(session.cachedToken, isNull);
+    final valid = token(3600); session.remember(valid);
+    expect(session.cachedToken, valid);
+    session.remember(token(-10)); expect(session.cachedToken, isNull);
+    session.remember(valid); session.clear(); expect(session.cachedToken, isNull);
+  });
   test('logged-in valid token does not attempt lightweight authentication', () async {
     final session = GoogleIdTokenSession();
     final valid = token(3600);

@@ -14,7 +14,8 @@ export const catalog = [
     "automaticBackup": false,
     "priority": false,
     "badge": "",
-    "products": {}
+    "products": {},
+    "aiLevel": "trial"
   },
   {
     "tier": "basic",
@@ -33,7 +34,8 @@ export const catalog = [
     "products": {
       "monthly": "finchat_plus_monthly",
       "yearly": "finchat_plus_yearly"
-    }
+    },
+    "aiLevel": "standard"
   },
   {
     "tier": "pro",
@@ -52,7 +54,8 @@ export const catalog = [
     "products": {
       "monthly": "finchat_pro_monthly",
       "yearly": "finchat_pro_yearly"
-    }
+    },
+    "aiLevel": "advanced"
   },
   {
     "tier": "unlimited",
@@ -71,6 +74,7 @@ export const catalog = [
     "products": {
       "monthly": "finchat_max_monthly",
       "yearly": "finchat_max_yearly"
-    }
+    },
+    "aiLevel": "advanced"
   }
 ];

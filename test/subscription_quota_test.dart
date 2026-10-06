@@ -8,7 +8,7 @@ import 'package:finchat/core/release/play_release_config.dart';
 class FakeBilling implements PlayBillingService {
   @override dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
   final calls = <Map<String, Object?>>[];
-  @override Future<Map<String, dynamic>> quotaRequest(String action, {String? resource, String? operationId, bool? success, String? event, bool backgroundOnly = false}) async {
+  @override Future<Map<String, dynamic>> quotaRequest(String action, {String? resource, String? operationId, bool? success, String? event, int? count, bool backgroundOnly = false}) async {
     calls.add({'action': action, 'resource': resource, 'id': operationId, 'success': success});
     return {};
   }

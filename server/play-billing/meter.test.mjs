@@ -66,3 +66,8 @@ test('abandoned unlimited PDF operations expire without locking next reservation
  assert.equal((await f.run('reserve','pdf',base,now+86400001)).status,200);
  assert.equal(f.values.get('meter').used.pdf,101);
 });
+test('completion counters measure transactions in mixed batches and reject invalid event counts',async()=>{
+ const f=fixture();await f.run('event','voice',null,now,{event:'local_success',count:3});await f.run('event','voice',null,now,{event:'cloud_success',count:1});
+ assert.equal(f.values.get('meter').events.local_success,3);assert.equal(f.values.get('meter').events.cloud_success,1);assert.equal(f.values.get('meter').used.ai,0);
+ assert.equal((await f.run('event','voice',null,now,{event:'local_success',count:-1})).status,400);
+});

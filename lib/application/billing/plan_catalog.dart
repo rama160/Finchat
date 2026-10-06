@@ -6,13 +6,14 @@ import 'generated_plans.dart';
 class PlanOffer {
   const PlanOffer(this.tier, this.productId, this.suggestedRupiah, this.aiRequests, this.description,
     {this.yearlyProductId, this.yearlyRupiah = 0, this.voiceRequests = 0, this.ocrRequests = 0,
-     this.pdfRequests, this.advanced = false, this.automaticBackup = false, this.priority = false, this.badge = ''});
+     this.pdfRequests, this.advanced = false, this.automaticBackup = false, this.priority = false, this.name = '', this.aiLevel = 'trial', this.badge = ''});
   final SubscriptionTier tier;
   final String? productId, yearlyProductId;
   final int suggestedRupiah, yearlyRupiah, aiRequests, voiceRequests, ocrRequests;
   final int? pdfRequests;
   final bool advanced, automaticBackup, priority;
-  final String description, badge;
+  final String description, badge, name, aiLevel;
+  String get displayName => name.isEmpty ? tier.displayName : name;
   String? productIdFor(bool yearly) => yearly ? yearlyProductId : productId;
 }
 const planCatalog = generatedPlans;
