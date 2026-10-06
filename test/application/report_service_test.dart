@@ -75,7 +75,7 @@ void main() {
     expect(report.expenseCount, 3);
     expect(report.expenseTotal, 40000);
     expect(report.transactions, hasLength(3));
-    expect(report.expenseCategories.single.categoryName, 'Makanan');
+    expect(report.expenseCategories.single.categoryName, 'Makanan dan minuman');
   });
 
   test('keeps same description separate when type or category differs', () async {
