@@ -26,6 +26,7 @@ export async function metered(state,input,now=Date.now()) {
     // Expire abandoned reservations without refunding credits already consumed.
     for(const [key,value] of Object.entries(ledger.pending))if(value.at<now-86400000)delete ledger.pending[key];
     const limits={voice:plan.voice,ocr:plan.ocr,ai:plan.ai,pdf:plan.pdf};
+    ledger.plan_id=plan.id;ledger.tier=plan.tier;ledger.subscription_status=input.entitlement?.status ?? 'FREE';
     const snapshot=()=>({tier:plan.tier,plan_id:plan.id,subscription_status:input.entitlement?.status ?? 'FREE',billing_period_start:new Date(ledger.start).toISOString(),billing_period_end:new Date(ledger.end).toISOString(),used:ledger.used,limits,voice_used:ledger.used.voice,ocr_used:ledger.used.ocr,ai_used:ledger.used.ai,events:ledger.events});
     if(input.action==='state') {await state.storage.put('meter',ledger);await state.storage.setAlarm(ledger.end+30*86400000);return response(snapshot());}
     if(input.action==='event') {

@@ -152,6 +152,15 @@ export async function handle(request,env,net=fetch) {
   try {
     const path=new URL(request.url).pathname;
     if(path==='/health' && request.method==='GET') return json({service:'spenva-play',version:1});
+    if(path==='/v1/admin/usage' && request.method==='GET') {
+      if(!env.ADMIN_TOKEN || request.headers.get('Authorization')!=='Bearer '+env.ADMIN_TOKEN)throw new Fault(401,'admin_required');
+      const account=new URL(request.url).searchParams.get('account');
+      if(!/^[a-f0-9]{64}$/.test(account ?? ''))throw new Fault(400,'invalid_account');
+      const {meter}=await (await objectCall(env,account,{action:'summary'})).json();
+      if(!meter)return json({usage:null});
+      const local=meter.events?.local_success ?? 0,cloud=meter.events?.cloud_success ?? 0,total=local+cloud;
+      return json({plan_id:meter.plan_id,subscription_status:meter.subscription_status,billing_period_start:new Date(meter.start).toISOString(),billing_period_end:new Date(meter.end).toISOString(),used:meter.used,events:meter.events,local_completion_percentage:total?100*local/total:null,cloud_completion_percentage:total?100*cloud/total:null});
+    }
     if(path==='/v1/admin/reports' && request.method==='GET') {
       if(!env.ADMIN_TOKEN || request.headers.get('Authorization')!=='Bearer '+env.ADMIN_TOKEN) throw new Fault(401,'admin_required');
       if(!env.FEEDBACK) throw new Fault(503,'reporting_not_configured');

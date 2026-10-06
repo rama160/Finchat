@@ -333,17 +333,20 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       ));
     }
     await _transactions.saveAll(transactions);
-    if (PlayReleaseConfig.billingConfigured && session.authProvider == 'google') {
-      final local = results.where((item) => item.processedBy != ProcessedBy.aiFallback).length;
-      final cloud = results.length - local;
-      if (local > 0) unawaited(PlayBillingService.instance.quotaRequest('event', event: 'local_success', count: local, backgroundOnly: true).catchError((Object _) => <String, dynamic>{}));
-      if (cloud > 0) unawaited(PlayBillingService.instance.quotaRequest('event', event: 'cloud_success', count: cloud, backgroundOnly: true).catchError((Object _) => <String, dynamic>{}));
-    }
+    _trackCompletions(transactions, session.authProvider);
     await _loadTransactions();
     if (mounted) {
       _showSaved(successMessage.replaceFirst('{count}', '${results.length}'));
       _scrollToLatest();
     }
+  }
+
+  void _trackCompletions(List<TransactionEntity> transactions, String authProvider) {
+    if (!PlayReleaseConfig.billingConfigured || authProvider != 'google') return;
+    final local = transactions.where((item) => item.processedBy != ProcessedBy.aiFallback).length;
+    final cloud = transactions.length - local;
+    if (local > 0) unawaited(PlayBillingService.instance.quotaRequest('event', event: 'local_success', count: local, backgroundOnly: true).catchError((Object _) => <String, dynamic>{}));
+    if (cloud > 0) unawaited(PlayBillingService.instance.quotaRequest('event', event: 'cloud_success', count: cloud, backgroundOnly: true).catchError((Object _) => <String, dynamic>{}));
   }
 
   Future<void> _consumeVoiceTranscript() async {
@@ -393,9 +396,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       return;
     }
 
+    final accountLinked = SessionScope.of(context).session?.authProvider == 'google';
     try {
       await _voiceLease?.finish(false);
-      _voiceLease = await _quota.reserve('voice', accountLinked: SessionScope.of(context).session?.authProvider == 'google');
+      _voiceLease = await _quota.reserve('voice', accountLinked: accountLinked);
       if (_voice.status != SpeechSessionStatus.ready &&
           _voice.status != SpeechSessionStatus.stopped) {
         final available = await _voice.initialize();
@@ -583,7 +587,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         ));
       }
       await _transactions.saveAll(transactions);
-
+      _trackCompletions(transactions, session.authProvider);
       for (var index = 0; index < reviewed.length && index < reviewItems.length; index++) {
         final original = reviewItems[index];
         final item = reviewed[index];

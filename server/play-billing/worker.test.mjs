@@ -125,3 +125,15 @@ test('active purchase past paid expiry returns Free state without extra premium 
  const q=fakeQuota(),p=purchase({externalAccountIdentifiers:{obfuscatedExternalAccountId:account},lineItems:[{...purchase().lineItems[0],expiryTime:new Date(now-1).toISOString()}]});
  const response=await handle(await request('/v1/quota/state'),{...env,QUOTA:q.binding},network(p));assert.equal(response.status,200);assert.equal((await response.json()).plan_id,'free');
 });
+test('admin usage reports persisted plan/period and counters without tokens or reservations',async()=>{
+ const q=fakeQuota(),options={...env,QUOTA:q.binding,ADMIN_TOKEN:'admin-secret'};
+ await handle(await freeRequest('/v1/quota/reserve',{resource:'voice',operationId:'private_operation'}),options,network());
+ await handle(await freeRequest('/v1/quota/event',{event:'local_success',count:3}),options,network());
+ await handle(await freeRequest('/v1/quota/event',{event:'cloud_success',count:1}),options,network());
+ const url='https://test/v1/admin/usage?account='+account;
+ assert.equal((await handle(new Request(url),options,network())).status,401);
+ const response=await handle(new Request(url,{headers:{Authorization:'Bearer admin-secret'}}),options,network());
+ const data=await response.json();assert.equal(data.plan_id,'free');assert.equal(data.subscription_status,'FREE');assert.equal(data.used.voice,1);assert.equal(data.local_completion_percentage,75);
+ assert.ok(!JSON.stringify(data).includes('private_operation'));assert.ok(!JSON.stringify(data).includes('purchase-token'));
+ assert.equal((await handle(new Request('https://test/v1/admin/usage?account=bad',{headers:{Authorization:'Bearer admin-secret'}}),options,network())).status,400);
+});
