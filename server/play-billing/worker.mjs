@@ -105,9 +105,9 @@ export class Quota {
   async alarm() {
     const purchaseUntil=await this.state.storage.get('purchaseUntil');
     if(purchaseUntil && purchaseUntil<=Date.now()) {await this.state.storage.delete('purchase');await this.state.storage.delete('purchaseUntil');}
-    const meter=await this.state.storage.get('meter');if(meter && meter.end+30*86400000<Date.now())await this.state.storage.delete('meter');
+    const meter=await this.state.storage.get('meter');if(meter && meter.end+30*86400000<=Date.now())await this.state.storage.delete('meter');
     const all=await this.state.storage.list({prefix:'usage:'}); let next=meter?.end+30*86400000>Date.now()?meter.end+30*86400000:Infinity;
-    for(const [key,value] of all) { if(value.until<Date.now()) await this.state.storage.delete(key); else next=Math.min(next,value.until); }
+    for(const [key,value] of all) { if(value.until<=Date.now()) await this.state.storage.delete(key); else next=Math.min(next,value.until); }
     if(purchaseUntil>Date.now())next=Math.min(next,purchaseUntil);
     if(Number.isFinite(next)) await this.state.storage.setAlarm(Math.min(next,Date.now()+86400000));
   }
@@ -195,6 +195,7 @@ export async function handle(request,env,net=fetch) {
       const action=path.split('/').at(-1),body=await readBody(request);
       if(!['state','reserve','settle','event'].includes(action))throw new Fault(404,'not_found');
       if(body.resource==='ai')throw new Fault(403,'ai_server_only');
+      if(action==='reserve' && !['voice','ocr','pdf'].includes(body.resource))throw new Fault(400,'invalid_resource');
       const entitlement=await accountEntitlement(request,account,env,net);
       const result=await objectCall(env,account,{action,entitlement,resource:body.resource,operationId:body.operationId,success:body.success,event:body.event,count:body.count});
       if(action==='state' && result.ok)return json({...await result.json(),personalAiEnabled:env.PAID_AI_CONFIRMED==='true',educationAiEnabled:env.UNPAID_EDUCATION_ENABLED==='true',entitlement});

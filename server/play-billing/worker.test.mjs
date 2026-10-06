@@ -137,3 +137,14 @@ test('admin usage reports persisted plan/period and counters without tokens or r
  assert.ok(!JSON.stringify(data).includes('private_operation'));assert.ok(!JSON.stringify(data).includes('purchase-token'));
  assert.equal((await handle(new Request('https://test/v1/admin/usage?account=bad',{headers:{Authorization:'Bearer admin-secret'}}),options,network())).status,400);
 });
+test('malformed client reservation is denied before touching the quota ledger',async()=>{
+ const q=fakeQuota(),options={...env,QUOTA:q.binding};
+ for(const resource of [undefined,'unknown',null])assert.equal((await handle(await freeRequest('/v1/quota/reserve',{resource,operationId:'request_id'}),options,network())).status,400);
+ assert.equal(q.values.size,0);
+});
+test('retention alarm removes account association and ledger exactly at the advertised boundary',async()=>{
+ const q=fakeQuota(),boundary=Date.now();q.values.set('meter',{end:boundary-30*86400000});q.values.set('purchase','sensitive-token');q.values.set('purchaseUntil',boundary);
+ const clock=Date.now;Date.now=()=>boundary;
+ try {await q.instance.alarm();}finally {Date.now=clock;}
+ assert.equal(q.values.has('meter'),false);assert.equal(q.values.has('purchase'),false);assert.equal(q.values.has('purchaseUntil'),false);
+});
