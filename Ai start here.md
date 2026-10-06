@@ -1,3 +1,5 @@
+> **Verifikasi +18 selesai:** runtime `7bfd653d6dfe3a893c1c2252a1f345f48f5a9122`; Flutter 134 lulus, backend 46 lulus, validator 5 lulus, suite Play 11 lulus dan integrasi Linux 1 lulus. Signed AAB 75.1 MB lolos pemeriksaan 16 KB. [CI](https://github.com/rama160/Finchat/actions/runs/37464173519), [AAB/APK](https://github.com/rama160/Finchat/actions/runs/37464173519/artifacts/11413279142). Pembelian dan deployment subscription belum aktif. Detail hasil: [VALIDATION.md](docs/playstore/VALIDATION.md).
+
 > **Subscription baseline 0.3.4+18 — 6 Oktober 2026**
 > Paket/harga/kuota baru dari instruksi pengguna menggantikan penawaran +17: Free/Plus/Pro/Max, bulanan/tahunan, kuota Voice/Scan/AI terpisah dan serverpersisten. Implementasi dan batas aktivasi: [SUBSCRIPTION.md](docs/playstore/SUBSCRIPTION.md). Pembelian/server belum live. Gemini unpaid tidak menerima catatan pribadi; tidak ada paidtierotomatis. Riwayat di bawah dipertahankan.
 

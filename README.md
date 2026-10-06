@@ -1,3 +1,5 @@
+> **Verifikasi +18 selesai:** runtime `7bfd653d6dfe3a893c1c2252a1f345f48f5a9122`; Flutter 134 lulus, backend 46 lulus, validator 5 lulus, suite Play 11 lulus dan integrasi Linux 1 lulus. Signed AAB 75.1 MB lolos pemeriksaan 16 KB. [CI](https://github.com/rama160/Finchat/actions/runs/37464173519), [AAB/APK](https://github.com/rama160/Finchat/actions/runs/37464173519/artifacts/11413279142). Pembelian dan deployment subscription belum aktif. Detail hasil: [VALIDATION.md](docs/playstore/VALIDATION.md).
+
 > Subscription 0.3.4+18: paket Free/Plus/Pro/Max, enam produk monthly/yearly, kuota Voice/Scan/AI terpisah dan ledger server. Single source: assets/config/subscription_plans.json. Status aktivasi dan batas provider: [SUBSCRIPTION.md](docs/playstore/SUBSCRIPTION.md). Catatan harga/tier sebelumnya merupakan riwayat.
 
 > **Play Store preparation — 0.3.3+17 (6 Oktober 2026)**
