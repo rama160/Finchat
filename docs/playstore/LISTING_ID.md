@@ -36,7 +36,16 @@ Kategori yang disarankan: Finance, pencatatan anggaran pribadi. Jangan memilih d
 
 Icon: store-icon.png, 512 × 512, PNG tanpa transparansi.
 Feature graphic: feature-graphic.png, 1024 × 500, tanpa klaim peringkat, promosi harga atau badge Google Play.
-Screenshot: hasil capture widget aplikasi sebenarnya dengan data demo pada artefak CI. Tinjau kembali terhadap perangkat Android sebelum mengunggah; jangan memakai foto pengujian pengguna yang mengandung email/data keuangan pribadi. Minimal dua screenshot telepon. Tidak ada gambar mockup seluruh layar yang diterapkan sebagai halaman aplikasi.
+Screenshot: empat hasil capture widget aplikasi sebenarnya dengan tema runtime dan data demo pada artefak CI, masing-masing1080×1920 RGB tanpa alpha. Tinjau kembali terhadap perangkat Android sebelum mengunggah; jangan memakai foto pengujian pengguna yang mengandung email/data keuangan pribadi. Minimal dua screenshot telepon. Tidak ada gambar mockup seluruh layar yang diterapkan sebagai halaman aplikasi.
 
 Release notes:
 Versi pertama Spenva untuk Google Play: pencatatan lokal lewat chat, suara dan foto struk; laporan periode dan PDF; backup Drive pilihan; kontrol privasi dan penghapusan data; fondasi paket AI melalui Google Play.
+
+
+Alt text aset (≤140 karakter):
+- Store icon: Logo Spenva berupa gelembung percakapan ungu dengan aksen biru.
+- Feature graphic: Spenva, pencatatan keuangan melalui chat, suara, foto struk dan laporan.
+- 01-sign-in: Halaman awal Spenva dengan pilihan masuk Google atau menggunakan mode lokal tanpa akun.
+- 02-chat: Catatan gaji, nasi goreng dan bensin dalam percakapan Spenva; input pesan, lampiran, kamera dan suara.
+- 03-report: Ringkasan pemasukan, pengeluaran dan saldo pada laporan harian, dengan contoh data demo.
+- 04-calendar: Pemilihan rentang1–3 Oktober pada kalender laporan, dengan pemilih bulan dan tahun.

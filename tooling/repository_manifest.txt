@@ -55,6 +55,7 @@ docs/playstore/DATA_SAFETY.md
 docs/playstore/LAUNCH.md
 docs/playstore/LISTING_ID.md
 docs/playstore/PLANS.md
+docs/playstore/VALIDATION.md
 docs/playstore/feature-graphic.png
 docs/playstore/publication-profile.json
 docs/playstore/store-icon.png
