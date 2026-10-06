@@ -52,7 +52,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       ]))),
       const Text('Harga dan biaya akhir mengikuti Google Play. Langganan diperpanjang otomatis sampai dibatalkan. Batalkan melalui Google Play; akses berlangsung sampai akhir periode yang dibayar. Nama Unlimited tidak berarti AI tanpa kuota: 1.000 jawaban AI per periode. Fitur lokal tetap tanpa batas.'),
       if (billing.message != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(billing.message!)),
-      TextButton(onPressed: () async { try { await billing.restore(); } catch (_) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pemulihan pembelian belum berhasil.'))); } }, child: const Text('Pulihkan pembelian')),
+      TextButton(onPressed: () async { try { await billing.restore(); } catch (_) { if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pemulihan pembelian belum berhasil.'))); } }, child: const Text('Pulihkan pembelian')),
       TextButton(onPressed: () => launchUrl(PlayReleaseConfig.subscriptionsUrl, mode: LaunchMode.externalApplication), child: const Text('Kelola atau batalkan langganan')),
       TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyScreen())), child: const Text('Privasi dan ketentuan')),
     ]),

@@ -15,11 +15,10 @@ class OpenAiCompatibleAiProvider
   OpenAiCompatibleAiProvider({
     AiSecureConfigService? config,
     http.Client? client,
-    Future<String?> Function()? idTokenProvider,
+    this._idTokenProvider,
     this.requestAiConsent,
     GoogleSignInCoordinator? googleSignInCoordinator,
   })  : _legacyConfig = config,
-        _idTokenProvider = idTokenProvider,
         _client = client ?? http.Client(),
         _googleSignInCoordinator =
             googleSignInCoordinator ?? GoogleSignInCoordinator.instance;
