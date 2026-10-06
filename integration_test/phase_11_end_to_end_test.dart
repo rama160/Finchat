@@ -30,6 +30,7 @@ void main() {
     expect(find.byTooltip('Input suara'), findsOneWidget);
     final input = find.byKey(const ValueKey('chat_input'));
     await tester.enterText(input, 'nasi goreng 10 ribu dan bakso 5 ribu dan gaji 7 juta');
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Proses transaksi'));
     await tester.pumpAndSettle();
     final database = FinChatDatabase(); final db = await database.database;
