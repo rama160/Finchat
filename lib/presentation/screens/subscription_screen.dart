@@ -31,6 +31,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     try { await billing.buy(product); }
     catch (error) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString().replaceFirst('Bad state: ', '')))); }
   }
+  String _price(PlanOffer plan) {
+    final product = billing.product(plan.productId!);
+    if (product == null) return formatRupiah(plan.suggestedRupiah);
+    return product.currencyCode == 'IDR' ? formatRupiah(product.rawPrice) : product.price;
+  }
   @override Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Paket Spenva')),
     body: ListView(padding: const EdgeInsets.all(16), children: [
@@ -41,7 +46,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       for (final plan in planCatalog) Card(child: Padding(padding: const EdgeInsets.all(18), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Text(plan.tier == SubscriptionTier.unlimited ? 'Unlimited • fair use' : plan.tier.displayName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
-        Text(plan.tier == SubscriptionTier.free ? 'Gratis' : '${billing.product(plan.productId!)?.price ?? formatRupiah(plan.suggestedRupiah)} / bulan', style: const TextStyle(fontSize: 20)),
+        Text(plan.tier == SubscriptionTier.free ? 'Gratis' : '${_price(plan)} / bulan', style: const TextStyle(fontSize: 20)),
         if (plan.aiRequests > 0) Text('${plan.aiRequests} jawaban AI per periode langganan; tidak diakumulasikan.'),
         const SizedBox(height: 8), Text(plan.description),
         if (plan.tier != SubscriptionTier.free) ...[

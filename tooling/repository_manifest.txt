@@ -10,10 +10,12 @@ CHANGELOG.md
 README.md
 UPDATE_GITHUB.bat
 analysis_options.yaml
+assets/brand/GOOGLE_ASSET_SOURCE.txt
 assets/brand/android_foreground.png
 assets/brand/android_foreground.svg
 assets/brand/android_icon.png
 assets/brand/android_icon.svg
+assets/brand/google-g.png
 assets/brand/header.png
 assets/brand/header.svg
 assets/brand/mark.png

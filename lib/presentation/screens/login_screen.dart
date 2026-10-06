@@ -60,9 +60,9 @@ class _LoginScreenState extends State<LoginScreen> {
           const Row(children: [SizedBox(width: 32, height: 32, child: SpenvaLogo(markOnly: true)), SizedBox(width: 10), Expanded(child: Text('Tercatat · Makanan dan minuman · Rp 18.000', style: TextStyle(fontSize: 12))), Icon(Icons.check_circle_outline, color: Colors.teal)]),
         ])),
         const SizedBox(height: 28),
-        SizedBox(width: double.infinity, child: FilledButton(onPressed: session.isBusy ? null : _loginWithGoogle,
+        SizedBox(width: double.infinity, child: FilledButton(style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: const Color(0xff1f1f1f), side: const BorderSide(color: Color(0xff747775)), textStyle: const TextStyle(fontFamily: 'GoogleSans', fontWeight: FontWeight.w500)), onPressed: session.isBusy ? null : _loginWithGoogle,
           child: Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(children: [
-            const CircleAvatar(radius: 17, backgroundColor: Colors.white, child: Text('G', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.blue))),
+            Image.asset('assets/brand/google-g.png', width: 20, height: 20, fit: BoxFit.contain, excludeFromSemantics: true),
             const SizedBox(width: 12), Expanded(child: Text(session.isBusy ? 'Menghubungkan…' : 'Lanjut dengan Google')), const Icon(Icons.arrow_forward),
           ])))),
         const SizedBox(height: 18),
