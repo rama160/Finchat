@@ -1,7 +1,9 @@
 // Separate from the pilot gateway. Deployment requires Play Console, a billed
 // Gemini project, a Publisher API service account, KV and a Durable Object.
+import {catalog} from './plans.generated.mjs';
+import {metered} from './meter.mjs';
 export const PACKAGE = 'com.finchat.finchat';
-export const PLANS = Object.freeze({finchat_basic_monthly: {tier:'basic',limit:100}, finchat_pro_monthly:{tier:'pro',limit:300}, finchat_unlimited_monthly:{tier:'unlimited',limit:1000}});
+export const PLANS = Object.freeze(Object.fromEntries(catalog.flatMap(p=>Object.entries(p.products).map(([cycle,id])=>[id,{tier:p.tier,limit:p.ai,cycle}]))));
 const enc = new TextEncoder();
 const b64 = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes))).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');
 const unb64 = text => Uint8Array.from(atob(text.replaceAll('-','+').replaceAll('_','/')), c=>c.charCodeAt(0));
@@ -11,10 +13,12 @@ const json = (value,status=200) => new Response(JSON.stringify(value),{status, h
 export function evaluatePurchase(purchase, accountId, now=Date.now()) {
   if (!['SUBSCRIPTION_STATE_ACTIVE','SUBSCRIPTION_STATE_IN_GRACE_PERIOD','SUBSCRIPTION_STATE_CANCELED'].includes(purchase.subscriptionState)) throw new Fault(403,'subscription_inactive');
   if (purchase.externalAccountIdentifiers?.obfuscatedExternalAccountId !== accountId) throw new Fault(403,'account_mismatch');
-  const lines = (purchase.lineItems ?? []).filter(x=>PLANS[x.productId] && x.offerDetails?.basePlanId === 'monthly' && x.autoRenewingPlan && Date.parse(x.expiryTime)>now);
+  const valid = (purchase.lineItems ?? []).filter(x=>PLANS[x.productId] && x.offerDetails?.basePlanId === PLANS[x.productId].cycle && x.autoRenewingPlan && Number.isFinite(Date.parse(x.expiryTime)));
+  if(valid.length===1 && Date.parse(valid[0].expiryTime)<=now)throw new Fault(403,'subscription_inactive');
+  const lines = valid.filter(x=>Date.parse(x.expiryTime)>now);
   if (lines.length !== 1) throw new Fault(403,'invalid_product_or_expiry');
   const line=lines[0];
-  return {active:true, accountId, tier:PLANS[line.productId].tier, limit:PLANS[line.productId].limit, productId:line.productId, expiresAt:line.expiryTime};
+  return {active:true, accountId, tier:PLANS[line.productId].tier, limit:PLANS[line.productId].limit, productId:line.productId, expiresAt:line.expiryTime, startsAt: purchase.startTime ?? new Date(now - 86400000).toISOString(), basePlan:PLANS[line.productId].cycle, status:purchase.subscriptionState.replace('SUBSCRIPTION_STATE_','').replace('IN_GRACE_PERIOD','GRACE_PERIOD')};
 }
 let jwksCache, oauthCache;
 async function identity(request, env, net) {
@@ -55,6 +59,7 @@ export async function verifyPurchase(token,account,env,net=fetch) {
   const response=await net(base+'subscriptionsv2/tokens/'+encodeURIComponent(token),{headers});
   if(!response.ok) throw new Fault(response.status===404 || response.status===410 ? 403:503,'purchase_verification_failed');
   const purchase=await response.json(), entitlement=evaluatePurchase(purchase,account);
+  if(!purchase.startTime || !Number.isFinite(Date.parse(purchase.startTime))) throw new Fault(503,'billing_anchor_missing');
   if(purchase.acknowledgementState!=='ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED') {
     const ack=await net(base+'subscriptions/'+entitlement.productId+'/tokens/'+encodeURIComponent(token)+':acknowledge',{method:'POST',headers,body:'{}'});
     if(!ack.ok) throw new Fault(503,'purchase_acknowledgement_failed');
@@ -65,6 +70,24 @@ export class Quota {
   constructor(state) { this.state=state; }
   async fetch(request) {
     const input=await request.json();
+    if(input.action==='token') {
+      if(input.token) {
+        await this.state.storage.put('purchase',input.token);
+        if(Number.isFinite(input.until)) {await this.state.storage.put('purchaseUntil',input.until);await this.state.storage.setAlarm(input.until);}
+      }
+      return json({token:await this.state.storage.get('purchase') ?? null});
+    }
+    if(input.action==='capacity') {
+      return this.state.blockConcurrencyWhile(async()=> {
+        const slots=await this.state.storage.get('capacity') ?? {};
+        for(const [id,at] of Object.entries(slots))if(at<Date.now())delete slots[id];
+        if(input.release)delete slots[input.operationId];
+        else {if(Object.keys(slots).length>=(input.priority?4:2))return json({error:'ai_busy'},429);slots[input.operationId]=Date.now()+45000;}
+        await this.state.storage.put('capacity',slots);return json({ok:true});
+      });
+    }
+    if(input.action==='summary')return json({meter:await this.state.storage.get('meter') ?? null});
+    if(input.resource || ['state','settle','event'].includes(input.action))return metered(this.state,input);
     return this.state.blockConcurrencyWhile(async()=> {
       const key='usage:'+input.cycle, now=Date.now();
       const usage=await this.state.storage.get(key) ?? {count:0,minute:0,rate:0};
@@ -80,8 +103,12 @@ export class Quota {
     });
   }
   async alarm() {
-    const all=await this.state.storage.list({prefix:'usage:'}); let next=Infinity;
+    const purchaseUntil=await this.state.storage.get('purchaseUntil');
+    if(purchaseUntil && purchaseUntil<=Date.now()) {await this.state.storage.delete('purchase');await this.state.storage.delete('purchaseUntil');}
+    const meter=await this.state.storage.get('meter');if(meter && meter.end+30*86400000<Date.now())await this.state.storage.delete('meter');
+    const all=await this.state.storage.list({prefix:'usage:'}); let next=meter?.end+30*86400000>Date.now()?meter.end+30*86400000:Infinity;
     for(const [key,value] of all) { if(value.until<Date.now()) await this.state.storage.delete(key); else next=Math.min(next,value.until); }
+    if(purchaseUntil>Date.now())next=Math.min(next,purchaseUntil);
     if(Number.isFinite(next)) await this.state.storage.setAlarm(Math.min(next,Date.now()+86400000));
   }
 }
@@ -92,11 +119,21 @@ async function readBody(request) {
   const text=new TextDecoder().decode(bytes);
   try {return JSON.parse(text);} catch {throw new Fault(400,'invalid_json');}
 }
-async function quota(env, account, entitlement, token, action) {
+async function objectCall(env,account,input) {
   if(!env.QUOTA) throw new Fault(503,'quota_not_configured');
-  const cycle=await hash(token+'|'+entitlement.expiresAt);
-  return env.QUOTA.get(env.QUOTA.idFromName(account)).fetch('https://internal/',{method:'POST',body:JSON.stringify({cycle,action,limit:entitlement.limit,until:Date.parse(entitlement.expiresAt)+30*86400000})});
+  return env.QUOTA.get(env.QUOTA.idFromName(account)).fetch('https://internal/',{method:'POST',body:JSON.stringify(input)});
 }
+async function accountEntitlement(request,account,env,net) {
+  let token=request.headers.get('X-Play-Purchase-Token');
+  if(!token)token=(await (await objectCall(env,account,{action:'token'})).json()).token;
+  if(!token)return null;
+  try {const entitlement=await verifyPurchase(token,account,env,net);await objectCall(env,account,{action:'token',token,until:Date.parse(entitlement.expiresAt)+30*86400000});return entitlement;}
+  catch(error) {if(error instanceof Fault && error.status===403 && error.message==='subscription_inactive')return null;throw error;}
+}
+async function quota(env,account,entitlement,operationId,action) {
+  return objectCall(env,account,{action:action==='refund'?'settle':action,resource:action==='reserve'?'ai':undefined,operationId,success:action==='refund'?false:true,entitlement});
+}
+const education = Object.freeze({budget:'Jelaskan konsep anggaran pribadi secara umum tanpa data individu.',emergency:'Jelaskan konsep dana darurat secara umum tanpa data individu.',saving:'Jelaskan kebiasaan menabung secara umum tanpa data individu.'});
 async function gemini(prompt,env,net) {
   const base='https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite';
   const headers={'Content-Type':'application/json','x-goog-api-key':env.GEMINI_API_KEY};
@@ -120,6 +157,7 @@ export async function handle(request,env,net=fetch) {
       if(!env.FEEDBACK) throw new Fault(503,'reporting_not_configured');
       const page=await env.FEEDBACK.list({prefix:'report:',cursor:new URL(request.url).searchParams.get('cursor') ?? undefined,limit:50});
       const reports=await Promise.all(page.keys.map(async key=>({id:key.name,report:await env.FEEDBACK.get(key.name,'json')})));
+      reports.sort((a,b)=>Number(b.report?.priority===true)-Number(a.report?.priority===true));
       return json({reports,cursor:page.list_complete?null:page.cursor});
     }
     if(request.method!=='POST') throw new Fault(404,'not_found');
@@ -129,7 +167,9 @@ export async function handle(request,env,net=fetch) {
       const body=await readBody(request);
       if(typeof body.reason!=='string' || !body.reason.trim() || body.reason.length>500 || (body.question!=null && (typeof body.question!=='string'||body.question.length>5000)) || (body.answer!=null && (typeof body.answer!=='string'||body.answer.length>10000))) throw new Fault(400,'invalid_report');
       const key='report:'+account+':'+crypto.randomUUID();
-      await env.FEEDBACK.put(key,JSON.stringify({reason:body.reason,question:body.question,answer:body.answer,createdAt:new Date().toISOString()}),{expirationTtl:30*86400});
+      const member=env.QUOTA ? await accountEntitlement(request,account,env,net) : null;
+      const priority=catalog.find(p=>p.tier===member?.tier)?.priority===true;
+      await env.FEEDBACK.put(key,JSON.stringify({priority,tier:member?.tier ?? 'free',reason:body.reason,question:body.question,answer:body.answer,createdAt:new Date().toISOString()}),{expirationTtl:30*86400});
       return json({received:true},201);
     }
     if(path==='/v1/delete-self') {
@@ -140,15 +180,40 @@ export async function handle(request,env,net=fetch) {
       return json({deleted:true,quotaRetention:'current_subscription_end_plus_30_days'});
     }
     if(path==='/v1/purchases/verify') {
-      const body=await readBody(request); return json(await verifyPurchase(body.purchaseToken,account,env,net));
+      const body=await readBody(request); const entitlement=await verifyPurchase(body.purchaseToken,account,env,net);await objectCall(env,account,{action:'token',token:body.purchaseToken,until:Date.parse(entitlement.expiresAt)+30*86400000});return json(entitlement);
+    }
+    if(path.startsWith('/v1/quota/')) {
+      const action=path.split('/').at(-1),body=await readBody(request);
+      if(!['state','reserve','settle','event'].includes(action))throw new Fault(404,'not_found');
+      if(body.resource==='ai')throw new Fault(403,'ai_server_only');
+      const entitlement=await accountEntitlement(request,account,env,net);
+      const result=await objectCall(env,account,{action,entitlement,resource:body.resource,operationId:body.operationId,success:body.success,event:body.event});
+      if(action==='state' && result.ok)return json({...await result.json(),personalAiEnabled:env.PAID_AI_CONFIRMED==='true',educationAiEnabled:env.UNPAID_EDUCATION_ENABLED==='true',entitlement});
+      return result;
     }
     if(path==='/v1/ai/chat') {
-      if(env.PAID_AI_CONFIRMED!=='true' || !env.GEMINI_API_KEY) throw new Fault(503,'paid_ai_not_configured');
-      const token=request.headers.get('X-Play-Purchase-Token'); const entitlement=await verifyPurchase(token,account,env,net);
-      const body=await readBody(request); if(!Array.isArray(body.messages) || body.messages.length!==1 || body.messages[0]?.role!=='user' || typeof body.messages[0].text!=='string' || body.messages[0].text.length>10000) throw new Fault(400,'invalid_prompt');
+      const body=await readBody(request);
+      const paid=env.PAID_AI_CONFIRMED==='true';
+      if(!env.GEMINI_API_KEY || (!paid && (env.UNPAID_EDUCATION_ENABLED!=='true' || !Object.hasOwn(education,body.topic) || body.messages!=null)))throw new Fault(503,'ai_unavailable');
+      if(paid && (!Array.isArray(body.messages) || body.messages.length!==1 || body.messages[0]?.role!=='user' || typeof body.messages[0].text!=='string' || body.messages[0].text.length>10000))throw new Fault(400,'invalid_prompt');
+      const entitlement=await accountEntitlement(request,account,env,net);
+      const prompt=paid?body.messages[0].text:education[body.topic];
+      const token=crypto.randomUUID().replaceAll('-','');
       const reservation=await quota(env,account,entitlement,token,'reserve'); if(!reservation.ok) return reservation;
-      try { return json({text:await gemini(body.messages[0].text,env,net)}); }
-      catch(error) { await quota(env,account,entitlement,token,'refund'); throw error; }
+      if(body.purpose==='category_fallback')await objectCall(env,account,{action:'event',event:'fallback',entitlement});
+      try {
+        const priority=catalog.find(p=>p.tier===entitlement?.tier)?.priority===true;
+        const capacity=await objectCall(env,'global-ai-capacity',{action:'capacity',operationId:token,priority});
+        if(!capacity.ok)throw new Fault(429,'ai_busy');
+        try {const level=catalog.find(p=>p.tier===entitlement?.tier)?.priority ? "Berikan analisis terstruktur, alasan dan langkah praktis berdasarkan data yang tersedia. Jangan mengarang." : "Berikan jawaban ringkas dan praktis. Jangan mengarang.";
+          const text=await gemini(level+"\n"+prompt,env,net);await quota(env,account,entitlement,token,'settle');return json({text});}
+        finally {await objectCall(env,'global-ai-capacity',{action:'capacity',operationId:token,release:true});}
+      }
+      catch(error) {
+        await quota(env,account,entitlement,token,'refund');
+        await objectCall(env,account,{action:'event',event:error?.name==='TimeoutError'?'timeout':error?.status===429?'rate_limit':'ai_error',entitlement});
+        throw error;
+      }
     }
     throw new Fault(404,'not_found');
   } catch(error) { return json({error:error instanceof Fault ? error.message:'service_unavailable'},error instanceof Fault ? error.status:503); }

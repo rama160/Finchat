@@ -1,3 +1,4 @@
+import '../../application/billing/play_billing_service.dart';
 import 'dart:io';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:file_picker/file_picker.dart';
@@ -137,6 +138,7 @@ class _BackupScreenState extends State<BackupScreen> {
     }
 
     await _run(() async {
+      if (!await PlayBillingService.instance.hasFeature('automaticBackup')) throw StateError('Backup otomatis tersedia mulai Plus. Backup manual tetap dapat digunakan.');
       final client = await _googleAuth.authorizeDrive();
       _backup = BackupService(_database, cloudProvider: GoogleDriveBackupProvider(drive.DriveApi(client)), restoreUserId: widget.userId, restoreUserEmail: widget.email);
       await _backup.backupToCloud();

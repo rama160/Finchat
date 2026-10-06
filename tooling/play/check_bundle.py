@@ -12,7 +12,7 @@ def elf_alignments(data):
 def check_manifest(xml):
     root=ET.fromstring(xml);a='{http://schemas.android.com/apk/res/android}'
     assert root.get('package')=='com.finchat.finchat','Application ID changed'
-    assert root.get(a+'versionCode')=='17','Unexpected version code'
+    assert root.get(a+'versionCode')=='18','Unexpected version code'
     sdk=root.find('uses-sdk');assert int(sdk.get(a+'targetSdkVersion'))>=36,'Target SDK below 36'
     assert int(sdk.get(a+'minSdkVersion'))==24,'Unexpected minimum SDK'
     app=root.find('application');assert app.get(a+'debuggable','false')=='false','Debuggable release'

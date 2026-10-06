@@ -1,3 +1,5 @@
+> Paket final dan batas Voice/Scan/AI/PDF: lihat SUBSCRIPTION.md. Jangan mengiklankan Voice/Scan/PDF gratis tanpa batas atau personalAIunpaid.
+
 # Materi listing Bahasa Indonesia — Spenva
 
 Status: draf untuk ditinjau pemilik. Jangan menyatakan AI aktif sebelum katalog dan backend produksi berhasil diuji.
@@ -24,7 +26,7 @@ Spenva membantu mencatat pemasukan dan pengeluaran dengan bahasa sehari-hari. Tu
 
 Fungsi pencatatan, laporan, OCR dan PDF tersedia dalam paket Free. Pengenal suara mengikuti ketersediaan layanan perangkat dan mungkin membutuhkan internet. Hasil suara dan struk perlu diperiksa.
 
-Setelah paket AI dibuka untuk pembelian, Basic, Pro dan Unlimited menambahkan jawaban AI cloud untuk pertanyaan yang belum dapat dijawab lokal. Kuota per periode bulanan: Basic 100, Pro 300 dan Unlimited 1.000 jawaban AI. Unlimited memiliki batas fair use AI tersebut; fitur lokal tetap tanpa batas. Harga final dan perpanjangan otomatis ditampilkan Google Play sebelum konfirmasi. Langganan dapat dibatalkan melalui Google Play. Data untuk AI diproses setelah persetujuanmu.
+Paket Plus, Pro dan Max menambahkan kuota Voice dan Scan yang lebih besar, grafik perbandingan, PDF lengkap dan backup otomatis. Batas bulanan Voice/Scan/AI: Free 10/5/5; Plus 100/100/50; Pro 500/500/200; Max 1.500/1.500/500. Paket tahunan mendapat pembaruan kuota bulanan. AI cloud hanya tersedia setelah layanan diaktifkan dan persetujuan diberikan; AI pribadi tidak memakai API unpaid. Harga final dan perpanjangan otomatis ditampilkan Google Play sebelum konfirmasi. Langganan dapat dibatalkan melalui Google Play; akses tetap berlaku sampai periode yang dibayar berakhir.
 
 Spenva merupakan alat pencatatan keuangan pribadi, bukan bank, pemberi pinjaman, atau layanan investasi. Saran bukan pengganti nasihat profesional. Data yang belum dicatat tidak bisa disimpulkan oleh aplikasi.
 

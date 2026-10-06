@@ -1,3 +1,4 @@
+import '../../application/billing/quota_service.dart';
 import '../../core/formatting/rupiah.dart';
 import '../widgets/spenva_brand.dart';
 import 'dart:async';
@@ -79,6 +80,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   bool _picking = false;
   bool _processing = false;
   bool _voiceConsumePending = false;
+  QuotaLease? _voiceLease;
+  final _quota = SubscriptionQuotaService();
   bool _initialLoadStarted = false;
 
   String? _consentedAccount;
@@ -91,7 +94,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     final allowed = await showDialog<bool>(context: context, builder: (context) => StatefulBuilder(builder: (context, update) => AlertDialog(
       title: const Text('Izinkan AI cloud?'),
       content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Text('Pertanyaan, ringkasan keuangan dan cuplikan maksimal 25 transaksi dikirim melalui Cloudflare ke Google Gemini API berbayar untuk menyiapkan jawaban. Hindari data sensitif yang tidak diperlukan. Persetujuan berlaku selama sesi ini; fungsi lokal tetap tersedia jika Anda menolak.'),
+        const Text('AI edukasi hanya mengirim topik umum, tanpa catatan keuangan. Jika AI pribadi diaktifkan pada layanan yang sesuai, pertanyaan, ringkasan dan maksimal 25 cuplikan transaksi dikirim melalui Cloudflare ke Google Gemini. Hindari data sensitif yang tidak diperlukan. Persetujuan berlaku selama sesi ini; fungsi lokal tetap tersedia jika Anda menolak.'),
         CheckboxListTile(value: adult, onChanged: (value) => update(() => adult = value ?? false), title: const Text('Saya berusia 18 tahun atau lebih dan menyetujui pemrosesan tersebut.')),
       ])), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
         FilledButton(onPressed: adult ? () => Navigator.pop(context, true) : null, child: const Text('Izinkan'))],
@@ -144,6 +147,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       onChanged: () {
         if (!mounted) return;
         setState(() {});
+        if (_voice.status == SpeechSessionStatus.error) {
+          final lease = _voiceLease; _voiceLease = null;
+          unawaited(lease?.finish(false) ?? Future<void>.value());
+        }
         if (_voice.status == SpeechSessionStatus.stopped &&
             _voice.hasFinalResult &&
             _voice.transcript.trim().isNotEmpty &&
@@ -172,6 +179,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     _inputFocus.dispose();
     _chatScroll.dispose();
     unawaited(_ocrProvider?.close().catchError((Object _) {}) ?? Future<void>.value());
+    unawaited(_voiceLease?.finish(false) ?? Future<void>.value());
     unawaited(_voice.cancel().catchError((Object _) {}));
     _database.close();
     super.dispose();
@@ -290,7 +298,17 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     TransactionValidator.validateInput(input);
 
     await _database.ensureUser(userId: session.userId, email: session.email);
-    final results = await _intelligence.process(userId: session.userId, input: input, allowAi: false);
+    var results = await _intelligence.process(userId: session.userId, input: input, allowAi: false);
+    if (source == InputSource.voice && PlayReleaseConfig.billingConfigured && results.any((item) => item.confidence < .85 || item.categoryId == 'lainnya')) {
+      // Only an ambiguous voice result may request a cloud category suggestion.
+      // A failed entitlement/provider check keeps the original local result.
+      try {
+        final state = await PlayBillingService.instance.quotaRequest('state');
+        if (state['personalAiEnabled'] == true) {
+          results = await _intelligence.process(userId: session.userId, input: input, allowAi: true);
+        }
+      } catch (_) { /* Local result remains usable. */ }
+    }
     if (results.isEmpty) {
       throw StateError('Transaksi belum dikenali.');
     }
@@ -315,6 +333,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       ));
     }
     await _transactions.saveAll(transactions);
+    if (PlayReleaseConfig.billingConfigured && results.every((item) => item.processedBy != ProcessedBy.aiFallback)) unawaited(PlayBillingService.instance.quotaRequest('event', event: 'local_success').catchError((Object _) => <String, dynamic>{}));
     await _loadTransactions();
     if (mounted) {
       _showSaved(successMessage.replaceFirst('{count}', '${results.length}'));
@@ -325,6 +344,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   Future<void> _consumeVoiceTranscript() async {
     final input = normalizeVoiceTransactions(_voice.transcript.trim());
     if (input.isEmpty || !mounted) {
+      await _voiceLease?.finish(false); _voiceLease = null;
       _voiceConsumePending = false;
       return;
     }
@@ -334,6 +354,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       try {
         await _voice.cancel();
         if (mounted) await _askInChat(input);
+        await _voiceLease?.finish(true); _voiceLease = null;
       } finally { _voiceConsumePending = false; }
       return;
     }
@@ -345,6 +366,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         source: InputSource.voice,
         successMessage: '{count} transaksi dari suara tersimpan.',
       );
+      await _voiceLease?.finish(true); _voiceLease = null;
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -352,6 +374,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         );
       }
     } finally {
+      await _voiceLease?.finish(false); _voiceLease = null;
       await _voice.cancel();
       _voiceConsumePending = false;
       if (mounted) setState(() => _processing = false);
@@ -366,10 +389,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
 
     try {
+      await _voiceLease?.finish(false);
+      _voiceLease = await _quota.reserve('voice');
       if (_voice.status != SpeechSessionStatus.ready &&
           _voice.status != SpeechSessionStatus.stopped) {
         final available = await _voice.initialize();
         if (!available) {
+          await _voiceLease?.finish(false); _voiceLease = null;
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Pengenalan suara tidak tersedia atau izin mikrofon belum diberikan.')),
@@ -384,6 +410,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         pauseFor: const Duration(seconds: 5),
       );
     } catch (error) {
+      await _voiceLease?.finish(false); _voiceLease = null;
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(inputFailureMessage(error, 'Mikrofon belum dapat digunakan. Periksa izin mikrofon dan coba lagi.'))),
@@ -479,7 +506,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     if (session == null || _processing) return;
 
     setState(() => _processing = true);
+    QuotaLease? lease;
     try {
+      lease = await _quota.reserve('ocr');
       await _database.ensureUser(userId: session.userId, email: session.email);
       final provider = _ocrProvider ??= MlKitReceiptOcrProvider();
       final ocr = ReceiptOcrService(
@@ -498,6 +527,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         return;
       }
 
+      await lease.finish(true); // one successfully read page, independent of item count
+      lease = null;
       final parsed = const ReceiptTransactionParser().parse(result.rawText, lines: result.lines);
       if (parsed.isEmpty) {
         if (mounted) {
@@ -566,8 +597,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       }
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Struk belum berhasil dibaca. Coba foto yang lebih jelas atau masukkan transaksi lewat teks.'), duration: Duration(seconds: 4)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(inputFailureMessage(error, 'Struk belum berhasil dibaca. Coba foto yang lebih jelas atau masukkan transaksi lewat teks.')), duration: const Duration(seconds: 4)));
     } finally {
+      await lease?.finish(false);
       if (mounted) setState(() => _processing = false);
     }
   }

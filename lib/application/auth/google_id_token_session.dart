@@ -28,6 +28,8 @@ class GoogleIdTokenSession {
     }
   }
 
+  String? get cachedToken => _fresh(_token) ? _token : null;
+
   Future<String?> current(Future<String?> Function() restore) async {
     if (_fresh(_token)) return _token;
     final pending = _refresh;

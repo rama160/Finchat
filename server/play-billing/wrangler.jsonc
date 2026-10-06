@@ -4,7 +4,8 @@
   "compatibility_date": "2026-10-01",
   "vars": {
     "GOOGLE_CLIENT_ID": "515697505386-r2ahk5fv1oa93dh6549h25ekllo85rfq.apps.googleusercontent.com",
-    "PAID_AI_CONFIRMED": "false"
+    "PAID_AI_CONFIRMED": "false",
+    "UNPAID_EDUCATION_ENABLED": "false"
   },
   "durable_objects": {"bindings":[{"name":"QUOTA","class_name":"Quota"}]},
   "migrations":[{"tag":"v1","new_sqlite_classes":["Quota"]}],

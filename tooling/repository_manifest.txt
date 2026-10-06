@@ -22,6 +22,7 @@ assets/brand/mark.png
 assets/brand/mark.svg
 assets/brand/sign_in.png
 assets/brand/sign_in.svg
+assets/config/subscription_plans.json
 assets/fonts/DejaVuSans-Bold.ttf
 assets/fonts/DejaVuSans.ttf
 assets/fonts/GoogleSans-Medium.ttf
@@ -55,6 +56,7 @@ docs/playstore/DATA_SAFETY.md
 docs/playstore/LAUNCH.md
 docs/playstore/LISTING_ID.md
 docs/playstore/PLANS.md
+docs/playstore/SUBSCRIPTION.md
 docs/playstore/VALIDATION.md
 docs/playstore/feature-graphic.png
 docs/playstore/publication-profile.json
@@ -70,10 +72,12 @@ lib/application/backup/automatic_backup_service.dart
 lib/application/backup/backup_preference_service.dart
 lib/application/backup/backup_service.dart
 lib/application/backup/google_drive_auth_service.dart
+lib/application/billing/generated_plans.dart
 lib/application/billing/monetization_config.dart
 lib/application/billing/payment_gateway.dart
 lib/application/billing/plan_catalog.dart
 lib/application/billing/play_billing_service.dart
+lib/application/billing/quota_service.dart
 lib/application/billing/subscription_service.dart
 lib/application/ocr/receipt_ocr_service.dart
 lib/application/ocr/receipt_transaction_parser.dart
@@ -147,7 +151,10 @@ lib/presentation/widgets/period_filter.dart
 lib/presentation/widgets/spenva_brand.dart
 pubspec.yaml
 server/play-billing/README.md
+server/play-billing/meter.mjs
+server/play-billing/meter.test.mjs
 server/play-billing/package.json
+server/play-billing/plans.generated.mjs
 server/play-billing/worker.mjs
 server/play-billing/worker.test.mjs
 server/play-billing/wrangler.jsonc
@@ -196,11 +203,13 @@ test/period_calendar_test.dart
 test/play_release_test.dart
 test/play_store_screenshots_test.dart
 test/spenva_device_regression_test.dart
+test/subscription_quota_test.dart
 test/widget_test.dart
 tooling/android/configure_android_ci.py
 tooling/android/proguard-rules.pro
 tooling/play/check_bundle.py
 tooling/play/configure_play.py
+tooling/play/generate_subscription.py
 tooling/play/render_legal.py
 tooling/play/test_check_bundle.py
 tooling/play/write_profile.py

@@ -1,3 +1,7 @@
+## Subscription baseline +18
+
+Lihat ../../docs/playstore/SUBSCRIPTION.md. Enam produk monthly/yearly; katalog generated dari JSON, FREE5AI/10Voice/5Scan, Plus50/100/100, Pro200/500/500, Max500/1500/1500. Endpoint /v1/quota/state,reserve,settle,event memakai ledger perGoogleaccount; AIclient tidak dapatreserve/refund langsung. Reinstall/backup bukanreset. Existingdeploypilot tidak diubah. Gemini unpaid menerima hanya enumtopic tanpa personaldata jika UNPAID_EDUCATION_ENABLED=true; personalAI tetap requiresPAID_AI_CONFIRMED=true explicit. Tidak adaupgradeinfrastructureotomatis. Catatan lama di bawah mempertahankan historibuild+17.
+
 # Spenva Play billing server (prepared, not deployed)
 
 Worker independent of the pilot finchat-ai-gateway. Node24 `node --test worker.test.mjs` runs mocked upstream security/quota tests. It is not evidence of a completed real purchase or billed Google API configuration.

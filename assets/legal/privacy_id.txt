@@ -1,3 +1,5 @@
+Pembaruan subscription 0.3.4+18: kuota Voice, Scan, AI dan ekspor Free terikat akun Google dan disimpan server di luar backup, termasuk periode/status/hashakun. Teks dan laporan dasar tetap dapat digunakan lokal. Fitur metered memerlukan koneksi verifikasi. Ledger saat ini disimpan hingga akhir periode ditambah30hari untuk mencegah reset kuota melalui reinstall/restore. Personal AI tidak dikirim ke Gemini unpaid; opsi edukasi hanya fixedprompt tanpa teks/riwayat pribadi. Harga/kuota mengikuti halaman Paket dan Google Play.
+
 Berlaku untuk Spenva versi 0.3.3 • 6 Oktober 2026
 
 Spenva membantu mencatat keuangan pribadi. Aplikasi bukan bank, layanan pinjaman, investasi, atau pengganti penasihat keuangan. Verifikasi kembali nominal, struk dan saran sebelum mengambil keputusan.

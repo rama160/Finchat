@@ -1,3 +1,6 @@
+> **Subscription baseline 0.3.4+18 — 6 Oktober 2026**
+> Paket/harga/kuota baru dari instruksi pengguna menggantikan penawaran +17: Free/Plus/Pro/Max, bulanan/tahunan, kuota Voice/Scan/AI terpisah dan serverpersisten. Implementasi dan batas aktivasi: [SUBSCRIPTION.md](docs/playstore/SUBSCRIPTION.md). Pembelian/server belum live. Gemini unpaid tidak menerima catatan pribadi; tidak ada paidtierotomatis. Riwayat di bawah dipertahankan.
+
 > **Play Store preparation — 0.3.3+17 (6 Oktober 2026)**
 > Free mempertahankan fungsi lokal yang sudah berjalan. Empat tier disiapkan melalui Google Play Billing; AI Play memerlukan verifikasi server, provider berbayar dan persetujuan18+. Application ID/database/OAuth/Drive tetap. Workflow Play terpisah menyiapkan AAB; publikasi dan pembelian belum aktif karena Play Console, identitas/kontak publik serta konfigurasi produk/provider belum tersedia. Panduan dan status aktual: [docs/playstore/LAUNCH.md](docs/playstore/LAUNCH.md), [paket](docs/playstore/PLANS.md), [data](docs/playstore/DATA_SAFETY.md). Catatan di bawah mempertahankan riwayat pilot, bukan klaim bahwa pembayaran sudah live.
 

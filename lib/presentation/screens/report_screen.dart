@@ -1,3 +1,5 @@
+import '../../application/billing/play_billing_service.dart';
+import '../../application/billing/quota_service.dart';
 import '../../core/formatting/rupiah.dart';
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -75,10 +77,16 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   bool _exporting = false;
+  Future<ReportSummary?> _previousForPremium(ReportSummary current) async {
+    if (!await PlayBillingService.instance.hasFeature('advanced')) return null;
+    final days = current.endExclusive.difference(current.start).inDays;
+    return _reportService.forRange(userId: widget.userId, start: current.start.subtract(Duration(days: days)), end: current.start.subtract(const Duration(days: 1)));
+  }
 
   Future<void> _exportPdf(ReportSummary report) async {
     if (_exporting) return;
     setState(() => _exporting = true);
+    QuotaLease? lease;
     try {
       final title = switch (_period.kind) { PeriodKind.day => 'Laporan Harian', PeriodKind.month => 'Laporan Bulanan', PeriodKind.year => 'Laporan Tahunan', _ => 'Laporan Rentang' };
       final destination = await showDialog<bool>(context: context, builder: (context) => SimpleDialog(
@@ -88,20 +96,24 @@ class _ReportScreenState extends State<ReportScreen> {
         ],
       ));
       if (destination == null) return;
+      lease = await SubscriptionQuotaService().reserve('pdf');
       final bytes = await _reportPdfService.generate(report: report, reportTitle: title);
       if (!mounted) return;
       final filename = reportPdfFileName(title, report.start);
       if (destination) {
         final saved = widget.savePdf != null ? await widget.savePdf!(bytes, filename)
             : await FilePicker.saveFile(fileName: filename, bytes: bytes, mimeType: 'application/pdf', dialogTitle: 'Simpan laporan Spenva');
+        if (saved != null) { await lease.finish(true); lease = null; }
         if (saved != null && mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('PDF tersimpan di lokasi pilihan Anda.')));
       } else {
         if (widget.sharePdf != null) { await widget.sharePdf!(bytes, filename); }
         else { await Printing.sharePdf(bytes: bytes, filename: filename); }
+        await lease.finish(true); lease = null;
       }
     } catch (error) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal membuat PDF: $error')));
     } finally {
+      await lease?.finish(false);
       if (mounted) setState(() => _exporting = false);
     }
   }
@@ -132,7 +144,7 @@ class _ReportScreenState extends State<ReportScreen> {
                   final data = snapshot.data;
                   final report = data?.report;
                   if (report == null) return const _ErrorState(message: 'Data laporan tidak tersedia.');
-                  return _ReportBody(report: report, points: data!.points);
+                  return _ReportBody(report: report, points: data!.points, comparison: _previousForPremium(report));
                 },
               ),
             ),
@@ -143,7 +155,8 @@ class _ReportScreenState extends State<ReportScreen> {
 }
 
 class _ReportBody extends StatelessWidget {
-  const _ReportBody({required this.report, required this.points});
+  const _ReportBody({required this.report, required this.points, this.comparison});
+  final Future<ReportSummary?>? comparison;
   final List<DailyExpense> points;
   final ReportSummary report;
   @override
@@ -159,6 +172,19 @@ class _ReportBody extends StatelessWidget {
       _CategoryChart(report: report),
       const SizedBox(height: 12),
       _DailyExpenseChart(report: report, points: points),
+      if (comparison != null) FutureBuilder<ReportSummary?>(future: comparison, builder: (context, snapshot) {
+        final previous = snapshot.data;
+        if (previous == null) return const SizedBox.shrink();
+        final maximum = math.max(report.expenseTotal, previous.expenseTotal);
+        return Card(child: Padding(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Perbandingan periode', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          for (final entry in [('Sebelumnya', previous.expenseTotal), ('Dipilih', report.expenseTotal)]) ...[
+            Text('${entry.$1}: ${formatRupiah(entry.$2)}'),
+            LinearProgressIndicator(value: maximum == 0 ? 0 : entry.$2 / maximum), const SizedBox(height: 10),
+          ],
+          Text('Dibanding rentang sebelumnya dengan jumlah hari yang sama, pengeluaranmu ${report.expenseTotal >= previous.expenseTotal ? 'bertambah' : 'berkurang'} ${formatRupiah((report.expenseTotal - previous.expenseTotal).abs())}. Perbandingan hanya memakai transaksi yang tercatat.'),
+        ])));
+      }),
     ]);
   }
 }

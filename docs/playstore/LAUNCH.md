@@ -1,3 +1,5 @@
+> Baseline subscription terbaru 0.3.4+18: [SUBSCRIPTION.md](SUBSCRIPTION.md). Buat enam produk monthly/yearly sesuai konfigurasi final. Kuota Voice/Scan/AI memerlukan ledger akun server; fungsi inti tetap lokal. Tidak ada aktivasi infrastruktur berbayar otomatis. Gemini unpaid hanya dapat menerima fixed topic edukasi tanpa informasi pribadi, dan default belum aktif.
+
 # Spenva — persiapan Google Play 0.3.3+17
 
 Aplikasi belum dipublikasikan. Pemilik belum memiliki Play Console dan belum menetapkan penerbit/email dukungan. Paket ini mempersiapkan AAB, materi listing, dokumen data, kode billing dan pemeriksaan teknis. Approval Google, produk berbayar, provider API billed, email/URL publik dan tes perangkat belum dapat dianggap selesai oleh CI.

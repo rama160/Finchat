@@ -1,3 +1,6 @@
+> **Subscription baseline 0.3.4+18 — 6 Oktober 2026**
+> Paket/harga/kuota baru dari instruksi pengguna menggantikan penawaran +17: Free/Plus/Pro/Max, bulanan/tahunan, kuota Voice/Scan/AI terpisah dan serverpersisten. Implementasi dan batas aktivasi: [SUBSCRIPTION.md](docs/playstore/SUBSCRIPTION.md). Pembelian/server belum live. Gemini unpaid tidak menerima catatan pribadi; tidak ada paidtierotomatis. Riwayat di bawah dipertahankan.
+
 ## 0.3.3+17 — Persiapan Play Store
 
 - Added isolated Play AAB profile, targetAPI36/min24, permanent signing requirement and manifest/ELF/ZIP16KB checks.

@@ -1,3 +1,5 @@
+> Subscription 0.3.4+18: paket Free/Plus/Pro/Max, enam produk monthly/yearly, kuota Voice/Scan/AI terpisah dan ledger server. Single source: assets/config/subscription_plans.json. Status aktivasi dan batas provider: [SUBSCRIPTION.md](docs/playstore/SUBSCRIPTION.md). Catatan harga/tier sebelumnya merupakan riwayat.
+
 > **Play Store preparation — 0.3.3+17 (6 Oktober 2026)**
 > Free mempertahankan fungsi lokal yang sudah berjalan. Empat tier disiapkan melalui Google Play Billing; AI Play memerlukan verifikasi server, provider berbayar dan persetujuan18+. Application ID/database/OAuth/Drive tetap. Workflow Play terpisah menyiapkan AAB; publikasi dan pembelian belum aktif karena Play Console, identitas/kontak publik serta konfigurasi produk/provider belum tersedia. Panduan dan status aktual: [docs/playstore/LAUNCH.md](docs/playstore/LAUNCH.md), [paket](docs/playstore/PLANS.md), [data](docs/playstore/DATA_SAFETY.md). Catatan di bawah mempertahankan riwayat pilot, bukan klaim bahwa pembayaran sudah live.
 

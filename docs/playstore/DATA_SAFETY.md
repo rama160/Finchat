@@ -4,10 +4,10 @@ This is an implementation-informed draft, not a completed Console declaration. T
 
 | Data / path | Where and when | Purpose / declaration review |
 | --- | --- | --- |
-| Email, name, Google user identifier | Google sign-in + local profile; ID token reaches paid server after user selects relevant feature | Account management/authentication. Google optional; review Name, Email address, User IDs. Local-only offline placeholder does not create a cloud account. |
+| Email, name, Google user identifier | Google sign-in + local profile; ID token reaches subscription/quota server after user selects relevant feature | Account management/authentication. Google optional; review Name, Email address, User IDs. Local-only offline placeholder does not create a cloud account. |
 | Transaction amount/date/category/description, income/balance | Local SQLite; entire DB to chosen Google Drive account only when backup requested/enabled | App functionality/backup; Financial info → Other financial info; descriptions may contain personal info. Backup may include other local profiles on shared device. |
-| Questions, summaries and ≤25 transaction snippets | Cloudflare → Gemini **Paid API only**, after paid verification + in-app18+/cloud consent | App functionality; Other financial info and Other in-app messages where applicable. Sent off device, optional, no custom server persistence; review Google retention/security terms. |
-| Play purchase token/account hash/expiry/usage | Verification server/Google Play; pseudonymous quota in Durable Object | Purchases/payment authorization/security; Purchase history and User IDs; counter end of cycle+30days, no financial prompts. Google maintains its own purchase records. |
+| Questions, summaries and ≤25 transaction snippets | Cloudflare → Gemini **Paid API only**, after authenticated quota/entitlement verification + in-app18+/cloud consent | App functionality; Other financial info and Other in-app messages where applicable. Sent off device, optional, no custom server persistence; review Google retention/security terms. |
+| Play purchase token/account hash/expiry/Voice-Scan-AI-PDF usage | Verification server/Google Play; pseudonymous quota in Durable Object | Purchases/payment authorization/security; Purchase history and User IDs; counter end of cycle+30days, no financial prompts. Google maintains its own purchase records. |
 | Feedback reason; optionalquestion/answer | FEEDBACK KV after explicit in-app report | Support/content safety;30day retention. Review Other in-app messages/financial info if user deliberately includes them. Operator-only admin endpoint. |
 | Voice | Platform speech recognizer on demand | Local/device service may use network; review Audio files/voice according to actual recognizer and SDK disclosures. Do not promise fully offline speech. Spenva does not upload audio to paid AI. |
 | Receipt photos | Camera/gallery picker → device ML Kit OCR and temporary plugin paths | Device-only image processing is not collection by the app; photos are not sent to AI. Confirm SDK telemetry and temp-file behavior on release device. |
@@ -20,7 +20,9 @@ Account deletion: in-app Privasi dan data, external public deletion page with su
 
 ## App access for reviewers
 
-Free: open app → Gunakan mode offline → Mulai (no email required), enter “gaji5 juta” then “nasi10 ribu dan bakso5 ribu”, ask total, open Laporan, choose period, savePDF. No paid feature needed for these tasks. Use actual spaces in inputs as displayed by examples.
+Metered features on Play require a Google account and server connection, including Free Voice/Scan/PDF. Fixed-topic unpaid education does not forward raw questions/history; personal financial AI stays disabled by default. Successful local batches and fallback/error counters are pseudonymous operational events, without transaction content.
+
+Free: open app → Gunakan mode offline → Mulai (no email required), enter “gaji5 juta” then “nasi10 ribu dan bakso5 ribu”, ask total, open Laporan, choose period. PDF requires quota verification/account; Free has one successful export per month. No paid feature needed for these tasks. Use actual spaces in inputs as displayed by examples.
 
 Cloud features: provide precise Google reviewer access/OAuth test-user setup and license-test accounts through **Console restricted review instructions**, not repository/password logs. Reviewer must have access to AI once enabled without real charge. Explain restore and flag-answer path. Do not give a shared personal Google password; resolve Google's app-access requirements via permitted review/test setup. If OAuth app still test-only, publish/verify OAuth and its requested scopes or add permitted reviewers before submitting.
 

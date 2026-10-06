@@ -29,6 +29,8 @@ class GoogleSignInCoordinator {
 
   void clearAccount() { _account = null; _tokenSession.clear(); }
 
+  String? get cachedIdToken => _tokenSession.cachedToken;
+
   Future<String?> currentIdToken() async {
     await initialize();
     return _tokenSession.current(() async {

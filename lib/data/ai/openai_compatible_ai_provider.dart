@@ -39,7 +39,7 @@ class OpenAiCompatibleAiProvider
   Future<AiCategorySuggestion?> suggestCategory(
     AiCategoryRequest request,
   ) async {
-    final response = await _chat(_categoryPrompt(request));
+    final response = await _chat(_categoryPrompt(request), fallback: true);
 
     if (response == null) {
       return null;
@@ -80,12 +80,13 @@ class OpenAiCompatibleAiProvider
 
   @override
   Future<String?> answer(FinancialAiRequest request) {
-    return _chat(_qaPrompt(request));
+    final topic = switch (request.question.toLowerCase().trim().replaceAll('?', '')) { 'apa itu dana darurat' => 'emergency', 'apa itu anggaran' => 'budget', 'apa itu menabung' => 'saving', _ => null };
+    return _chat(_qaPrompt(request), educationalTopic: topic);
   }
 
   /// Kirim prompt ke Cloudflare Gateway menggunakan Google ID Token.
   /// Gemini API Key tetap hanya berada di server/Gateway.
-  Future<String?> _chat(String prompt) async {
+  Future<String?> _chat(String prompt, {String? educationalTopic, bool fallback = false}) async {
     failureMessage = null;
     try {
       // The production provider is Gateway-first. The old local AI enable
@@ -98,14 +99,17 @@ class OpenAiCompatibleAiProvider
       }
 
       String? purchaseToken;
+      bool educationOnly = false;
       if (PlayReleaseConfig.isPlay) {
         if (!PlayReleaseConfig.billingConfigured) {
           failureMessage = 'Pertanyaan ini memerlukan AI. Paket AI belum diaktifkan; pencatatan dan pertanyaan lokal tetap tersedia.';
           return null;
         }
         final billing = PlayBillingService.instance;
-        if (await billing.verifySavedPurchase() == null) {
-          failureMessage = 'Pertanyaan ini memerlukan paket AI aktif. Fungsi Free tetap tersedia; lihat Paket Spenva di Pengaturan.';
+        final state = await billing.quotaRequest('state');
+        educationOnly = state['personalAiEnabled'] != true;
+        if (educationOnly && educationalTopic == null) {
+          failureMessage = 'AI untuk catatan keuangan belum tersedia. Pencatatan dan pertanyaan lokal tetap dapat digunakan.';
           return null;
         }
         if (requestAiConsent == null || !await requestAiConsent!()) {
@@ -113,7 +117,7 @@ class OpenAiCompatibleAiProvider
           return null;
         }
         purchaseToken = await billing.purchaseToken;
-        if (purchaseToken == null) return null;
+
       }
       final tokenProvider = _idTokenProvider;
       late final String? idToken;
@@ -132,8 +136,9 @@ class OpenAiCompatibleAiProvider
       final text = 'Anda adalah asisten keuangan pribadi. Jangan mengarang data. '
           'Gunakan data aplikasi untuk angka keuangan pengguna. '
           'Untuk klasifikasi kategori, keluarkan JSON yang diminta.\n\n$prompt';
-      final payload = jsonEncode({
+      final payload = jsonEncode(educationOnly ? {'topic': educationalTopic} : {
         'messages': [{'role': 'user', 'text': text}],
+        if (PlayReleaseConfig.isPlay && fallback) 'purpose': 'category_fallback',
         'temperature': 0.1,
         'maxOutputTokens': PlayReleaseConfig.isPlay ? 768 : 1024,
       });

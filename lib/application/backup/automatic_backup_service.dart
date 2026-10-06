@@ -1,3 +1,5 @@
+import '../billing/play_billing_service.dart';
+import '../../core/release/play_release_config.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 
 import '../../data/backup/google_drive_backup_provider.dart';
@@ -20,6 +22,7 @@ class AutomaticBackupService {
 
   Future<bool> runIfEnabled() async {
     if (!await preferences.isAutomaticBackupEnabled()) return false;
+    if (PlayReleaseConfig.isPlay && !await PlayBillingService.instance.hasFeature('automaticBackup')) return false;
     final client = await googleAuth.tryAuthorizeDriveSilently();
     if (client == null) return false;
     final backup = BackupService(

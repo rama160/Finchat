@@ -20,14 +20,15 @@ jobs:
           node-version: '24'
       - name: Check billing server and publication validator
         run: |
-          node --test server/play-billing/worker.test.mjs
+          python3 tooling/play/generate_subscription.py --check
+          node --test server/play-billing/*.test.mjs
           python3 tooling/play/test_check_bundle.py
       - name: Verify application
         run: |
           flutter pub get
           flutter analyze
           flutter test
-          flutter test --dart-define=FINCHAT_DISTRIBUTION=play test/play_release_test.dart
+          flutter test --dart-define=FINCHAT_DISTRIBUTION=play test/play_release_test.dart test/subscription_quota_test.dart
       - name: Capture actual app screens
         run: |
           flutter test --dart-define=CAPTURE_STORE_SCREENSHOTS=true test/play_store_screenshots_test.dart
@@ -117,3 +118,21 @@ jobs:
             build/play/*
             docs/playstore/
           if-no-files-found: error
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Prepare Linux integration host
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev xvfb
+          flutter config --enable-linux-desktop
+          flutter create --platforms=linux --project-name finchat --org com.finchat --no-pub .
+          flutter pub get
+      - name: Run all available integration tests
+        run: xvfb-run -a flutter test integration_test --device-id=linux
