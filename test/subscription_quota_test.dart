@@ -4,7 +4,8 @@ import 'package:finchat/application/billing/play_billing_service.dart';
 import 'package:finchat/application/billing/quota_service.dart';
 import 'package:finchat/domain/billing/subscription_models.dart';
 
-class FakeBilling extends PlayBillingService {
+class FakeBilling implements PlayBillingService {
+  @override dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
   final calls = <Map<String, Object?>>[];
   @override Future<Map<String, dynamic>> quotaRequest(String action, {String? resource, String? operationId, bool? success, String? event, bool backgroundOnly = false}) async {
     calls.add({'action': action, 'resource': resource, 'id': operationId, 'success': success});
