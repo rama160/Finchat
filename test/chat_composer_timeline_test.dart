@@ -63,8 +63,16 @@ void main() {
     final bensin = tester.getTopLeft(find.text('bensin')).dy;
     expect(nasi, lessThan(question));
     expect(question, lessThan(bensin));
+    now = now.add(const Duration(seconds: 1));
+    await tester.enterText(input, 'gaji 5 juta');
+    await tester.testTextInput.receiveAction(TextInputAction.send);
+    await tester.pumpAndSettle();
     final db = await FinChatDatabase().database;
-    expect(await db.query('transactions', where: 'user_id = ?', whereArgs: ['composer@finchat.local']), hasLength(2));
+    final rows = await db.query('transactions', where: 'user_id = ?', whereArgs: ['composer@finchat.local']);
+    expect(rows, hasLength(3));
+    final salary = rows.singleWhere((row) => row['description'] == 'gaji');
+    expect(salary['type'], 'income');
+    expect(salary['amount'], 5000000);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
     await db.close();

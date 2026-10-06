@@ -67,7 +67,7 @@ class _BackupScreenState extends State<BackupScreen> {
       final directory = Directory.systemTemp;
       final file = File('${directory.path}/finchat_backup_${DateTime.now().millisecondsSinceEpoch}.json');
       await file.writeAsBytes(bytes, flush: true);
-      await SharePlus.instance.share(ShareParams(files: [XFile(file.path, mimeType: 'application/json')], subject: 'Backup FinChat'));
+      await SharePlus.instance.share(ShareParams(files: [XFile(file.path, mimeType: 'application/json')], subject: 'Backup Spenva'));
     }, 'Backup lokal dibuat. Simpan file finchat_backup.json di lokasi aman.');
   }
 
@@ -124,7 +124,7 @@ class _BackupScreenState extends State<BackupScreen> {
       final client = await _googleAuth.authorizeDrive();
       _backup = BackupService(_database, cloudProvider: GoogleDriveBackupProvider(drive.DriveApi(client)), restoreUserId: widget.userId, restoreUserEmail: widget.email);
       final restored = await _backup.restoreFromCloud();
-      if (!restored) throw StateError('Belum ada backup FinChat di Google Drive.');
+      if (!restored) throw StateError('Belum ada backup Spenva di Google Drive.');
     }, 'Backup Google Drive berhasil dipulihkan.');
   }
 
@@ -142,7 +142,7 @@ class _BackupScreenState extends State<BackupScreen> {
       await _backup.backupToCloud();
       await _preferences.setAutomaticBackupEnabled(true);
       if (mounted) setState(() => _automatic = true);
-    }, 'Backup otomatis aktif. FinChat akan mencoba backup saat aplikasi dibuka dan setelah data transaksi berubah.');
+    }, 'Backup otomatis aktif. Spenva akan mencoba backup saat aplikasi dibuka dan setelah data transaksi berubah.');
   }
 
   @override

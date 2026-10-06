@@ -1,3 +1,5 @@
+import '../../core/formatting/rupiah.dart';
+import '../widgets/spenva_brand.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
@@ -637,7 +639,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       },
       child: Scaffold(
       appBar: _selectedTab == 0 ? AppBar(
-        title: const Text('FinChat'),
+        title: const SizedBox(width: 145, height: 38, child: SpenvaLogo()),
+        bottom: MediaQuery.viewInsetsOf(context).bottom > 0 ? null : PreferredSize(
+          preferredSize: Size.fromHeight(MediaQuery.textScalerOf(context).scale(48) + 10),
+          child: SpenvaGreeting(displayName: session?.displayName)),
         actions: [
           IconButton(
             onPressed: () async {
@@ -929,7 +934,7 @@ class _EmptyChat extends StatelessWidget {
               Text('Halo ${email.isEmpty ? '' : email}'),
               const SizedBox(height: 8),
               const Text(
-                'Ketik transaksi dengan bahasa sehari-hari. FinChat akan memisahkan beberapa transaksi dan langsung menyimpannya. Anda dapat edit atau hapus setelah tersimpan.',
+                'Ketik transaksi dengan bahasa sehari-hari. Spenva akan memisahkan beberapa transaksi dan langsung menyimpannya. Anda dapat edit atau hapus setelah tersimpan.',
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
@@ -979,5 +984,4 @@ class _Composer extends StatelessWidget {
 }
 
 
-String _money(double value) => 'Rp ${value.toStringAsFixed(0).replaceAllMapped(RegExp(r'(?=(\d{3})+(?!\d))'), (m) => '.') }';
-String _date(DateTime value) => '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';
+String _money(double value) => formatRupiah(value);

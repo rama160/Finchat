@@ -27,8 +27,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('calendar_2026_10_6')), findsOneWidget);
     expect(find.text('Min'), findsOneWidget);
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Rentang'));
-    await tester.pump();
     await tester.tap(find.byKey(const ValueKey('calendar_2026_10_6')));
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('calendar_2026_10_7')));
@@ -48,8 +46,6 @@ void main() {
       await tester.pumpAndSettle();
     }
     await open();
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Rentang'));
-    await tester.pump();
     await tester.tap(find.byKey(const ValueKey('calendar_2026_10_1')));
     await tester.pump();
     await tester.ensureVisible(find.byKey(const ValueKey('calendar_2026_10_31')));
@@ -60,7 +56,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(selected!.kind, PeriodKind.month);
     await open();
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Tahun'));
+    await tester.ensureVisible(find.byKey(const ValueKey('select_whole_year')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('select_whole_year')));
     await tester.pump();
     await tester.tap(find.widgetWithText(FilledButton, 'Pilih'));
     await tester.pumpAndSettle();

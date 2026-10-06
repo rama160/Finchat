@@ -58,7 +58,7 @@ void main() {
     expect(find.text('Pengaturan'), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
-    expect(find.text('FinChat'), findsOneWidget);
+    expect(find.bySemanticsLabel('Spenva'), findsOneWidget);
     await tester.tap(find.byTooltip('Laporan'));
     await tester.pumpAndSettle();
     expect(find.text('Laporan'), findsWidgets);
@@ -68,7 +68,7 @@ void main() {
     expect(find.text('Detail transaksi'), findsNothing);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
-    expect(find.text('FinChat'), findsOneWidget);
+    expect(find.bySemanticsLabel('Spenva'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
     final db = await FinChatDatabase().database;

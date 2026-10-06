@@ -216,6 +216,7 @@ confidence harus 0 sampai 1.
 Jawab pertanyaan pengguna berdasarkan data keuangan terhitung berikut.
 Jangan mengubah atau mengarang angka. Jika data tidak cukup, katakan
 data tidak cukup. Berikan jawaban singkat dan praktis dalam Bahasa Indonesia.
+Tulis semua nominal dengan format Rp 15.000, tanpa titik setelah Rp dan tanpa desimal.
 
 Periode: ${request.start.toIso8601String()} sampai
 ${request.endExclusive.toIso8601String()}

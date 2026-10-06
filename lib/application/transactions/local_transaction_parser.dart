@@ -22,6 +22,17 @@ enum ParsedTransactionType { income, expense }
 class LocalTransactionParser {
   static const _incomeWords = <String>{
     'gaji',
+    'gajian',
+    'salary',
+    'upah',
+    'komisi',
+    'thr',
+    'dividen',
+    'uang masuk',
+    'hasil jual',
+    'hasil penjualan',
+    'pensiun',
+    'insentif',
     'bonus',
     'honor',
     'honorarium',
@@ -89,13 +100,14 @@ class LocalTransactionParser {
   }
 
   ParsedTransactionType _detectType(String context) {
-    if (_incomeWords.any(context.contains)) return ParsedTransactionType.income;
+    if (RegExp(r'\b(bayar|membayar|beli|belanja)\b').hasMatch(context)) return ParsedTransactionType.expense;
+    if (_incomeWords.any((word) => RegExp(r'\b' + RegExp.escape(word) + r'\b').hasMatch(context))) return ParsedTransactionType.income;
     if (_expenseWords.any(context.contains)) return ParsedTransactionType.expense;
     return ParsedTransactionType.expense;
   }
 
   String _detectCategory(String context) {
-    if (context.contains('gaji') || context.contains('honor')) return 'gaji';
+    if (RegExp(r'\b(gaji|gajian|salary|upah|honor|honorarium|thr)\b').hasMatch(context)) return 'gaji';
     if (context.contains('bensin') || context.contains('solar') || context.contains('parkir')) {
       return 'transportasi';
     }

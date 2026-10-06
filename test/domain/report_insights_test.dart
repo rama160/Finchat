@@ -20,19 +20,19 @@ void main() {
     final r = report();
     final insights = reportInsights(r, dailyExpenses(r));
     expect(insights.map((i) => i.title), containsAll(['Arus kas periode ini', 'Ritme belanja', 'Puncak pengeluaran', 'Belanja berulang']));
-    expect(insights[0].text, contains('50.0%'));
+    expect(insights[0].text, contains('masih tersisa Rp 50.000'));
     expect(insights[1].text, contains('Rp 25.000 per hari'));
     expect(insights[1].text, contains('1 hari tanpa pengeluaran'));
     expect(insights.last.text, contains('2 kali'));
-    expect(categoryChartCaption(r), contains('100.0% (Rp 50.000)'));
+    expect(categoryChartCaption(r), contains('Seluruh pengeluaranmu, Rp 50.000'));
   });
   test('single-day caption compares two bars while period total excludes prior day', () {
     final r = report(singleDay: true);
     final points = expenseChartPoints(r, previousDayExpense: 82000);
     final caption = dailyChartCaption(r, points);
-    expect(caption, contains('1/10/2026: Rp 82.000'));
-    expect(caption, contains('Turun 39.0%'));
-    expect(caption, contains('Total periode terpilih: Rp 50.000'));
+    expect(caption, contains('Sehari sebelumnya tercatat Rp 82.000'));
+    expect(caption, contains('turun 39%'));
+    expect(caption, contains('2 Oktober 2026, kamu mengeluarkan Rp 50.000'));
     expect(reportInsights(r, points).any((i) => i.title == 'Perubahan harian'), isTrue);
     expect(expenseComparison(0, 50000), isNot(contains('Infinity')));
     expect(reportInsights(report(income: 0), []).first.text, contains('Belum ada pemasukan tercatat'));

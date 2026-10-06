@@ -19,12 +19,15 @@ class GoogleSignInCoordinator {
   String? _serverClientId;
   Future<void>? _initialization;
   final GoogleIdTokenSession _tokenSession = GoogleIdTokenSession();
+  GoogleSignInAccount? _account;
+  GoogleSignInAccount? get currentAccount => _account;
 
   void rememberAccount(GoogleSignInAccount account) {
+    _account = account;
     _tokenSession.remember(account.authentication.idToken);
   }
 
-  void clearAccount() => _tokenSession.clear();
+  void clearAccount() { _account = null; _tokenSession.clear(); }
 
   Future<String?> currentIdToken() async {
     await initialize();

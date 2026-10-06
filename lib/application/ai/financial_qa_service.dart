@@ -1,3 +1,4 @@
+import '../../core/formatting/rupiah.dart';
 import '../../domain/ai/financial_ai_provider.dart';
 import '../../domain/reports/report_models.dart';
 import '../../domain/entities/transaction_entity.dart';
@@ -19,7 +20,7 @@ class FinancialQaService {
       final message = (provider as FinancialAiAvailability).failureMessage;
       if (message != null) return message;
     }
-    return answer ?? 'Pertanyaan belum dapat dijawab secara lokal dan AI tidak tersedia. Coba pertanyaan seperti total pengeluaran, pemasukan, saldo, jumlah transaksi, atau kategori pengeluaran terbesar.';
+    return answer == null ? 'Pertanyaan belum dapat dijawab secara lokal dan AI tidak tersedia. Coba pertanyaan seperti total pengeluaran, pemasukan, saldo, jumlah transaksi, atau kategori pengeluaran terbesar.' : normalizeRupiahText(answer);
   }
 
   String? _answerLocally(String question, ReportSummary report) {
@@ -62,8 +63,5 @@ class FinancialQaService {
     return null;
   }
 
-  String _money(double value) {
-    final digits = value.round().toString();
-    return 'Rp ${digits.replaceAllMapped(RegExp(r'(?=(\d{3})+(?!\d))'), (match) => '.')}';
-  }
+  String _money(double value) => formatRupiah(value);
 }

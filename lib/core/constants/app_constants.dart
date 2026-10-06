@@ -1,4 +1,4 @@
 abstract final class AppConstants {
-  static const appName = 'FinChat';
-  static const appVersion = '0.3.2+14';
+  static const appName = 'Spenva';
+  static const appVersion = '0.3.2+15';
 }

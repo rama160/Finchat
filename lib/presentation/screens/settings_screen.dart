@@ -85,7 +85,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Card(
             child: ListTile(
               leading: const Icon(Icons.workspace_premium_outlined),
-              title: const Text('FinChat Premium'),
+              title: const Text('Spenva Premium'),
               subtitle: const Text('4 tier (Free, Basic, Pro, Unlimited) disiapkan. Pembayaran masih dimatikan selama pilot.'),
               trailing: const Icon(Icons.lock_outline),
             ),
@@ -106,7 +106,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.update),
             title: const Text('Periksa pembaruan'),
-            subtitle: const Text('Memeriksa GitHub Releases FinChat.'),
+            subtitle: const Text('Memeriksa GitHub Releases Spenva.'),
             trailing: const Icon(Icons.chevron_right),
             onTap: _checkForUpdate,
           ),
@@ -114,7 +114,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ListTile(
               leading: const Icon(Icons.logout),
               title: const Text('Keluar'),
-              subtitle: const Text('Hapus sesi FinChat dari perangkat ini.'),
+              subtitle: const Text('Hapus sesi Spenva dari perangkat ini.'),
               onTap: () => SessionScope.of(context).logout(),
             ),
           if (_updateCheck != null)
@@ -143,7 +143,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   return const Card(
                     child: ListTile(
                       leading: Icon(Icons.check_circle_outline),
-                      title: Text('FinChat sudah versi terbaru'),
+                      title: Text('Spenva sudah versi terbaru'),
                     ),
                   );
                 }

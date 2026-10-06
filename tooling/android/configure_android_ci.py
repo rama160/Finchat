@@ -1,4 +1,6 @@
 from pathlib import Path
+import re
+import shutil
 
 ROOT = Path(__file__).resolve().parents[2]
 ANDROID = ROOT / 'android'
@@ -142,7 +144,31 @@ def configure_manifest() -> None:
     if 'android:allowBackup=' not in text:
         text = text.replace('<application', '<application android:allowBackup="false"', 1)
 
+    text = re.sub(r'android:label="[^"]*"', 'android:label="Spenva"', text, count=1)
     MANIFEST.write_text(text, encoding='utf-8')
+
+
+def configure_branding() -> None:
+    icon = ROOT / 'assets' / 'brand' / 'android_icon.png'
+    if not icon.exists():
+        raise SystemExit('Bundled Spenva Android icon is missing')
+    res = APP / 'src' / 'main' / 'res'
+    for density in ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi']:
+        target = res / f'mipmap-{density}'
+        target.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(icon, target / 'ic_launcher.png')
+    values = res / 'values'
+    values.mkdir(parents=True, exist_ok=True)
+    (values / 'spenva_colors.xml').write_text('<resources><color name="spenva_background">#555D91</color></resources>')
+    drawable = res / 'drawable'
+    drawable.mkdir(parents=True, exist_ok=True)
+    (drawable / 'spenva_foreground.xml').write_text('''<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="256" android:viewportHeight="256">
+<path android:strokeColor="#F9F7FD" android:strokeWidth="24" android:strokeLineCap="round" android:pathData="M163,82 L110,82 C78,82 78,120 110,120 L140,120 C173,120 173,160 140,160 L96,160 L77,175"/>
+<path android:strokeColor="#21A5DE" android:strokeWidth="15" android:strokeLineCap="round" android:pathData="M111,100 L145,100"/>
+</vector>''')
+    adaptive = res / 'mipmap-anydpi-v26'
+    adaptive.mkdir(parents=True, exist_ok=True)
+    (adaptive / 'ic_launcher.xml').write_text('<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android"><background android:drawable="@color/spenva_background"/><foreground android:drawable="@drawable/spenva_foreground"/></adaptive-icon>')
 
 
 def main() -> None:
@@ -151,6 +177,7 @@ def main() -> None:
     RULES_TARGET.write_text(RULES_SOURCE.read_text(encoding='utf-8'), encoding='utf-8')
     configure_gradle()
     configure_manifest()
+    configure_branding()
     print('Android CI configuration applied successfully.')
 
 

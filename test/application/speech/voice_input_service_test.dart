@@ -69,6 +69,7 @@ void main() {
     final service = VoiceInputService(provider);
     await service.initialize();
     await service.startListening();
+    await Future<void>.delayed(const Duration(milliseconds: 450));
     expect(service.status, SpeechSessionStatus.stopped);
     expect(service.hasFinalResult, isFalse);
     provider.onResult(const SpeechRecognitionResult(text: 'nasi 10 ribu', isFinal: true));
@@ -88,6 +89,7 @@ void main() {
 
     expect(provider.localeId, 'id_ID');
     expect(changes, greaterThan(0));
+    await Future<void>.delayed(const Duration(milliseconds: 450));
     expect(service.status, SpeechSessionStatus.stopped);
   });
 
@@ -101,6 +103,7 @@ void main() {
     expect(provider.listenCalls, 1);
     expect(service.transcript, 'beli makan 25 ribu');
     expect(service.confidence, 0.91);
+    await Future<void>.delayed(const Duration(milliseconds: 450));
     expect(service.status, SpeechSessionStatus.stopped);
   });
 
@@ -113,6 +116,7 @@ void main() {
     // behavior is unnecessary for verifying the guard contract.
     await service.stopListening();
     expect(provider.stopCalls, 0);
+    await service.cancel();
   });
 
   test('late final result after cancel cannot repopulate an old transcript', () async {
