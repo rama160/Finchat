@@ -93,10 +93,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Card(
             child: ListTile(
               leading: const Icon(Icons.workspace_premium_outlined),
-              title: const Text('FinChat Premium'),
-              subtitle: const Text('4 tier (Free, Basic, Pro, Unlimited) disiapkan. Pembayaran masih dimatikan selama pilot.'),
-              trailing: const Icon(Icons.lock_outline),
+              title: const Text('Spenva Premium'),
+              subtitle: const Text('Paket Free, Plus, Pro, dan Max. Pembelian diaktifkan setelah konfigurasi Play Console selesai.'),
+              trailing: const Icon(Icons.workspace_premium_outlined),
             ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.manage_accounts_outlined),
+            title: const Text('Kelola langganan'),
+            subtitle: const Text('Kelola atau batalkan langganan melalui Google Play.'),
+            trailing: const Icon(Icons.open_in_new),
+            onTap: () => launchUrl(Uri.parse('https://play.google.com/store/account/subscriptions'), mode: LaunchMode.externalApplication),
           ),
           if (session != null)
             ListTile(
