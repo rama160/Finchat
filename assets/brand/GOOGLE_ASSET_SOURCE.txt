@@ -3,3 +3,5 @@ https://developers.google.com/static/identity/images/g-logo.png
 https://developers.google.com/identity/branding-guidelines
 SHA256 d1ce9c2af0b10a7333abc99bc706f9a6a199e5b65bf3e3009624f076b8638e6a
 Use only for Google sign-in action according to Google branding guidelines.
+
+Google Sans Medium500 Latin/Latin-1 subset (OFL1.1) from official google/fonts GoogleSans[GRAD,opsz,wght].ttf. Source git blob SHA a5e76cc713206f1cfe9a7fc31cc1b6f035034d81, instantiated wght500/GRAD0/opsz14 with fontTools4.60.1. License bundled assets/fonts/GoogleSans-OFL.txt.

@@ -6,33 +6,6 @@ on:
 permissions:
   contents: read
 jobs:
-  official-font-preparation:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Prepare bundled Google Sans Medium from official source
-        run: |
-          pip install fonttools==4.60.1
-          curl --fail --location --retry 3 -o /tmp/google-sans.ttf 'https://raw.githubusercontent.com/google/fonts/main/ofl/googlesans/GoogleSans%5BGRAD%2Copsz%2Cwght%5D.ttf'
-          curl --fail --location --retry 3 -o GoogleSans-OFL.txt https://raw.githubusercontent.com/google/fonts/main/ofl/googlesans/OFL.txt
-          python3 - <<'PYFONT'
-          from pathlib import Path
-          import hashlib
-          from fontTools.ttLib import TTFont
-          from fontTools.varLib.instancer import instantiateVariableFont
-          from fontTools import subset
-          data=Path('/tmp/google-sans.ttf').read_bytes()
-          assert hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest() == 'a5e76cc713206f1cfe9a7fc31cc1b6f035034d81'
-          font=instantiateVariableFont(TTFont('/tmp/google-sans.ttf'),{'wght':500,'GRAD':0,'opsz':14})
-          options=subset.Options();options.name_IDs=['*'];options.name_legacy=True
-          tool=subset.Subsetter(options=options);tool.populate(unicodes=range(0x20,0x100));tool.subset(font);font.save('GoogleSans-Medium.ttf')
-          PYFONT
-      - uses: actions/upload-artifact@v4
-        with:
-          name: official-google-sans-subset
-          path: |
-            GoogleSans-Medium.ttf
-            GoogleSans-OFL.txt
-          if-no-files-found: error
   prepare:
     runs-on: ubuntu-latest
     timeout-minutes: 35

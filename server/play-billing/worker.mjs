@@ -101,10 +101,12 @@ async function gemini(prompt,env,net) {
   const base='https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite';
   const headers={'Content-Type':'application/json','x-goog-api-key':env.GEMINI_API_KEY};
   const contents=[{role:'user',parts:[{text:prompt}]}];
-  const count=await net(base+':countTokens',{method:'POST',headers,body:JSON.stringify({contents})});
+  const count=await net(base+':countTokens',{method:'POST',headers,signal:AbortSignal.timeout(10000),body:JSON.stringify({contents})});
   if(!count.ok) throw new Fault(503,'ai_unavailable');
-  if((await count.json()).totalTokens>4096) throw new Fault(413,'input_token_limit');
-  const answer=await net(base+':generateContent',{method:'POST',headers,body:JSON.stringify({contents,generationConfig:{temperature:0.1,maxOutputTokens:768,thinkingConfig:{thinkingBudget:0}}})});
+  const tokens=(await count.json()).totalTokens;
+  if(!Number.isFinite(tokens) || tokens<1) throw new Fault(503,'invalid_token_count');
+  if(tokens>4096) throw new Fault(413,'input_token_limit');
+  const answer=await net(base+':generateContent',{method:'POST',headers,signal:AbortSignal.timeout(25000),body:JSON.stringify({contents,generationConfig:{temperature:0.1,maxOutputTokens:768,thinkingConfig:{thinkingBudget:0}}})});
   if(!answer.ok) throw new Fault(503,'ai_unavailable');
   const data=await answer.json(); const text=data.candidates?.[0]?.content?.parts?.map(x=>x.text ?? '').join('').trim();
   if(!text) throw new Fault(503,'ai_no_answer'); return text;

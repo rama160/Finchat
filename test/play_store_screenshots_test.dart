@@ -16,9 +16,11 @@ import 'package:finchat/presentation/screens/chat_screen.dart';
 void main() {
   testWidgets('capture actual Spenva screens with demo finances', (tester) async {
     await tester.runAsync(() async {
-      for (final (name,file) in [('SpenvaSans','DejaVuSans.ttf'),('SpenvaSans','DejaVuSans-Bold.ttf')]) {
-        final loader=FontLoader(name)..addFont(rootBundle.load('assets/fonts/$file'));await loader.load();
-      }
+      final bodyFont=FontLoader('SpenvaSans')
+        ..addFont(rootBundle.load('assets/fonts/DejaVuSans.ttf'))
+        ..addFont(rootBundle.load('assets/fonts/DejaVuSans-Bold.ttf'));
+      await bodyFont.load();
+      final googleFont=FontLoader('GoogleSans')..addFont(rootBundle.load('assets/fonts/GoogleSans-Medium.ttf'));await googleFont.load();
       sqfliteFfiInit();databaseFactory=databaseFactoryFfiNoIsolate;
       final directory=await Directory.systemTemp.createTemp('spenva_store_demo_');await databaseFactory.setDatabasesPath(directory.path);
     });

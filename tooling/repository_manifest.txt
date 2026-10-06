@@ -24,6 +24,8 @@ assets/brand/sign_in.png
 assets/brand/sign_in.svg
 assets/fonts/DejaVuSans-Bold.ttf
 assets/fonts/DejaVuSans.ttf
+assets/fonts/GoogleSans-Medium.ttf
+assets/fonts/GoogleSans-OFL.txt
 assets/fonts/LICENSE.txt
 assets/legal/privacy_id.txt
 docs/AI_CONTRACT.md

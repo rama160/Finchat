@@ -76,3 +76,11 @@ test('feedback is stored, requires real backend, deletion preserves other users'
   assert.equal(values.size,2); assert.equal((await handle(await request('/v1/delete-self'),{...env,FEEDBACK:feedback},network())).status,200);assert.equal(values.size,1);assert.ok(values.has('report:other:one'));
   assert.equal((await handle(await request('/v1/feedback',{reason:'Wrong answer'}),env,network())).status,503);
 });
+test('malformed or oversized input token counts prevent generation and refund quota',async()=> {
+  for(const tokens of [undefined,5000]) {
+    const quota=fakeQuota(),calls=[];const net=network(undefined,calls);
+    const bounded=async(url,options)=>url.endsWith(':countTokens')?Response.json({totalTokens:tokens}):net(url,options);
+    const response=await handle(await request('/v1/ai/chat',{messages:[{role:'user',text:'Question'}]}),{...env,PAID_AI_CONFIRMED:'true',GEMINI_API_KEY:'paid',QUOTA:quota.binding},bounded);
+    assert.equal(response.status,tokens===undefined?503:413);assert.equal([...quota.values.values()][0].count,0);assert.equal(calls.filter(x=>x.url.endsWith(':generateContent')).length,0);
+  }
+});
