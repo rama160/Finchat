@@ -1,3 +1,6 @@
+> **Play Store preparation — 0.3.3+17 (6 Oktober 2026)**
+> Free mempertahankan fungsi lokal yang sudah berjalan. Empat tier disiapkan melalui Google Play Billing; AI Play memerlukan verifikasi server, provider berbayar dan persetujuan18+. Application ID/database/OAuth/Drive tetap. Workflow Play terpisah menyiapkan AAB; publikasi dan pembelian belum aktif karena Play Console, identitas/kontak publik serta konfigurasi produk/provider belum tersedia. Panduan dan status aktual: [docs/playstore/LAUNCH.md](docs/playstore/LAUNCH.md), [paket](docs/playstore/PLANS.md), [data](docs/playstore/DATA_SAFETY.md). Catatan di bawah mempertahankan riwayat pilot, bukan klaim bahwa pembayaran sudah live.
+
 ## Verified GitHub CI — Spenva 0.3.2+16 (6 Oktober 2026)
 
 - Kode/aset teruji pada commit `b85997e29533040e483036cabf3153dca6a8a548`, branch `codex/finchat-input-navigation-audit`. Commit dokumentasi setelahnya tidak mengubah runtime/aset.

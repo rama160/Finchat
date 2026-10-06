@@ -86,7 +86,10 @@ export class Quota {
   }
 }
 async function readBody(request) {
-  const text=await request.text(); if(enc.encode(text).length>20000) throw new Fault(413,'payload_too_large');
+  const reader=request.body?.getReader(); const chunks=[]; let size=0;
+  if(reader) { while(true) { const {value,done}=await reader.read(); if(done) break;size+=value.length;if(size>20000) {await reader.cancel();throw new Fault(413,'payload_too_large');}chunks.push(value); } }
+  const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks) {bytes.set(chunk,offset);offset+=chunk.length;}
+  const text=new TextDecoder().decode(bytes);
   try {return JSON.parse(text);} catch {throw new Fault(400,'invalid_json');}
 }
 async function quota(env, account, entitlement, token, action) {
@@ -148,4 +151,4 @@ export async function handle(request,env,net=fetch) {
     throw new Fault(404,'not_found');
   } catch(error) { return json({error:error instanceof Fault ? error.message:'service_unavailable'},error instanceof Fault ? error.status:503); }
 }
-export default {fetch:handle};
+export default {fetch(request, env) { return handle(request, env); }};

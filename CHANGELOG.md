@@ -1,3 +1,11 @@
+## 0.3.3+17 — Persiapan Play Store
+
+- Added isolated Play AAB profile, targetAPI36/min24, permanent signing requirement and manifest/ELF/ZIP16KB checks.
+- Added real Google Play purchase flow with server verification/account binding; four-tier pricing/quotas are proposed, not live products. Free remains local on Play with no pilot/Unpaid AI fallback.
+- Added cloud-AI18+/data consent, in-app report endpoint, privacy/terms and explicit account/Drive deletion protected against queued backups.
+- Added listing assets, launch/data-safety/subscription guides and public legal-page generator requiring publisher/contact.
+- Production activation remains blocked on owner Play Console, publisher/contact/HTTPS policy URLs, billed provider and real billing/device verification.
+
 ## Verified GitHub CI — Spenva 0.3.2+16 (6 Oktober 2026)
 
 - Kode/aset teruji pada commit `b85997e29533040e483036cabf3153dca6a8a548`, branch `codex/finchat-input-navigation-audit`. Commit dokumentasi setelahnya tidak mengubah runtime/aset.

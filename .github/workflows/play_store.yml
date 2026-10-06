@@ -28,6 +28,10 @@ jobs:
           flutter analyze
           flutter test
           flutter test --dart-define=FINCHAT_DISTRIBUTION=play test/play_release_test.dart
+      - name: Capture app screens and retrieve official Google sign-in logo
+        run: |
+          flutter test --dart-define=CAPTURE_STORE_SCREENSHOTS=true test/play_store_screenshots_test.dart
+          curl --fail --location --retry 3 -o build/play/google-g.png https://developers.google.com/static/identity/images/g-logo.png
       - name: Generate Android platform
         run: |
           if [ ! -f android/app/build.gradle ] && [ ! -f android/app/build.gradle.kts ]; then
