@@ -109,7 +109,7 @@ class _ReportScreenState extends State<ReportScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
-          title: const Row(children: [SizedBox(width: 34, height: 34, child: SpenvaLogo(markOnly: true)), SizedBox(width: 10), Text('Laporan', style: TextStyle(fontWeight: FontWeight.bold))]),
+          title: const Row(children: [SizedBox(width: 34, height: 34, child: SpenvaLogo(markOnly: true)), SizedBox(width: 10), Expanded(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text('Laporan', style: TextStyle(fontWeight: FontWeight.bold))))]),
           actions: [IconButton(tooltip: 'Ekspor PDF', onPressed: _exporting ? null : () async {
             final future = _reportFuture;
             if (future == null) return;

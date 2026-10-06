@@ -126,6 +126,7 @@ test/application/backup_preference_service_test.dart
 test/application/backup_service_test.dart
 test/application/backup_snapshot_validation_test.dart
 test/application/cloud_acknowledgement_test.dart
+test/application/drive_silent_auth_test.dart
 test/application/financial_qa_service_test.dart
 test/application/google_id_token_session_test.dart
 test/application/input_intent_test.dart
