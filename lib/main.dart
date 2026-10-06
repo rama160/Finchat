@@ -33,7 +33,7 @@ class FinChatApp extends StatelessWidget {
     return SessionScope(
       sessionManager: sessionManager,
       child: MaterialApp.router(
-        title: 'FinChat',
+        title: 'Spenva',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
