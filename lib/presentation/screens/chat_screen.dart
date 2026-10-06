@@ -333,11 +333,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       ));
     }
     await _transactions.saveAll(transactions);
-    if (PlayReleaseConfig.billingConfigured) {
+    if (PlayReleaseConfig.billingConfigured && session.authProvider == 'google') {
       final local = results.where((item) => item.processedBy != ProcessedBy.aiFallback).length;
       final cloud = results.length - local;
-      if (local > 0) unawaited(PlayBillingService.instance.quotaRequest('event', event: 'local_success', count: local).catchError((Object _) => <String, dynamic>{}));
-      if (cloud > 0) unawaited(PlayBillingService.instance.quotaRequest('event', event: 'cloud_success', count: cloud).catchError((Object _) => <String, dynamic>{}));
+      if (local > 0) unawaited(PlayBillingService.instance.quotaRequest('event', event: 'local_success', count: local, backgroundOnly: true).catchError((Object _) => <String, dynamic>{}));
+      if (cloud > 0) unawaited(PlayBillingService.instance.quotaRequest('event', event: 'cloud_success', count: cloud, backgroundOnly: true).catchError((Object _) => <String, dynamic>{}));
     }
     await _loadTransactions();
     if (mounted) {
@@ -395,7 +395,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
     try {
       await _voiceLease?.finish(false);
-      _voiceLease = await _quota.reserve('voice');
+      _voiceLease = await _quota.reserve('voice', accountLinked: SessionScope.of(context).session?.authProvider == 'google');
       if (_voice.status != SpeechSessionStatus.ready &&
           _voice.status != SpeechSessionStatus.stopped) {
         final available = await _voice.initialize();
@@ -513,7 +513,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     setState(() => _processing = true);
     QuotaLease? lease;
     try {
-      lease = await _quota.reserve('ocr');
+      lease = await _quota.reserve('ocr', accountLinked: SessionScope.of(context).session?.authProvider == 'google');
       await _database.ensureUser(userId: session.userId, email: session.email);
       final provider = _ocrProvider ??= MlKitReceiptOcrProvider();
       final ocr = ReceiptOcrService(
@@ -749,7 +749,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           NavigationDestination(icon: Icon(Icons.chat_bubble_outline), label: 'Input', tooltip: 'Input'),
           NavigationDestination(icon: Icon(Icons.analytics_outlined), label: 'Laporan', tooltip: 'Laporan'),
         ]),
-      body: _selectedTab == 1 && session != null ? ReportScreen(userId: session.userId) : SafeArea(
+      body: _selectedTab == 1 && session != null ? ReportScreen(userId: session.userId, accountLinked: session.authProvider == 'google') : SafeArea(
         child: Column(
           children: [
             Expanded(

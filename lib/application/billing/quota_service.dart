@@ -1,5 +1,6 @@
 import 'dart:math';
 import '../../core/release/play_release_config.dart';
+import '../../core/errors/input_failure_message.dart';
 import 'play_billing_service.dart';
 
 /// Server ledger is outside SQLite/Drive backup. No local reset or entitlement grant.
@@ -20,7 +21,8 @@ class QuotaLease {
 class SubscriptionQuotaService {
   SubscriptionQuotaService({this.billing});
   final PlayBillingService? billing;
-  Future<QuotaLease> reserve(String resource) async {
+  Future<QuotaLease> reserve(String resource, {bool accountLinked = true}) async {
+    if (PlayReleaseConfig.isPlay && !accountLinked) throw const UserFacingException('Masuk dengan Google untuk memakai kuota Voice, Scan dan PDF. Teks dan laporan dasar tetap tersedia offline.');
     final id = '${DateTime.now().microsecondsSinceEpoch}_${Random.secure().nextInt(1 << 30)}';
     final service = PlayReleaseConfig.isPlay ? billing ?? PlayBillingService.instance : billing;
     if (PlayReleaseConfig.isPlay) await service!.quotaRequest('reserve', resource: resource, operationId: id);

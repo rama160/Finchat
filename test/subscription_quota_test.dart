@@ -4,6 +4,7 @@ import 'package:finchat/application/billing/play_billing_service.dart';
 import 'package:finchat/application/billing/quota_service.dart';
 import 'package:finchat/domain/billing/subscription_models.dart';
 import 'package:finchat/core/release/play_release_config.dart';
+import 'package:finchat/core/errors/input_failure_message.dart';
 
 class FakeBilling implements PlayBillingService {
   @override dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -15,6 +16,11 @@ class FakeBilling implements PlayBillingService {
 }
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('offline Play profile cannot start account authentication from a quota gate', () async {
+    final billing = FakeBilling();
+    await expectLater(SubscriptionQuotaService(billing: billing).reserve('voice', accountLinked: false), throwsA(isA<UserFacingException>()));
+    expect(billing.calls, isEmpty);
+  }, skip: !PlayReleaseConfig.isPlay);
   test('pilot quota layer does not initialize billing or change the existing flow', () async {
     final lease = await SubscriptionQuotaService().reserve('voice');
     expect(lease.enforced, false);

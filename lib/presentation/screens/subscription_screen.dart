@@ -18,13 +18,22 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   Map<String, dynamic>? usage;
   String? quotaMessage;
   String? _usageEntitlement;
+  bool _loaded = false;
   @override void initState() {
     super.initState(); billing = PlayBillingService.instance;
     billing.addListener(_changed);
     billing.initialize().catchError((Object _) { if (mounted) setState(() {}); });
-    _loadUsage();
+  }
+  @override void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_loaded) { _loaded = true; _loadUsage(); }
   }
   Future<void> _loadUsage() async {
+    if (!mounted) return;
+    if (SessionScope.of(context).session?.authProvider != 'google') {
+      setState(() => quotaMessage = 'Masuk dengan Google untuk melihat kuota akun. Fungsi lokal tetap tersedia.');
+      return;
+    }
     try {final value = await billing.quotaRequest('state'); if (mounted) setState(() { usage = value; quotaMessage = null; _usageEntitlement = _entitlementKey; });}
     catch (_) {if (mounted) setState(() => quotaMessage = 'Masuk dengan Google dan hubungkan layanan kuota untuk melihat pemakaian.');}
   }

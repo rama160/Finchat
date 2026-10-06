@@ -23,8 +23,9 @@ import '../../domain/reports/report_insights.dart';
 import '../widgets/period_filter.dart';
 
 class ReportScreen extends StatefulWidget {
-  const ReportScreen({super.key, required this.userId, this.savePdf, this.sharePdf});
+  const ReportScreen({super.key, required this.userId, this.savePdf, this.sharePdf, this.accountLinked = false});
   final String userId;
+  final bool accountLinked;
   final Future<Uri?> Function(Uint8List bytes, String filename)? savePdf;
   final Future<void> Function(Uint8List bytes, String filename)? sharePdf;
   @override
@@ -80,7 +81,7 @@ class _ReportScreenState extends State<ReportScreen> {
   bool _exporting = false;
   Future<ReportSummary?> _previousForPremium(ReportSummary current) async {
     if (!PlayReleaseConfig.isPlay) return null;
-    if (!await PlayBillingService.instance.hasFeature('advanced')) return null;
+    if (!widget.accountLinked || !await PlayBillingService.instance.hasFeature('advanced', backgroundOnly: true)) return null;
     final days = current.endExclusive.difference(current.start).inDays;
     return _reportService.forRange(userId: widget.userId, start: current.start.subtract(Duration(days: days)), end: current.start.subtract(const Duration(days: 1)));
   }
@@ -98,7 +99,7 @@ class _ReportScreenState extends State<ReportScreen> {
         ],
       ));
       if (destination == null) return;
-      lease = await SubscriptionQuotaService().reserve('pdf');
+      lease = await SubscriptionQuotaService().reserve('pdf', accountLinked: widget.accountLinked);
       final bytes = await _reportPdfService.generate(report: report, reportTitle: title);
       if (!mounted) return;
       final filename = reportPdfFileName(title, report.start);
