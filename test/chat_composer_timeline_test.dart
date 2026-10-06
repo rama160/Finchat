@@ -60,17 +60,17 @@ void main() {
     expect(tester.getRect(input), rect);
     tester.view.resetViewInsets();
     await tester.pumpAndSettle();
-    final scroll = tester.widget<ListView>(find.byKey(const PageStorageKey('chat_timeline'))).controller!;
-    // On a small screen the earlier message is correctly outside the lazy viewport.
-    // Compare adjacent entries at each end, rather than requiring all chats onscreen.
-    scroll.jumpTo(scroll.position.maxScrollExtent);
+    // Keyboard stability is checked on the small viewport above. Expand only
+    // for simultaneous coordinate comparisons of all lazy-list chat entries.
+    await tester.binding.setSurfaceSize(const Size(800, 1400));
     await tester.pumpAndSettle();
-    expect(tester.getTopLeft(find.text('nasi')).dy,
-      lessThan(tester.getTopLeft(find.text('berapa pengeluaran hari ini?')).dy));
-    scroll.jumpTo(0);
+    final nasi = tester.getTopLeft(find.text('nasi')).dy;
+    final question = tester.getTopLeft(find.text('berapa pengeluaran hari ini?')).dy;
+    final bensin = tester.getTopLeft(find.text('bensin')).dy;
+    expect(nasi, lessThan(question));
+    expect(question, lessThan(bensin));
+    await tester.binding.setSurfaceSize(const Size(360, 780));
     await tester.pumpAndSettle();
-    expect(tester.getTopLeft(find.text('berapa pengeluaran hari ini?')).dy,
-      lessThan(tester.getTopLeft(find.text('bensin')).dy));
     now = now.add(const Duration(seconds: 1));
     await tester.enterText(input, 'gaji 5 juta');
     await tester.testTextInput.receiveAction(TextInputAction.send);
