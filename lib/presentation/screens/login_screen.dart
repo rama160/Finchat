@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../main.dart';
 import '../widgets/spenva_brand.dart';
+import 'privacy_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -72,6 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
         const SizedBox(height: 12),
         const Text('Mulai tanpa akun. Data tersimpan di perangkat.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Color(0xff76768b))),
         const SizedBox(height: 20),
+        TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyScreen())), child: const Text('Privasi dan ketentuan')),
         const Text('Backup Google Drive dapat diaktifkan setelah masuk.', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: Color(0xff76768b))),
       ]))),
     )))));

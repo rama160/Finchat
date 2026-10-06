@@ -2,6 +2,7 @@
 .github/workflows/build_android.yml
 .github/workflows/finchat_audit_validation.yml
 .github/workflows/flutter_test.yml
+.github/workflows/play_store.yml
 .github/workflows/release.yml
 .gitignore
 Ai start here.md
@@ -22,6 +23,7 @@ assets/brand/sign_in.svg
 assets/fonts/DejaVuSans-Bold.ttf
 assets/fonts/DejaVuSans.ttf
 assets/fonts/LICENSE.txt
+assets/legal/privacy_id.txt
 docs/AI_CONTRACT.md
 docs/ARCHITECTURE.md
 docs/AUDIT_0.3.2+11.md
@@ -45,6 +47,7 @@ docs/PRD.md
 docs/ROADMAP_AUDIT.md
 docs/UPDATE_RELEASE.md
 docs/VOICE_INPUT.md
+docs/playstore/publication-profile.json
 integration_test/phase_11_end_to_end_test.dart
 lib/application/ai/ai_secure_config_service.dart
 lib/application/ai/financial_qa_service.dart
@@ -58,9 +61,14 @@ lib/application/backup/backup_service.dart
 lib/application/backup/google_drive_auth_service.dart
 lib/application/billing/monetization_config.dart
 lib/application/billing/payment_gateway.dart
+lib/application/billing/plan_catalog.dart
+lib/application/billing/play_billing_service.dart
 lib/application/billing/subscription_service.dart
 lib/application/ocr/receipt_ocr_service.dart
 lib/application/ocr/receipt_transaction_parser.dart
+lib/application/privacy/account_data_service.dart
+lib/application/privacy/data_operation_gate.dart
+lib/application/privacy/drive_data_deletion.dart
 lib/application/reports/report_pdf_service.dart
 lib/application/reports/report_service.dart
 lib/application/session/session_manager.dart
@@ -73,6 +81,7 @@ lib/core/constants/app_constants.dart
 lib/core/errors/app_failure.dart
 lib/core/errors/input_failure_message.dart
 lib/core/formatting/rupiah.dart
+lib/core/release/play_release_config.dart
 lib/core/validation/transaction_validator.dart
 lib/data/ai/openai_compatible_ai_provider.dart
 lib/data/backup/google_drive_backup_provider.dart
@@ -117,13 +126,19 @@ lib/presentation/screens/backup_screen.dart
 lib/presentation/screens/chat_screen.dart
 lib/presentation/screens/financial_qa_screen.dart
 lib/presentation/screens/login_screen.dart
+lib/presentation/screens/privacy_screen.dart
 lib/presentation/screens/receipt_review_screen.dart
 lib/presentation/screens/report_screen.dart
 lib/presentation/screens/settings_screen.dart
 lib/presentation/screens/splash_screen.dart
+lib/presentation/screens/subscription_screen.dart
 lib/presentation/widgets/period_filter.dart
 lib/presentation/widgets/spenva_brand.dart
 pubspec.yaml
+server/play-billing/package.json
+server/play-billing/worker.mjs
+server/play-billing/worker.test.mjs
+server/play-billing/wrangler.jsonc
 test/application/automatic_backup_service_test.dart
 test/application/backup_preference_service_test.dart
 test/application/backup_service_test.dart
@@ -166,8 +181,13 @@ test/domain/spoken_money_test.dart
 test/domain/update_service_test.dart
 test/navigation_back_test.dart
 test/period_calendar_test.dart
+test/play_release_test.dart
 test/spenva_device_regression_test.dart
 test/widget_test.dart
 tooling/android/configure_android_ci.py
 tooling/android/proguard-rules.pro
+tooling/play/check_bundle.py
+tooling/play/configure_play.py
+tooling/play/test_check_bundle.py
+tooling/play/write_profile.py
 tooling/repository_manifest.txt

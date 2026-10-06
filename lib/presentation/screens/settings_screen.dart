@@ -7,6 +7,9 @@ import '../../data/update/github_release_update_provider.dart';
 import '../../domain/update/app_update.dart';
 import '../../main.dart';
 import 'backup_screen.dart';
+import 'subscription_screen.dart';
+import 'privacy_screen.dart';
+import '../../core/release/play_release_config.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -77,19 +80,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: ListTile(
                 leading: Icon(Icons.cloud_done_outlined),
                 title: Text('AI melalui Cloudflare Gateway'),
-                subtitle: Text('AI menggunakan Gateway terpusat. Gemini API key disimpan di server dan tidak perlu dimasukkan ke aplikasi.'),
+                subtitle: Text(PlayReleaseConfig.isPlay ? 'Free menggunakan fungsi lokal. AI cloud memerlukan paket Google Play aktif dan persetujuan Anda.' : 'AI menggunakan Gateway terpusat. Gemini API key disimpan di server dan tidak perlu dimasukkan ke aplikasi.'),
               ),
             ),
           ],
           const Divider(),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.workspace_premium_outlined),
-              title: const Text('Spenva Premium'),
-              subtitle: const Text('4 tier (Free, Basic, Pro, Unlimited) disiapkan. Pembayaran masih dimatikan selama pilot.'),
-              trailing: const Icon(Icons.lock_outline),
-            ),
-          ),
+          Card(child: ListTile(leading: const Icon(Icons.workspace_premium_outlined), title: const Text('Paket Spenva'),
+            subtitle: const Text('Free, Basic, Pro dan Unlimited.'), trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionScreen())))),
+          ListTile(leading: const Icon(Icons.privacy_tip_outlined), title: const Text('Privasi dan data'), trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyScreen()))),
           if (session != null)
             ListTile(
               leading: const Icon(Icons.backup_outlined),
@@ -106,9 +106,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.update),
             title: const Text('Periksa pembaruan'),
-            subtitle: const Text('Memeriksa GitHub Releases Spenva.'),
+            subtitle: Text(PlayReleaseConfig.isPlay ? 'Buka pembaruan di Google Play.' : 'Memeriksa GitHub Releases Spenva.'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: _checkForUpdate,
+            onTap: PlayReleaseConfig.isPlay ? () => launchUrl(PlayReleaseConfig.storeUrl, mode: LaunchMode.externalApplication) : _checkForUpdate,
           ),
           if (session != null)
             ListTile(

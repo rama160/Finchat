@@ -1,3 +1,4 @@
+import '../privacy/data_operation_gate.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -79,7 +80,9 @@ class BackupService {
     });
   }
 
-  Future<void> backupToCloud() async {
+  Future<void> backupToCloud() => DataOperationGate.backup(_backupToCloud);
+
+  Future<void> _backupToCloud() async {
     final provider = cloudProvider;
     if (provider == null) {
       throw StateError('Cloud backup provider belum dikonfigurasi.');

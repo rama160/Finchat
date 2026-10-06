@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'core/release/play_release_config.dart';
+import 'application/billing/play_billing_service.dart';
 
 import 'application/auth/google_auth_service.dart';
 import 'application/auth/google_sign_in_coordinator.dart';
@@ -22,6 +25,7 @@ Future<void> main() async {
   );
   await sessionManager.initialize();
   runApp(FinChatApp(sessionManager: sessionManager));
+  if (PlayReleaseConfig.isPlay) unawaited(PlayBillingService.instance.initialize().catchError((Object _) {}));
 }
 
 class FinChatApp extends StatelessWidget {

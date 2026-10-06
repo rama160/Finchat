@@ -1,0 +1,25 @@
+Berlaku untuk Spenva versi 0.3.3 • 6 Oktober 2026
+
+Spenva membantu mencatat keuangan pribadi. Aplikasi bukan bank, layanan pinjaman, investasi, atau pengganti penasihat keuangan. Verifikasi kembali nominal, struk dan saran sebelum mengambil keputusan.
+
+Data di perangkat
+Transaksi, deskripsi, tanggal, kategori, pembelajaran kategori dan profil disimpan dalam database SQLite di perangkat. Database ini tidak memakai enkripsi khusus aplikasi. Token sesi dan pembelian disimpan melalui penyimpanan aman perangkat. Aplikasi tidak memakai iklan atau SDK analitik. Foto struk dibaca dengan ML Kit di perangkat; gambar tidak dikirim ke layanan AI oleh Spenva. Hasil OCR perlu diperiksa. Suara menggunakan layanan pengenal suara perangkat; layanan tersebut dapat memproses suara di server sesuai pengaturan dan kebijakan penyedianya. Izin kamera dan mikrofon digunakan hanya saat Anda memilih fiturnya.
+
+Google dan backup
+Masuk dengan Google membagikan identitas akun, nama dan email kepada aplikasi untuk menghubungkan profil. Mode lokal dapat digunakan tanpa akun. Backup Google Drive bersifat pilihan dan memuat database aplikasi, termasuk profil lokal lain yang ada di perangkat. Backup berada dalam folder data aplikasi di Drive akun yang Anda pilih. Hanya aktifkan backup pada perangkat dan akun yang Anda percayai. PDF atau backup yang Anda ekspor menjadi salinan milik Anda. Komunikasi cloud memakai HTTPS. Penyedia layanan dapat memproses metadata koneksi untuk keamanan.
+
+AI dan langganan versi Play Store
+Free memproses pencatatan, OCR dan pertanyaan yang didukung secara lokal. AI cloud hanya tersedia setelah langganan Google Play diverifikasi oleh server, persetujuan pemrosesan diberikan, dan penyedia API berbayar dikonfigurasi. Pertanyaan, ringkasan pemasukan/pengeluaran/saldo dan cuplikan maksimal 25 transaksi dikirim melalui Cloudflare ke Google Gemini API berbayar. Jangan memasukkan nomor rekening, kartu, sandi atau informasi sensitif yang tidak diperlukan. Kami tidak menyimpan isi permintaan/jawaban AI pada server aplikasi, kecuali Anda memilih melampirkannya dalam laporan. Penyedia dapat menyimpan log keamanan sesuai ketentuannya. Identitas Google, token pembelian, masa aktif dan penghitung kuota diproses untuk memverifikasi hak akses dan mencegah penyalahgunaan. Aplikasi tidak menggunakan endpoint AI gratis/pilot pada versi Play Store.
+
+Pembayaran ditangani Google Play. Harga final, periode bulanan dan perpanjangan otomatis ditampilkan oleh Google Play sebelum konfirmasi. Pembayaran tidak dikelola oleh Spenva melalui transfer atau dompet digital eksternal. Kuota AI per periode: Basic 100, Pro 300, Unlimited 1.000. Nama Unlimited merujuk pada fungsi lokal tanpa batas; AI mempunyai batas fair use yang ditampilkan. Kuota tidak dibawa ke periode berikutnya. Permintaan AI yang gagal tidak mengurangi kuota. Batalkan langganan melalui Google Play; menghapus akun atau aplikasi tidak membatalkan langganan.
+
+Laporan jawaban
+Anda dapat melaporkan jawaban dari dalam aplikasi. Alasan laporan dan, hanya jika Anda memilihnya, salinan pertanyaan/jawaban dikirim ke pengelola layanan untuk ditinjau. Laporan disimpan paling lama 30 hari. Jangan sertakan informasi pribadi yang tidak perlu.
+
+Penghapusan dan retensi
+Menu Privasi dan data menyediakan penghapusan eksplisit transaksi, pembelajaran dan profil akun aktif dari perangkat. Profil lain tetap ada. Pilihan penghapusan Drive membersihkan data akun aktif dari semua backup aplikasi yang ditemukan. Bila penghapusan cloud gagal, proses lokal belum diteruskan. Logout tidak menghapus transaksi. Salinan ekspor, perangkat lain, dan salinan yang Anda bagikan harus dihapus sendiri. Laporan pada server dihapus atas permintaan. Catatan kuota pseudonim dapat dipertahankan sampai akhir periode langganan ditambah 30 hari untuk mencegah penyalahgunaan; catatan tidak memuat transaksi atau pertanyaan. Google mengelola catatan pembayarannya sendiri.
+
+Permintaan penghapusan tanpa menginstal ulang tersedia melalui halaman penghapusan publik dan kontak penerbit yang dicantumkan pada versi publik. Identitas penerbit, kontak, URL privasi dan penghapusan harus dilengkapi sebelum aplikasi diterbitkan. Tidak ada kontak pribadi pengguna yang dipublikasikan oleh build persiapan.
+
+Usia dan persetujuan
+Fitur AI ditujukan untuk pengguna berusia minimal 18 tahun. Mengaktifkan AI membutuhkan konfirmasi usia serta persetujuan pemrosesan cloud. Fitur lokal tetap tersedia jika Anda tidak menyetujui AI. Perubahan material kebijakan akan disertai pembaruan persetujuan. Gunakan aplikasi secara sah dan jangan mengirim konten berbahaya atau data orang lain tanpa izin.

@@ -4,6 +4,8 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 
 import '../../application/ai/ai_secure_config_service.dart';
+import '../../application/billing/play_billing_service.dart';
+import '../../core/release/play_release_config.dart';
 import '../../application/auth/google_sign_in_coordinator.dart';
 import '../../domain/ai/ai_category_fallback.dart';
 import '../../domain/ai/financial_ai_provider.dart';
@@ -13,13 +15,16 @@ class OpenAiCompatibleAiProvider
   OpenAiCompatibleAiProvider({
     AiSecureConfigService? config,
     http.Client? client,
-    this._idTokenProvider,
+    Future<String?> Function()? idTokenProvider,
+    this.requestAiConsent,
     GoogleSignInCoordinator? googleSignInCoordinator,
   })  : _legacyConfig = config,
+        _idTokenProvider = idTokenProvider,
         _client = client ?? http.Client(),
         _googleSignInCoordinator =
             googleSignInCoordinator ?? GoogleSignInCoordinator.instance;
 
+  final Future<bool> Function()? requestAiConsent;
   final AiSecureConfigService? _legacyConfig;
   final http.Client _client;
   final GoogleSignInCoordinator _googleSignInCoordinator;
@@ -93,6 +98,24 @@ class OpenAiCompatibleAiProvider
         return null;
       }
 
+      String? purchaseToken;
+      if (PlayReleaseConfig.isPlay) {
+        if (!PlayReleaseConfig.billingConfigured) {
+          failureMessage = 'Pertanyaan ini memerlukan AI. Paket AI belum diaktifkan; pencatatan dan pertanyaan lokal tetap tersedia.';
+          return null;
+        }
+        final billing = PlayBillingService.instance;
+        if (await billing.verifySavedPurchase() == null) {
+          failureMessage = 'Pertanyaan ini memerlukan paket AI aktif. Fungsi Free tetap tersedia; lihat Paket Spenva di Pengaturan.';
+          return null;
+        }
+        if (requestAiConsent == null || !await requestAiConsent!()) {
+          failureMessage = 'AI cloud belum diizinkan. Fungsi lokal tetap tersedia.';
+          return null;
+        }
+        purchaseToken = await billing.purchaseToken;
+        if (purchaseToken == null) return null;
+      }
       final tokenProvider = _idTokenProvider;
       late final String? idToken;
       if (tokenProvider == null) {
@@ -106,14 +129,14 @@ class OpenAiCompatibleAiProvider
         return null;
       }
 
-      final uri = Uri.parse(_gatewayEndpoint);
+      final uri = Uri.parse(PlayReleaseConfig.isPlay ? '${PlayReleaseConfig.backend}/v1/ai/chat' : _gatewayEndpoint);
       final text = 'Anda adalah asisten keuangan pribadi. Jangan mengarang data. '
           'Gunakan data aplikasi untuk angka keuangan pengguna. '
           'Untuk klasifikasi kategori, keluarkan JSON yang diminta.\n\n$prompt';
       final payload = jsonEncode({
         'messages': [{'role': 'user', 'text': text}],
         'temperature': 0.1,
-        'maxOutputTokens': 1024,
+        'maxOutputTokens': PlayReleaseConfig.isPlay ? 768 : 1024,
       });
       if (text.length > 10000 || utf8.encode(payload).length > 20000) {
         failureMessage = 'Pertanyaan terlalu panjang. Gunakan pertanyaan yang lebih singkat.';
@@ -126,6 +149,7 @@ class OpenAiCompatibleAiProvider
             headers: {
               'Authorization': 'Bearer ${idToken.trim()}',
               'Content-Type': 'application/json',
+              if (purchaseToken != null) 'X-Play-Purchase-Token': purchaseToken,
             },
             body: payload,
           )

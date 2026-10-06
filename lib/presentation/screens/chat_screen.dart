@@ -34,6 +34,8 @@ import '../../domain/entities/transaction_entity.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/services/category_learning_service.dart';
 import '../../data/ai/openai_compatible_ai_provider.dart';
+import '../../application/billing/play_billing_service.dart';
+import '../../core/release/play_release_config.dart';
 import '../../main.dart';
 import 'receipt_review_screen.dart';
 import 'report_screen.dart';
@@ -79,6 +81,46 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   bool _voiceConsumePending = false;
   bool _initialLoadStarted = false;
 
+  String? _consentedAccount;
+  Future<bool> _consentToAi() async {
+    if (!mounted) return false;
+    final account = await PlayBillingService.instance.accountId();
+    if (!mounted) return false;
+    if (_consentedAccount == account) return true;
+    bool adult = false;
+    final allowed = await showDialog<bool>(context: context, builder: (context) => StatefulBuilder(builder: (context, update) => AlertDialog(
+      title: const Text('Izinkan AI cloud?'),
+      content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Text('Pertanyaan, ringkasan keuangan dan cuplikan maksimal 25 transaksi dikirim melalui Cloudflare ke Google Gemini API berbayar untuk menyiapkan jawaban. Hindari data sensitif yang tidak diperlukan. Persetujuan berlaku selama sesi ini; fungsi lokal tetap tersedia jika Anda menolak.'),
+        CheckboxListTile(value: adult, onChanged: (value) => update(() => adult = value ?? false), title: const Text('Saya berusia 18 tahun atau lebih dan menyetujui pemrosesan tersebut.')),
+      ])), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
+        FilledButton(onPressed: adult ? () => Navigator.pop(context, true) : null, child: const Text('Izinkan'))],
+    )));
+    if (allowed == true) _consentedAccount = account;
+    return allowed == true;
+  }
+  Future<void> _reportAnswer(String question, String answer) async {
+    final reason = TextEditingController();
+    bool include = false;
+    final send = await showDialog<bool>(context: context, builder: (context) => StatefulBuilder(builder: (context, update) => AlertDialog(
+      title: const Text('Laporkan jawaban'),
+      content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        TextField(controller: reason, maxLength: 500, maxLines: 3, decoration: const InputDecoration(labelText: 'Apa yang perlu diperbaiki?', helperText: 'Hindari informasi pribadi.')),
+        CheckboxListTile(value: include, onChanged: (value) => update(() => include = value ?? false), title: const Text('Sertakan pertanyaan dan jawaban untuk ditinjau')),
+        if (include) Text('$question\n\n$answer'),
+        const Text('Laporan dikirim ke pengelola layanan dan disimpan maksimal 30 hari.'),
+      ])), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
+        FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Kirim laporan'))],
+    )));
+    final text = reason.text.trim(); reason.dispose();
+    if (send != true || !mounted) return;
+    if (text.isEmpty) { _showSaved('Isi alasan laporan terlebih dahulu.'); return; }
+    try {
+      await PlayBillingService.instance.reportAnswer(reason: text, question: include ? question : null, answer: include ? answer : null);
+      if (mounted) _showSaved('Laporan diterima untuk ditinjau.');
+    } catch (_) { if (mounted) _showSaved('Laporan belum terkirim. Periksa koneksi atau ketersediaan layanan laporan.'); }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -92,7 +134,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     _intelligence = TransactionIntelligenceService(
       categoryLearning: _learning,
       aiFallback: AiCategoryFallback(
-        provider: OpenAiCompatibleAiProvider(),
+        provider: OpenAiCompatibleAiProvider(requestAiConsent: _consentToAi),
         categoryExists: (id) => _categories.getById(id).then((value) => value != null),
       ),
     );
@@ -219,7 +261,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     String answer;
     try {
       final period = questionPeriod(input, at);
-      final service = FinancialQaService(reports: ReportService(transactions: _transactions, categories: _categories), provider: OpenAiCompatibleAiProvider());
+      final service = FinancialQaService(reports: ReportService(transactions: _transactions, categories: _categories), provider: OpenAiCompatibleAiProvider(requestAiConsent: _consentToAi));
       final result = await service.ask(userId: session.userId, question: input,
         start: period.start ?? DateTime(2000), end: period.end ?? DateTime(2100, 12, 31));
       final explicitAll = RegExp(r'semua tanggal|seluruh riwayat|sepanjang waktu', caseSensitive: false).hasMatch(input);
@@ -695,7 +737,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                             )),
                             Align(alignment: Alignment.centerLeft, child: Card(
                               margin: const EdgeInsets.only(right: 24, bottom: 14),
-                              child: Padding(padding: const EdgeInsets.all(14), child: message.answer == null ? const Text('Sedang menyiapkan jawaban…') : SelectableText(message.answer!)),
+                              child: Padding(padding: const EdgeInsets.all(14), child: message.answer == null ? const Text('Sedang menyiapkan jawaban…') : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [SelectableText(message.answer!), if (PlayReleaseConfig.isPlay) TextButton.icon(onPressed: () => _reportAnswer(message.question, message.answer!), icon: const Icon(Icons.flag_outlined, size: 16), label: const Text('Laporkan jawaban'))])),
                             )),
                           ]);
                         }

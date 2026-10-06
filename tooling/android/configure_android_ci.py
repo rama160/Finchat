@@ -15,8 +15,8 @@ RULES_TARGET = APP / 'proguard-rules.pro'
 def configure_gradle() -> None:
     if GROOVY.exists():
         text = GROOVY.read_text(encoding="utf-8")
-        text = text.replace("minSdk = flutter.minSdkVersion", "minSdk = 23")
-        text = text.replace("minSdkVersion flutter.minSdkVersion", "minSdkVersion 23")
+        text = text.replace("minSdk = flutter.minSdkVersion", "minSdk = 24")
+        text = text.replace("minSdkVersion flutter.minSdkVersion", "minSdkVersion 24")
         if "keystorePropertiesFile" not in text:
             preamble = """def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file("key.properties")
@@ -65,7 +65,7 @@ keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 
     if KOTLIN.exists():
         text = KOTLIN.read_text(encoding="utf-8")
-        text = text.replace("minSdk = flutter.minSdkVersion", "minSdk = 23")
+        text = text.replace("minSdk = flutter.minSdkVersion", "minSdk = 24")
         if "keystorePropertiesFile" not in text:
             preamble = """import java.util.Properties
 import java.io.FileInputStream

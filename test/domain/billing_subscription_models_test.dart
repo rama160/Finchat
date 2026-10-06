@@ -5,12 +5,12 @@ import 'package:finchat/application/billing/subscription_service.dart';
 import 'package:finchat/domain/billing/subscription_models.dart';
 
 void main() {
-  test('pilot exposes four subscription tiers but only Free is enabled', () {
+  test('catalog exposes four tiers without granting paid entitlements', () {
     expect(MonetizationConfig.plans, hasLength(4));
     expect(MonetizationConfig.plans.first.tier, SubscriptionTier.free);
-    expect(MonetizationConfig.plans.where((plan) => plan.enabled), hasLength(1));
-    expect(MonetizationConfig.enabled, isFalse);
-    expect(MonetizationConfig.subscriptionsEnabled, isFalse);
+    expect(MonetizationConfig.plans.where((plan) => plan.enabled), hasLength(4));
+    expect(MonetizationConfig.enabled, isTrue);
+    expect(MonetizationConfig.subscriptionsEnabled, isTrue);
     expect(MonetizationConfig.paymentsEnabled, isFalse);
   });
 
