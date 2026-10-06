@@ -51,8 +51,9 @@ class _SpenvaGreetingState extends State<SpenvaGreeting> with SingleTickerProvid
     padding: const EdgeInsets.fromLTRB(18, 0, 18, 10),
     child: Row(children: [
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(greetingFor(DateTime.now(), widget.displayName), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const Text('Yuk, catat cerita keuangan hari ini.', style: TextStyle(fontSize: 12, color: Color(0xff76768b))),
+        Text(greetingFor(DateTime.now(), widget.displayName), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        if (MediaQuery.textScalerOf(context).scale(12) <= 15)
+          const Text('Yuk, catat cerita keuangan hari ini.', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: Color(0xff76768b))),
       ])),
       const SizedBox(width: 10),
       AnimatedBuilder(animation: _animation, builder: (_, child) => Transform.rotate(

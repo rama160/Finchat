@@ -53,6 +53,25 @@ class PartialSpeechProvider extends FakeSpeechProvider {
 }
 
 void main() {
+  test('segmented final callbacks settle once and keep both transactions', () async {
+    final provider = PartialSpeechProvider();
+    var submissions = 0;
+    late VoiceInputService service;
+    service = VoiceInputService(provider, onChanged: () {
+      if (service.status == SpeechSessionStatus.stopped && service.hasFinalResult) submissions++;
+    });
+    await service.initialize(); await service.startListening();
+    provider.onResult(const SpeechRecognitionResult(text: 'nasi goreng 10.000', isFinal: false));
+    provider.onResult(const SpeechRecognitionResult(text: 'nasi goreng 10.000', isFinal: true));
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    expect(submissions, 0);
+    provider.onResult(const SpeechRecognitionResult(text: 'bakso 5.000', isFinal: true));
+    await Future<void>.delayed(const Duration(milliseconds: 450));
+    expect(submissions, 1);
+    expect(LocalTransactionParser().parse(normalizeVoiceTransactions(service.transcript)).map((item) => item.amount), [10000, 5000]);
+    await service.cancel();
+  });
+
   test('a final voice result preserves all transactions after the early partial callback', () async {
     final provider = PartialSpeechProvider();
     final service = VoiceInputService(provider);

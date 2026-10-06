@@ -8,6 +8,18 @@ class _GooglePlatform extends GoogleSignInPlatform {
   bool granted = false;
   final requests = <AuthorizationRequestDetails>[];
   @override
+  bool supportsAuthenticate() => true;
+  @override
+  bool authorizationRequiresUserInteraction() => false;
+  @override
+  Future<void> disconnect(DisconnectParams params) async {}
+  @override
+  Future<void> signOut(SignOutParams params) async {}
+  @override
+  Future<void> clearAuthorizationToken(ClearAuthorizationTokenParams params) async {}
+  @override
+  Future<ServerAuthorizationTokenData?> serverAuthorizationTokensForScopes(ServerAuthorizationTokensForScopesParameters params) async => null;
+  @override
   Future<void> init(InitParameters params) async {}
   @override
   Future<AuthenticationResults?> attemptLightweightAuthentication(AttemptLightweightAuthenticationParameters params) async {

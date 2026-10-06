@@ -18,12 +18,14 @@ void main() {
     await databaseFactoryFfiNoIsolate.setDatabasesPath(directory.path);
   });
   testWidgets('sending holds keyboard/input position and interleaves new transactions with Q&A', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(360, 780));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     final manager = SessionManager(InMemorySessionRepository());
     await manager.initialize();
     await manager.login(email: 'composer@finchat.local');
     await tester.runAsync(() => FinChatDatabase().ensureUser(userId: 'composer@finchat.local'));
     var now = DateTime(2026, 10, 5, 10);
-    await tester.pumpWidget(SessionScope(sessionManager: manager, child: MaterialApp(home: ChatScreen(now: () => now))));
+    await tester.pumpWidget(SessionScope(sessionManager: manager, child: MaterialApp(builder: (context, child) => MediaQuery(data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(1.6)), child: child!), home: ChatScreen(now: () => now))));
     await tester.pumpAndSettle();
     expect(find.byType(PeriodFilter), findsNothing);
     final input = find.byKey(const ValueKey('chat_input'));
