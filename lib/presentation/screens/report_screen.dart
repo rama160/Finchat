@@ -1,5 +1,6 @@
 import '../../application/billing/play_billing_service.dart';
 import '../../application/billing/quota_service.dart';
+import '../../core/release/play_release_config.dart';
 import '../../core/formatting/rupiah.dart';
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -78,6 +79,7 @@ class _ReportScreenState extends State<ReportScreen> {
 
   bool _exporting = false;
   Future<ReportSummary?> _previousForPremium(ReportSummary current) async {
+    if (!PlayReleaseConfig.isPlay) return null;
     if (!await PlayBillingService.instance.hasFeature('advanced')) return null;
     final days = current.endExclusive.difference(current.start).inDays;
     return _reportService.forRange(userId: widget.userId, start: current.start.subtract(Duration(days: days)), end: current.start.subtract(const Duration(days: 1)));

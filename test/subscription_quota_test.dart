@@ -3,6 +3,7 @@ import 'package:finchat/application/billing/plan_catalog.dart';
 import 'package:finchat/application/billing/play_billing_service.dart';
 import 'package:finchat/application/billing/quota_service.dart';
 import 'package:finchat/domain/billing/subscription_models.dart';
+import 'package:finchat/core/release/play_release_config.dart';
 
 class FakeBilling implements PlayBillingService {
   @override dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -14,6 +15,12 @@ class FakeBilling implements PlayBillingService {
 }
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('pilot quota layer does not initialize billing or change the existing flow', () async {
+    final lease = await SubscriptionQuotaService().reserve('voice');
+    expect(lease.enforced, false);
+    expect(lease.billing, isNull);
+    await lease.finish(true);
+  }, skip: PlayReleaseConfig.isPlay);
   test('final catalog exposes correct prices, six products and independent resource limits', () {
     expect(planCatalog.map((p) => p.tier.displayName), ['Free','Plus','Pro','Max']);
     expect(planCatalog.map((p) => p.suggestedRupiah), [0,15000,39000,89000]);
