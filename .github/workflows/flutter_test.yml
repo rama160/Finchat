@@ -2,7 +2,7 @@ name: Flutter Test
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, spenva-production-readiness]
   pull_request:
     branches: [main, develop]
   workflow_dispatch:

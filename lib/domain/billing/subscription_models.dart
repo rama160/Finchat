@@ -1,51 +1,15 @@
-enum SubscriptionTier {
-  free,
-  basic,
-  pro,
-  unlimited,
-}
+enum SubscriptionTier { free, plus, pro, max }
+enum SubscriptionStatus { active, pending, gracePeriod, onHold, paused, canceled, expired, revoked }
+enum BillingPeriod { monthly, yearly }
 
 extension SubscriptionTierX on SubscriptionTier {
-  String get id => name;
-
-  String get displayName => switch (this) {
-        SubscriptionTier.free => 'Free',
-        SubscriptionTier.basic => 'Basic',
-        SubscriptionTier.pro => 'Pro',
-        SubscriptionTier.unlimited => 'Unlimited',
-      };
+  String get id => name.toUpperCase();
+  String get displayName => switch(this){SubscriptionTier.free=>'Free',SubscriptionTier.plus=>'Plus',SubscriptionTier.pro=>'Pro',SubscriptionTier.max=>'Max'};
 }
-
-enum PaymentMethod {
-  qris,
-  gopay,
-  bankTransfer,
-  card,
-  otherEwallet,
-}
-
-extension PaymentMethodX on PaymentMethod {
-  String get id => name;
-
-  String get displayName => switch (this) {
-        PaymentMethod.qris => 'QRIS',
-        PaymentMethod.gopay => 'GoPay',
-        PaymentMethod.bankTransfer => 'Transfer Bank',
-        PaymentMethod.card => 'Kartu',
-        PaymentMethod.otherEwallet => 'E-Wallet lainnya',
-      };
-}
-
 class SubscriptionPlan {
-  const SubscriptionPlan({
-    required this.tier,
-    required this.enabled,
-    this.monthlyPriceId,
-  });
-
-  final SubscriptionTier tier;
-  final bool enabled;
-  final String? monthlyPriceId;
-
-  String get name => tier.displayName;
+  const SubscriptionPlan({required this.tier,required this.enabled,this.productId,this.monthlyBasePlanId,this.yearlyBasePlanId,
+    required this.voiceLimit,required this.ocrLimit,required this.aiLimit});
+  final SubscriptionTier tier; final bool enabled; final String? productId; final String? monthlyBasePlanId; final String? yearlyBasePlanId;
+  final int? voiceLimit; final int? ocrLimit; final int? aiLimit;
 }
+enum PaymentMethod { googlePlay, qris, gopay, bankTransfer, card, otherEwallet }
