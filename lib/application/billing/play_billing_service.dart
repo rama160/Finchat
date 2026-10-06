@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:in_app_purchase/in_app_purchase.dart';
 import '../../core/release/play_release_config.dart';
+import '../../core/errors/input_failure_message.dart';
 import '../auth/google_sign_in_coordinator.dart';
 import 'plan_catalog.dart';
 import '../../domain/billing/subscription_models.dart';
@@ -52,7 +53,7 @@ class PlayBillingService extends ChangeNotifier {
 
   Future<Map<String, String>> _headers({bool backgroundOnly = false}) async {
     final token = backgroundOnly ? GoogleSignInCoordinator.instance.cachedIdToken : await GoogleSignInCoordinator.instance.currentIdToken();
-    if (token == null) throw StateError('Masuk dengan Google untuk menghubungkan langganan ke akun.');
+    if (token == null) throw const UserFacingException('Masuk dengan Google untuk menghubungkan kuota dan langganan ke akun.');
     return {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'};
   }
   Future<String> accountId({bool backgroundOnly = false}) async {
@@ -80,13 +81,13 @@ class PlayBillingService extends ChangeNotifier {
     return VerifiedEntitlement.fromServer(jsonDecode(response.body) as Map<String, dynamic>, await accountId());
   }
   Future<Map<String, dynamic>> quotaRequest(String action, {String? resource, String? operationId, bool? success, String? event, int? count, bool backgroundOnly = false}) async {
-    if (!PlayReleaseConfig.billingConfigured) throw StateError('Layanan kuota belum diaktifkan. Pencatatan teks tetap tersedia.');
+    if (!PlayReleaseConfig.billingConfigured) throw const UserFacingException('Layanan kuota belum diaktifkan. Pencatatan teks tetap tersedia.');
     final token = await purchaseToken;
     final response = await client.post(Uri.parse('${PlayReleaseConfig.backend}/v1/quota/$action'),
       headers: {...await _headers(backgroundOnly: backgroundOnly), if (token != null) 'X-Play-Purchase-Token': token},
       body: jsonEncode({if (resource != null) 'resource': resource, if (operationId != null) 'operationId': operationId, if (success != null) 'success': success, if (event != null) 'event': event, if (count != null) 'count': count})).timeout(const Duration(seconds: 20));
-    if (response.statusCode == 429) throw StateError('Kuota ${resource == 'ocr' ? 'Scan' : resource == 'voice' ? 'Voice' : 'fitur'} bulan ini telah digunakan. Lihat Paket Spenva untuk pilihan upgrade.');
-    if (response.statusCode != 200) throw StateError('Kuota belum dapat diverifikasi. Coba lagi; pencatatan teks tetap tersedia.');
+    if (response.statusCode == 429) throw UserFacingException('Kuota ${resource == 'ocr' ? 'Scan' : resource == 'voice' ? 'Voice' : resource == 'pdf' ? 'PDF' : 'fitur'} bulan ini telah digunakan. Lihat Paket Spenva untuk pilihan upgrade. Pencatatan teks tetap tersedia.');
+    if (response.statusCode != 200) throw const UserFacingException('Kuota belum dapat diverifikasi. Coba lagi; pencatatan teks tetap tersedia.');
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     if (action == 'state') {
       final value = data['entitlement'];
@@ -94,10 +95,10 @@ class PlayBillingService extends ChangeNotifier {
     }
     return data;
   }
-  Future<bool> hasFeature(String feature) async {
+  Future<bool> hasFeature(String feature, {bool backgroundOnly = false}) async {
     if (!PlayReleaseConfig.isPlay) return true;
     try {
-      final state = await quotaRequest('state', backgroundOnly: feature == 'automaticBackup');
+      final state = await quotaRequest('state', backgroundOnly: backgroundOnly);
       final tier = SubscriptionTier.values.where((t) => t.name == state['tier']).firstOrNull ?? SubscriptionTier.free;
       final offer = offerFor(tier);
       return switch (feature) { 'automaticBackup' => offer.automaticBackup, 'advanced' => offer.advanced, _ => false };

@@ -17,6 +17,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   bool yearly = false;
   Map<String, dynamic>? usage;
   String? quotaMessage;
+  String? _usageEntitlement;
   @override void initState() {
     super.initState(); billing = PlayBillingService.instance;
     billing.addListener(_changed);
@@ -24,10 +25,15 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     _loadUsage();
   }
   Future<void> _loadUsage() async {
-    try {final value = await billing.quotaRequest('state'); if (mounted) setState(() { usage = value; quotaMessage = null; });}
+    try {final value = await billing.quotaRequest('state'); if (mounted) setState(() { usage = value; quotaMessage = null; _usageEntitlement = _entitlementKey; });}
     catch (_) {if (mounted) setState(() => quotaMessage = 'Masuk dengan Google dan hubungkan layanan kuota untuk melihat pemakaian.');}
   }
-  void _changed() { if (mounted) setState(() {}); }
+  String? get _entitlementKey => billing.entitlement == null ? null : '${billing.entitlement!.tier.name}_${billing.entitlement!.expiresAt.toIso8601String()}';
+  void _changed() {
+    if (!mounted) return;
+    if (_usageEntitlement != _entitlementKey) { _usageEntitlement = _entitlementKey; _loadUsage(); }
+    setState(() {});
+  }
   @override void dispose() { billing.removeListener(_changed); super.dispose(); }
   Future<void> _buy(PlanOffer plan) async {
     final session = SessionScope.of(context).session;

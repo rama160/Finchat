@@ -21,7 +21,7 @@ application ID **com.finchat.finchat**; database **finchat.db**, schema versi 1;
 
 ## Mengaktifkan langganan setelah akun siap
 
-Ikuti server/play-billing/README.md, buat3 subscription products/base plan monthly sesuai PLANS.md. Gunakan Google Play Billing; kontrak lama QRIS/GoPay/transfer tidak digunakan. Service account Android Publisher API hanya memperoleh izin yang diperlukan untuk membaca/verifikasi subscription dan acknowledge. Private key hanya secret server, tidak diAPK. Buat deployment server terpisah dari gateway pilot.
+Ikuti server/play-billing/README.md, buat6 subscription products dengan base plan monthly/yearly sesuai SUBSCRIPTION.md. Gunakan Google Play Billing; kontrak lama QRIS/GoPay/transfer tidak digunakan. Service account Android Publisher API hanya memperoleh izin yang diperlukan untuk membaca/verifikasi subscription dan acknowledge. Private key hanya secret server, tidak diAPK. Buat deployment server terpisah dari gateway pilot.
 
 Google API berbayar harus berasal dari billed project yang sesuai terms dan tidak memakai endpoint gratis untuk data finansial pribadi. PAID_AI_CONFIRMED default false. Siapkan KV feedback dan Durable Object quota baru, operator moderasi laporan in-app dan proses penghapusan eksternal. Tetapkan GitHub variable SPENVA_BILLING_ENDPOINT hanya setelah uji end-to-end. Pembelian belum aktif hanya karena tombol paket/catalog tersedia.
 
