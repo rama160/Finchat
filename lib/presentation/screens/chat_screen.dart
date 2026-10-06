@@ -650,7 +650,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               if (mounted) await _loadTransactions();
             },
             tooltip: 'Pengaturan', icon: const Icon(Icons.settings_outlined)),
-          IconButton(onPressed: SessionScope.of(context).logout, tooltip: 'Keluar', icon: const Icon(Icons.logout)),
+          PopupMenuButton<String>(tooltip: 'Akun', onSelected: (value) { if (value == 'logout') SessionScope.of(context).logout(); },
+            itemBuilder: (_) => [const PopupMenuItem(value: 'logout', child: Text('Keluar'))],
+            icon: CircleAvatar(radius: 16, backgroundColor: const Color(0xffe7e2fa), child: Text(
+              session?.displayName?.trim().isNotEmpty == true ? session!.displayName!.trim().substring(0, 1).toUpperCase() : '',
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: spenvaPurple)))),
         ],
       ) : null,
       bottomNavigationBar: NavigationBar(selectedIndex: _selectedTab,
@@ -730,7 +734,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       },
                     ),
             ),
-            SizedBox(height: 28, child: Padding(
+            SizedBox(height: MediaQuery.textScalerOf(context).scale(16) + 12, child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: Semantics(liveRegion: true, child: Text(
                 _voice.isListening || _voiceConsumePending
@@ -985,3 +989,4 @@ class _Composer extends StatelessWidget {
 
 
 String _money(double value) => formatRupiah(value);
+String _date(DateTime value) => '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';

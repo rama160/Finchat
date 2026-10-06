@@ -114,7 +114,7 @@ class _ReportScreenState extends State<ReportScreen> {
             final future = _reportFuture;
             if (future == null) return;
             try { final data = await future; if (mounted) await _exportPdf(data.report); }
-            catch (_) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Laporan belum siap. Coba lagi.'))); }
+            catch (_) { if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Laporan belum siap. Coba lagi.'))); }
           }, icon: const Icon(Icons.download_outlined))],
         ),
         body: Column(

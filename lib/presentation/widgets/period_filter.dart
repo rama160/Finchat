@@ -23,15 +23,15 @@ class PeriodFilter extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 8), child: Material(color: spenvaPurple, borderRadius: BorderRadius.circular(22), child: Row(children: [
+  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 8), child: LayoutBuilder(builder: (context, constraints) => Material(color: spenvaPurple, borderRadius: BorderRadius.circular(22), child: Row(children: [
     IconButton(tooltip: 'Periode sebelumnya', color: Colors.white, onPressed: !_canShift(-1) ? null : () => onChanged(period.shift(-1)), icon: const Icon(Icons.chevron_left)),
     Expanded(child: TextButton(onPressed: () => _pick(context), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
       Flexible(child: Text(period.label, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
       const Icon(Icons.arrow_drop_down, color: Colors.white),
     ]))),
-    IconButton(tooltip: 'Buka kalender', color: Colors.white, onPressed: () => _pick(context), icon: const Icon(Icons.calendar_month_outlined)),
+    if (constraints.maxWidth >= 400) IconButton(tooltip: 'Buka kalender', color: Colors.white, onPressed: () => _pick(context), icon: const Icon(Icons.calendar_month_outlined)),
     IconButton(tooltip: 'Periode berikutnya', color: Colors.white, onPressed: !_canShift(1) ? null : () => onChanged(period.shift(1)), icon: const Icon(Icons.chevron_right)),
-  ])));
+  ]))));
 }
 
 class PeriodCalendarDialog extends StatefulWidget {

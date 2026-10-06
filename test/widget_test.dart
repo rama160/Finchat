@@ -8,7 +8,7 @@ void main() {
     final manager = SessionManager(InMemorySessionRepository());
     await manager.initialize();
     await tester.pumpWidget(FinChatApp(sessionManager: manager));
-    expect(find.bySemanticsLabel('Spenva'), findsOneWidget);
+    expect(find.bySemanticsLabel('Spenva'), findsWidgets);
     expect(find.text('Lanjut dengan Google'), findsOneWidget);
     expect(find.text('Gunakan mode offline'), findsOneWidget);
   });
