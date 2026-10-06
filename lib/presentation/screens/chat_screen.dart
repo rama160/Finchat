@@ -400,6 +400,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     try {
       await _voiceLease?.finish(false);
       _voiceLease = await _quota.reserve('voice', accountLinked: accountLinked);
+      if (!mounted) { await _voiceLease?.finish(false); _voiceLease = null; return; }
       if (_voice.status != SpeechSessionStatus.ready &&
           _voice.status != SpeechSessionStatus.stopped) {
         final available = await _voice.initialize();
@@ -518,6 +519,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     QuotaLease? lease;
     try {
       lease = await _quota.reserve('ocr', accountLinked: SessionScope.of(context).session?.authProvider == 'google');
+      if (!mounted) return;
       await _database.ensureUser(userId: session.userId, email: session.email);
       final provider = _ocrProvider ??= MlKitReceiptOcrProvider();
       final ocr = ReceiptOcrService(
@@ -734,7 +736,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               if (mounted) await _loadTransactions();
             },
             tooltip: 'Pengaturan', icon: const Icon(Icons.settings_outlined)),
-          PopupMenuButton<String>(tooltip: 'Akun', onSelected: (value) { if (value == 'logout') SessionScope.of(context).logout(); },
+          PopupMenuButton<String>(tooltip: 'Akun', onSelected: (value) { if (value == 'logout') logoutWithBilling(SessionScope.of(context)); },
             itemBuilder: (_) => [const PopupMenuItem(value: 'logout', child: Text('Keluar'))],
             icon: CircleAvatar(radius: 16, backgroundColor: const Color(0xffe7e2fa), child: Text(
               session?.displayName?.trim().isNotEmpty == true ? session!.displayName!.trim().substring(0, 1).toUpperCase() : '',

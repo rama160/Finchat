@@ -5,8 +5,12 @@ import 'package:finchat/application/billing/quota_service.dart';
 import 'package:finchat/domain/billing/subscription_models.dart';
 import 'package:finchat/core/release/play_release_config.dart';
 import 'package:finchat/core/errors/input_failure_message.dart';
+import 'package:finchat/application/session/session_manager.dart';
 
 class FakeBilling implements PlayBillingService {
+  bool cleared = false;
+  bool failClear = false;
+  @override Future<void> clearLocalPurchase() async { cleared = true; if (failClear) throw StateError('storage unavailable'); }
   @override dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
   final calls = <Map<String, Object?>>[];
   @override Future<Map<String, dynamic>> quotaRequest(String action, {String? resource, String? operationId, bool? success, String? event, int? count, bool backgroundOnly = false}) async {
@@ -14,8 +18,23 @@ class FakeBilling implements PlayBillingService {
     return {};
   }
 }
+class FakeSessionManager implements SessionManager {
+  bool loggedOut = false;
+  @override Future<void> logout() async { loggedOut = true; }
+  @override dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('logout clears only the Play purchase cache and still signs out after storage failure', () async {
+    for (final fail in [false, true]) {
+      final billing = FakeBilling()..failClear = fail;
+      final manager = FakeSessionManager();
+      await logoutWithBilling(manager, billing: billing);
+      expect(manager.loggedOut, true);
+      expect(billing.cleared, PlayReleaseConfig.isPlay);
+      expect(billing.calls, isEmpty);
+    }
+  });
   test('offline Play profile cannot start account authentication from a quota gate', () async {
     final billing = FakeBilling();
     await expectLater(SubscriptionQuotaService(billing: billing).reserve('voice', accountLinked: false), throwsA(isA<UserFacingException>()));

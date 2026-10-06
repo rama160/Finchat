@@ -162,3 +162,10 @@ test('Google no-longer-retained expired token returns Free quota rather than blo
  const response=await handle(await request('/v1/quota/state'),{...env,QUOTA:q.binding},expired);
  assert.equal(response.status,200);assert.equal((await response.json()).plan_id,'free');
 });
+test('stale token from another signed-out account leaves Free available but cannot grant paid access',async()=>{
+ const q=fakeQuota(),options={...env,QUOTA:q.binding},net=network(purchase({externalAccountIdentifiers:{obfuscatedExternalAccountId:'another-account'}}));
+ const state=await handle(await request('/v1/quota/state'),options,net);
+ assert.equal(state.status,200);assert.equal((await state.json()).plan_id,'free');
+ const verify=await handle(await request('/v1/purchases/verify',{purchaseToken:'other-account-token'}),options,net);
+ assert.equal(verify.status,403);assert.equal(q.values.has('purchase'),false);
+});

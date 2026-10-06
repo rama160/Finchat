@@ -130,7 +130,7 @@ async function accountEntitlement(request,account,env,net) {
   const token=stored || request.headers.get('X-Play-Purchase-Token');
   if(!token)return null;
   try {const entitlement=await verifyPurchase(token,account,env,net);await objectCall(env,account,{action:'token',token,until:Date.parse(entitlement.expiresAt)+30*86400000});return entitlement;}
-  catch(error) {if(error instanceof Fault && error.status===403 && ['subscription_inactive','purchase_verification_failed'].includes(error.message))return null;throw error;}
+  catch(error) {if(error instanceof Fault && error.status===403 && (['subscription_inactive','purchase_verification_failed'].includes(error.message) || (!stored && error.message==='account_mismatch')))return null;throw error;}
 }
 async function quota(env,account,entitlement,operationId,action) {
   return objectCall(env,account,{action:action==='refund'?'settle':action,resource:action==='reserve'?'ai':undefined,operationId,success:action==='refund'?false:true,entitlement});

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../application/update/update_service.dart';
+import '../../application/billing/play_billing_service.dart';
 import '../../core/constants/app_constants.dart';
 import '../../data/update/github_release_update_provider.dart';
 import '../../domain/update/app_update.dart';
@@ -115,7 +116,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               leading: const Icon(Icons.logout),
               title: const Text('Keluar'),
               subtitle: const Text('Hapus sesi Spenva dari perangkat ini.'),
-              onTap: () => SessionScope.of(context).logout(),
+              onTap: () => logoutWithBilling(SessionScope.of(context)),
             ),
           if (_updateCheck != null)
             FutureBuilder<AppUpdate?>(

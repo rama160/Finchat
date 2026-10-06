@@ -8,6 +8,7 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import '../../core/release/play_release_config.dart';
 import '../../core/errors/input_failure_message.dart';
 import '../auth/google_sign_in_coordinator.dart';
+import '../session/session_manager.dart';
 import 'plan_catalog.dart';
 import '../../domain/billing/subscription_models.dart';
 
@@ -28,6 +29,7 @@ class PlayBillingService extends ChangeNotifier {
   bool available = false, pending = false;
   String? message;
   String? _token;
+  int _purchaseGeneration = 0;
   static const _tokenKey = 'spenva.play.purchase_token';
 
   Future<void> initialize() async {
@@ -81,6 +83,7 @@ class PlayBillingService extends ChangeNotifier {
     return VerifiedEntitlement.fromServer(jsonDecode(response.body) as Map<String, dynamic>, await accountId());
   }
   Future<Map<String, dynamic>> quotaRequest(String action, {String? resource, String? operationId, bool? success, String? event, int? count, bool backgroundOnly = false}) async {
+    final generation = _purchaseGeneration;
     if (!PlayReleaseConfig.billingConfigured) throw const UserFacingException('Layanan kuota belum diaktifkan. Pencatatan teks tetap tersedia.');
     final token = await purchaseToken;
     final response = await client.post(Uri.parse('${PlayReleaseConfig.backend}/v1/quota/$action'),
@@ -90,6 +93,7 @@ class PlayBillingService extends ChangeNotifier {
     if (response.statusCode != 200) throw const UserFacingException('Kuota belum dapat diverifikasi. Coba lagi; pencatatan teks tetap tersedia.');
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     if (action == 'state') {
+      if (generation != _purchaseGeneration) throw const UserFacingException('Sesi akun berubah. Perbarui pemakaian setelah masuk kembali.');
       final value = data['entitlement'];
       entitlement = value is Map<String, dynamic> ? VerifiedEntitlement.fromServer(value, await accountId(backgroundOnly: backgroundOnly)) : null;
     }
@@ -131,7 +135,9 @@ class PlayBillingService extends ChangeNotifier {
       pending = false;
       if (purchase.status == PurchaseStatus.purchased || purchase.status == PurchaseStatus.restored) {
         try {
+          final generation = _purchaseGeneration;
           final verified = await _verify(purchase.verificationData.serverVerificationData);
+          if (generation != _purchaseGeneration) continue;
           if (verified == null) { message = 'Langganan belum aktif atau tidak sesuai dengan akun ini.'; continue; }
           _token = purchase.verificationData.serverVerificationData;
           await storage.write(key: _tokenKey, value: _token);
@@ -146,7 +152,7 @@ class PlayBillingService extends ChangeNotifier {
     }
   }
   Future<String?> get purchaseToken async => _token ??= await storage.read(key: _tokenKey);
-  Future<void> clearLocalPurchase() async { _token = null; entitlement = null; await storage.delete(key: _tokenKey); }
+  Future<void> clearLocalPurchase() async { _purchaseGeneration++; _token = null; entitlement = null; message = null; await storage.delete(key: _tokenKey); }
   Future<void> reportAnswer({required String reason, String? question, String? answer}) async {
     if (!PlayReleaseConfig.billingConfigured) throw StateError('Layanan laporan belum diaktifkan pada build persiapan ini.');
     final response = await client.post(Uri.parse('${PlayReleaseConfig.backend}/v1/feedback'), headers: await _headers(),
@@ -160,4 +166,13 @@ class PlayBillingService extends ChangeNotifier {
   }
   @override
   void dispose() { _listener?.cancel(); client.close(); super.dispose(); }
+}
+
+/// Clear only the device cache. Server association and monthly quota survive logout.
+Future<void> logoutWithBilling(SessionManager manager, {PlayBillingService? billing}) async {
+  if (PlayReleaseConfig.isPlay) {
+    try { await (billing ?? PlayBillingService.instance).clearLocalPurchase(); }
+    catch (_) { /* Sign-out still completes if secure storage is unavailable. */ }
+  }
+  await manager.logout();
 }
