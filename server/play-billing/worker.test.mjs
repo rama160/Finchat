@@ -148,3 +148,17 @@ test('retention alarm removes account association and ledger exactly at the adve
  try {await q.instance.alarm();}finally {Date.now=clock;}
  assert.equal(q.values.has('meter'),false);assert.equal(q.values.has('purchase'),false);assert.equal(q.values.has('purchaseUntil'),false);
 });
+test('stale device token cannot downgrade the newer server purchase or reset paid usage',async()=>{
+ const q=fakeQuota(),calls=[],options={...env,QUOTA:q.binding},net=network(undefined,calls);
+ await handle(await request('/v1/purchases/verify',{purchaseToken:'latest-valid-token'}),options,net);
+ await handle(await request('/v1/quota/reserve',{resource:'voice',operationId:'paid_operation'}),options,net);
+ const stale=await freeRequest('/v1/quota/state');stale.headers.set('X-Play-Purchase-Token','expired-old-token');
+ const response=await handle(stale,options,net),data=await response.json();
+ assert.equal(response.status,200);assert.equal(data.plan_id,'pro');assert.equal(data.used.voice,1);
+ assert.equal(calls.filter(c=>c.url.includes('expired-old-token')).length,0);
+});
+test('Google no-longer-retained expired token returns Free quota rather than blocking the app',async()=>{
+ const q=fakeQuota(),net=network(),expired=async(url,options)=>url.includes('subscriptionsv2')?new Response(null,{status:410}):net(url,options);
+ const response=await handle(await request('/v1/quota/state'),{...env,QUOTA:q.binding},expired);
+ assert.equal(response.status,200);assert.equal((await response.json()).plan_id,'free');
+});

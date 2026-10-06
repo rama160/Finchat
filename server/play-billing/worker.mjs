@@ -124,11 +124,13 @@ async function objectCall(env,account,input) {
   return env.QUOTA.get(env.QUOTA.idFromName(account)).fetch('https://internal/',{method:'POST',body:JSON.stringify(input)});
 }
 async function accountEntitlement(request,account,env,net) {
-  let token=request.headers.get('X-Play-Purchase-Token');
-  if(!token)token=(await (await objectCall(env,account,{action:'token'})).json()).token;
+  // A stale device token must never downgrade the account's newer purchase.
+  // New purchases update this association only after /purchases/verify succeeds.
+  const stored=(await (await objectCall(env,account,{action:'token'})).json()).token;
+  const token=stored || request.headers.get('X-Play-Purchase-Token');
   if(!token)return null;
   try {const entitlement=await verifyPurchase(token,account,env,net);await objectCall(env,account,{action:'token',token,until:Date.parse(entitlement.expiresAt)+30*86400000});return entitlement;}
-  catch(error) {if(error instanceof Fault && error.status===403 && error.message==='subscription_inactive')return null;throw error;}
+  catch(error) {if(error instanceof Fault && error.status===403 && ['subscription_inactive','purchase_verification_failed'].includes(error.message))return null;throw error;}
 }
 async function quota(env,account,entitlement,operationId,action) {
   return objectCall(env,account,{action:action==='refund'?'settle':action,resource:action==='reserve'?'ai':undefined,operationId,success:action==='refund'?false:true,entitlement});
