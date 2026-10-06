@@ -28,8 +28,10 @@ def blockers(profile):
     for key in ['privacy_url','deletion_url']:
         if profile.get(key) and not profile[key].startswith('https://'):missing.append(key+'_must_be_https')
     if profile.get('billing_endpoint'):
-        for key in ['play_products_verified','paid_ai_confirmed','billing_server_verified','reporting_verified']:
+        for key in ['play_products_verified','billing_server_verified','reporting_verified']:
             if profile.get(key) is not True:missing.append(key)
+    if profile.get('billing_endpoint') and profile.get('personal_ai_enabled',True) and profile.get('paid_ai_confirmed') is not True:missing.append('paid_ai_confirmed')
+    if profile.get('unpaid_education_enabled') is True and profile.get('education_privacy_verified') is not True:missing.append('education_privacy_verified')
     for key in ['play_console_account','app_signing_oauth_verified','data_safety_reviewed','store_screenshots_reviewed','closed_test_completed_if_required']:
         if profile.get(key) is not True:missing.append(key)
     return missing

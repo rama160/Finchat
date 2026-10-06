@@ -11,6 +11,8 @@ import 'package:finchat/application/transactions/local_transaction_parser.dart';
 import 'package:finchat/domain/parsing/voice_transaction_normalizer.dart';
 
 class FakeCategoryRepository implements CategoryRepository {
+  FakeCategoryRepository({this.mapping});
+  final CategoryMapping? mapping;
   int mappingReads = 0;
   @override
   Future<List<CategoryEntity>> getCategories({String? type}) async => const [];
@@ -19,7 +21,7 @@ class FakeCategoryRepository implements CategoryRepository {
   Future<CategoryEntity?> getById(String id) async => null;
 
   @override
-  Future<CategoryMapping?> findMapping(String userId, String keyword) async => null;
+  Future<CategoryMapping?> findMapping(String userId, String keyword) async => mapping?.userId == userId && mapping?.normalizedKeyword == keyword ? mapping : null;
 
   @override
   Future<void> learnMapping({
@@ -31,7 +33,7 @@ class FakeCategoryRepository implements CategoryRepository {
   }) async {}
 
   @override
-  Future<List<CategoryMapping>> getMappings(String userId) async { mappingReads++; return const []; }
+  Future<List<CategoryMapping>> getMappings(String userId) async { mappingReads++; return [if (mapping != null && mapping!.userId == userId) mapping!]; }
 }
 
 class FakeProvider implements AiCategoryProvider {
@@ -48,6 +50,15 @@ class FakeProvider implements AiCategoryProvider {
 }
 
 void main() {
+  test('explicit user learning wins over cloud fallback even for low confidence and other category', () async {
+    final at = DateTime(2026, 10, 6);
+    final categories = FakeCategoryRepository(mapping: CategoryMapping(id: 'learned', userId: 'u1', normalizedKeyword: 'transfer', categoryId: 'lainnya', source: 'user_correction', confidence: 1, usageCount: 1, lastUsedAt: at, createdAt: at, updatedAt: at));
+    final provider = FakeProvider(const AiCategorySuggestion(categoryId: 'tagihan', confidence: .99));
+    final service = TransactionIntelligenceService(categoryLearning: CategoryLearningService(categories), aiFallback: AiCategoryFallback(provider: provider, categoryExists: (_) async => true));
+    final result = await service.processParsed(userId: 'u1', localResults: [ParsedTransaction(amount: 50000, description: 'transfer', type: ParsedTransactionType.expense, categoryId: 'lainnya', confidence: .2)], allowAi: true);
+    expect(result.single.categoryId, 'lainnya'); expect(result.single.amount, 50000);
+    expect(provider.calls, 0); expect(result.single.processedBy, ProcessedBy.localParser);
+  });
   test('one spoken multi transaction input remains local with numeric and word prices', () async {
     final provider = FakeProvider(null);
     final categories = FakeCategoryRepository();

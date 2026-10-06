@@ -37,13 +37,13 @@ class TransactionIntelligenceService {
       final learnedCategory = await categoryLearning.resolve(
         userId: userId,
         text: local.description,
-        fallbackCategoryId: local.categoryId,
+        fallbackCategoryId: null,
         mappings: mappings,
       );
 
       final resolvedCategory = learnedCategory ?? local.categoryId;
-      final localIsConfident = local.confidence >= aiTriggerConfidence &&
-          resolvedCategory != 'lainnya';
+      final localIsConfident = learnedCategory != null || (local.confidence >= aiTriggerConfidence &&
+          resolvedCategory != 'lainnya');
 
       if (localIsConfident || !allowAi) {
         results.add(IntelligentTransaction.fromLocal(local, resolvedCategory));

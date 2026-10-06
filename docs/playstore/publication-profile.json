@@ -12,5 +12,8 @@
   "play_products_verified": false,
   "paid_ai_confirmed": false,
   "billing_server_verified": false,
-  "reporting_verified": false
+  "reporting_verified": false,
+  "personal_ai_enabled": false,
+  "unpaid_education_enabled": false,
+  "education_privacy_verified": false
 }

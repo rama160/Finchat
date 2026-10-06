@@ -6,7 +6,7 @@ Aplikasi belum dipublikasikan. Pemilik belum memiliki Play Console dan belum men
 
 ## Identitas yang dipertahankan
 
-application ID **com.finchat.finchat**; database **finchat.db**, schema versi 1; OAuth Google dan folder/format Drive lama. Nama pengguna/launcher Spenva. Tiga workflow asli tidak diubah; workflow Play ditambahkan terpisah. Minimum Android 7/API24 mengikuti SDK Billing saat ini. Target Play API36. Build sideload memakai gateway pilot lama; build Play tidak memiliki fallback ke gateway pilot/Unpaid AI. AI Play tertutup sampai server verifikasi langganan dan provider billed tersedia.
+application ID **com.finchat.finchat**; database **finchat.db**, schema versi 1; OAuth Google dan folder/format Drive lama. Nama pengguna/launcher Spenva. Tiga workflow asli tidak diubah; workflow Play ditambahkan terpisah. Minimum Android 7/API24 mengikuti SDK Billing saat ini. Target Play API36. Build sideload memakai gateway pilot lama; build Play tidak memiliki fallback ke gateway pilot/Unpaid AI. AI pribadi Play tertutup sampai verifikasi kuota dan provider yang sesuai tersedia. Edukasi unpaid hanya fixed topic tanpa informasi pribadi; default nonaktif.
 
 ## Langkah pemilik yang diperlukan
 
@@ -25,7 +25,7 @@ Ikuti server/play-billing/README.md, buat6 subscription products dengan base pla
 
 Google API berbayar harus berasal dari billed project yang sesuai terms dan tidak memakai endpoint gratis untuk data finansial pribadi. PAID_AI_CONFIRMED default false. Siapkan KV feedback dan Durable Object quota baru, operator moderasi laporan in-app dan proses penghapusan eksternal. Tetapkan GitHub variable SPENVA_BILLING_ENDPOINT hanya setelah uji end-to-end. Pembelian belum aktif hanya karena tombol paket/catalog tersedia.
 
-Tes sandbox: pending tidak membukaAI; purchased diverifikasi/ack server; restored akun yang sama; akun lain ditolak; canceled aktif sampaiexpiry; expired/on-hold/paused/refunded ditolak; offline tidak granting; kuota100/300/1000 atomic dan failure refund; laporan in-app benar-benar masuk dan operator meninjau. Verifikasi harga Google Play yang terlihat pengguna. Android RTDN belum dipakai: entitlement diverifikasi ke Google setiap panggilanAI, bukan dipercaya dari cache. Tidak ada recurring charger buatan aplikasi.
+Tes sandbox: pending tidak membukaAI; purchased diverifikasi/ack server; restored akun yang sama; akun lain ditolak; canceled aktif sampaiexpiry; expired/on-hold/paused/refunded ditolak; offline tidak granting; kuota Voice/Scan/AI sesuai katalog final, reserve atomic dan failure refund; laporan in-app benar-benar masuk dan operator meninjau. Verifikasi harga Google Play yang terlihat pengguna. Android RTDN belum dipakai: entitlement diverifikasi ke Google setiap panggilanAI, bukan dipercaya dari cache. Tidak ada recurring charger buatan aplikasi.
 
 ## Build dan gate
 
