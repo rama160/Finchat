@@ -6,6 +6,16 @@ on:
 permissions:
   contents: read
 jobs:
+  official-signin-asset:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Retrieve unchanged official Google sign-in mark
+        run: curl --fail --location --retry 3 -o google-g.png https://developers.google.com/static/identity/images/g-logo.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: official-google-signin-mark
+          path: google-g.png
+          if-no-files-found: error
   prepare:
     runs-on: ubuntu-latest
     timeout-minutes: 35
@@ -32,6 +42,12 @@ jobs:
         run: |
           flutter test --dart-define=CAPTURE_STORE_SCREENSHOTS=true test/play_store_screenshots_test.dart
           curl --fail --location --retry 3 -o build/play/google-g.png https://developers.google.com/static/identity/images/g-logo.png
+      - name: Upload app screenshot review pack
+        uses: actions/upload-artifact@v4
+        with:
+          name: spenva-store-screenshots-review
+          path: build/play/screenshots/
+          if-no-files-found: error
       - name: Generate Android platform
         run: |
           if [ ! -f android/app/build.gradle ] && [ ! -f android/app/build.gradle.kts ]; then
