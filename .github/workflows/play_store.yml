@@ -31,6 +31,16 @@ jobs:
       - name: Capture actual app screens
         run: |
           flutter test --dart-define=CAPTURE_STORE_SCREENSHOTS=true test/play_store_screenshots_test.dart
+          pip install Pillow==11.3.0
+          python3 - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          images=list(Path('build/play/screenshots').glob('*.png'))
+          assert len(images)==4
+          for path in images:
+            image=Image.open(path).convert('RGB');assert image.size==(1080,1920);image.save(path)
+          print('Four opaque 1080x1920 screenshots validated.')
+          PY
       - name: Upload app screenshot review pack
         uses: actions/upload-artifact@v4
         with:
@@ -79,7 +89,8 @@ jobs:
           set -euo pipefail
           curl --fail --location --retry 3 -o /tmp/bundletool.jar https://github.com/google/bundletool/releases/download/1.18.2/bundletool-all-1.18.2.jar
           AAB=build/app/outputs/bundle/release/app-release.aab
-          jarsigner -verify "$AAB"
+          jarsigner -verify "$AAB" > build/play/jarsigner.txt
+          grep -q 'jar verified.' build/play/jarsigner.txt
           java -jar /tmp/bundletool.jar dump manifest --bundle="$AAB" > build/play/manifest.xml
           java -jar /tmp/bundletool.jar dump config --bundle="$AAB" > build/play/bundle-config.txt
           python3 tooling/play/check_bundle.py --bundle="$AAB" --manifest=build/play/manifest.xml --config=build/play/bundle-config.txt --profile=build/play/publication-profile.json --output=build/play/validation.json

@@ -6,6 +6,19 @@ const spenvaPurple = Color(0xff555d91);
 const spenvaBackground = Color(0xfff9f7fd);
 const spenvaBlue = Color(0xff21a5de);
 
+/// Shared by runtime screens and store capture; appearance is unchanged.
+ThemeData spenvaTheme() => ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: spenvaPurple),
+          useMaterial3: true,
+          fontFamily: 'SpenvaSans',
+          scaffoldBackgroundColor: spenvaBackground,
+          appBarTheme: const AppBarTheme(backgroundColor: spenvaBackground, surfaceTintColor: Colors.transparent),
+          cardTheme: CardThemeData(color: Colors.white, elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22))),
+          filledButtonTheme: FilledButtonThemeData(style: FilledButton.styleFrom(
+            backgroundColor: spenvaPurple, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12))),
+        );
+
 class SpenvaLogo extends StatelessWidget {
   const SpenvaLogo({super.key, this.signIn = false, this.markOnly = false});
   final bool signIn, markOnly;

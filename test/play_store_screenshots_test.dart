@@ -12,6 +12,8 @@ import 'package:finchat/data/local/finchat_database.dart';
 import 'package:finchat/main.dart';
 import 'package:finchat/presentation/screens/login_screen.dart';
 import 'package:finchat/presentation/screens/chat_screen.dart';
+import 'package:finchat/presentation/widgets/spenva_brand.dart';
+import 'package:finchat/presentation/widgets/period_filter.dart';
 
 void main() {
   testWidgets('capture actual Spenva screens with demo finances', (tester) async {
@@ -21,20 +23,31 @@ void main() {
         ..addFont(rootBundle.load('assets/fonts/DejaVuSans-Bold.ttf'));
       await bodyFont.load();
       final googleFont=FontLoader('GoogleSans')..addFont(rootBundle.load('assets/fonts/GoogleSans-Medium.ttf'));await googleFont.load();
+      final sdk=Platform.environment['FLUTTER_ROOT'];
+      if (sdk == null) throw StateError('FLUTTER_ROOT is required for capture icon font.');
+      final icons=await File('$sdk/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf').readAsBytes();
+      final iconFont=FontLoader('MaterialIcons')..addFont(Future.value(ByteData.sublistView(icons)));await iconFont.load();
       sqfliteFfiInit();databaseFactory=databaseFactoryFfiNoIsolate;
       final directory=await Directory.systemTemp.createTemp('spenva_store_demo_');await databaseFactory.setDatabasesPath(directory.path);
     });
-    await tester.binding.setSurfaceSize(const Size(360,800));addTearDown(()=>tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(432,768));addTearDown(()=>tester.binding.setSurfaceSize(null));
     final manager=SessionManager(InMemorySessionRepository());await manager.initialize();
     final capture=GlobalKey();
     Future<void> display(Widget screen) async {
-      await tester.pumpWidget(SessionScope(sessionManager:manager,child:RepaintBoundary(key:capture,child:MaterialApp(theme:ThemeData(useMaterial3:true,fontFamily:'SpenvaSans',colorScheme:ColorScheme.fromSeed(seedColor:const Color(0xff555d91)),scaffoldBackgroundColor:const Color(0xfff9f7fd)),home:screen))));
+      await tester.pumpWidget(SessionScope(sessionManager:manager,child:RepaintBoundary(key:capture,child:MaterialApp(debugShowCheckedModeBanner:false,theme:spenvaTheme(),home:screen))));
+      await tester.pumpAndSettle();
+      final context=tester.element(find.byType(MaterialApp));
+      await tester.runAsync(()async{
+        for(final asset in ['sign_in','header','mark','google-g']) {
+          await precacheImage(AssetImage('assets/brand/$asset.png'),context);
+        }
+      });
       await tester.pumpAndSettle();
     }
     Future<void> save(String name) async {
       expect(tester.takeException(),isNull);
       final boundary=capture.currentContext!.findRenderObject()! as RenderRepaintBoundary;
-      await tester.runAsync(()async{final image=await boundary.toImage(pixelRatio:3);final bytes=await image.toByteData(format:ui.ImageByteFormat.png);final directory=Directory('build/play/screenshots');await directory.create(recursive:true);await File('${directory.path}/$name.png').writeAsBytes(bytes!.buffer.asUint8List());image.dispose();});
+      await tester.runAsync(()async{final image=await boundary.toImage(pixelRatio:2.5);final bytes=await image.toByteData(format:ui.ImageByteFormat.png);final directory=Directory('build/play/screenshots');await directory.create(recursive:true);await File('${directory.path}/$name.png').writeAsBytes(bytes!.buffer.asUint8List());image.dispose();});
     }
     await display(const LoginScreen());await save('01-sign-in');
     await manager.login(email:'demo@finchat.local');
@@ -45,6 +58,10 @@ void main() {
     });
     await display(const ChatScreen());await save('02-chat');
     await tester.tap(find.text('Laporan'));await tester.pumpAndSettle();await save('03-report');
+    await tester.tap(find.descendant(of:find.byType(PeriodFilter),matching:find.byType(TextButton)).first);await tester.pumpAndSettle();
+    final month=DateTime.now();
+    await tester.tap(find.byKey(ValueKey('calendar_${month.year}_${month.month}_1')));await tester.pump();
+    await tester.tap(find.byKey(ValueKey('calendar_${month.year}_${month.month}_3')));await tester.pumpAndSettle();await save('04-calendar');
     await tester.pumpWidget(const SizedBox());await tester.runAsync(()async{await (await FinChatDatabase().database).close();});manager.dispose();
   },skip:const String.fromEnvironment('CAPTURE_STORE_SCREENSHOTS')!='true');
 }

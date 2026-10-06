@@ -40,17 +40,7 @@ class FinChatApp extends StatelessWidget {
       child: MaterialApp.router(
         title: 'Spenva',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: spenvaPurple),
-          useMaterial3: true,
-          fontFamily: 'SpenvaSans',
-          scaffoldBackgroundColor: spenvaBackground,
-          appBarTheme: const AppBarTheme(backgroundColor: spenvaBackground, surfaceTintColor: Colors.transparent),
-          cardTheme: CardThemeData(color: Colors.white, elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22))),
-          filledButtonTheme: FilledButtonThemeData(style: FilledButton.styleFrom(
-            backgroundColor: spenvaPurple, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12))),
-        ),
+        theme: spenvaTheme(),
         routerConfig: AppRouter(sessionManager).router,
       ),
     );
