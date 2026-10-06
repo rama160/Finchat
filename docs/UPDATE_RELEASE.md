@@ -1,3 +1,16 @@
+## Verified GitHub CI — Spenva 0.3.2+15 (6 Oktober 2026)
+
+- Runtime/test commit `0b9d9b0ca738f4c28a3847581920c07b9d08c933`, branch `codex/finchat-input-navigation-audit`. Dokumen final sesudah commit ini tidak mengubah kode/aset yang diuji.
+- Flutter 3.47.6, analyze No issues found, **119 tests passed** pada kedua workflow: https://github.com/rama160/Finchat/actions/runs/37401893802 dan https://github.com/rama160/Finchat/actions/runs/37401889047 .
+- Signed release APK **92.6MB**, permanent FinChat release keystore, label launcher Spenva, versi aplikasi/Pengaturan `0.3.2+15`: https://github.com/rama160/Finchat/actions/runs/37401889047/artifacts/11385802047 .
+- Hash SHA-256 ZIP artifact `fd700715fc5794c9b803eaef53a1e2ad7c1a30a048916c2c38e43e7254ab16b8`; ini hash arsip artifact, bukan hash APK di dalamnya.
+- Regresi: composer 360 px/teks 1,6× dengan keyboard, fokus/rect/draft yang stabil saat kirim; timeline campuran; SQLite gaji 5 juta; dua transaksi suara pada callback frasa/cumulative/final; Drive authorization `promptIfUnauthorized=false` dan 0 authenticate/lightweight calls; sign in 320 px/teks 1,8×; nominal jutaan dan simpan/bagikan PDF.
+- Semua aset/logo, subset font Latin/simbol DejaVu beserta lisensi, dekorasi dan animasi singkat native Flutter dibundel. Tidak memakai gambar pratinjau sebagai halaman aplikasi atau aset/font yang diambil dari internet saat berjalan.
+- Main tetap `91252bddf4a4eadaa99dafe095f72c2e04a4bab1`. Tiga workflow asli, UPDATE_GITHUB.bat, database/schema/lifecycle, parser nominal, repository transaksi, kunci sesi dan format/file Drive byte-identical terhadap baseline. Application ID/OAuth/Gateway dipertahankan. Manifest cocok dengan seluruh **170 file** remote.
+- Source: https://github.com/rama160/Finchat/archive/refs/heads/codex/finchat-input-navigation-audit.zip . PR: https://github.com/rama160/Finchat/pull/1 .
+- **Retest HP:** microphone/segmen ucapan nyata, IME, dialog Google native dan system save picker/lokasi PDF. Bila token Drive tidak tersedia tanpa UI, backup otomatis dilewati sampai pengguna memberi otorisasi lewat menu Backup; data lokal tetap utuh. CI membuktikan kontrak dan layout simulasi, bukan pengujian perangkat fisik.
+- Pasang APK sebagai pembaruan aplikasi lama dengan application ID dan signing yang sama; tidak perlu menghapus aplikasi/data. Bagian ini menggantikan status pending pada patch +15 di bawah.
+
 ## Spenva device follow-up — 0.3.2+15 (6 Oktober 2026)
 
 - Nama yang tampil menjadi Spenva; application ID `com.finchat.finchat`, nama package Dart, schema/database `finchat.db`, kunci session, backup format/file Drive, Google OAuth, endpoint Gateway dan workflow asli dipertahankan.
@@ -10,7 +23,7 @@
 - Ringkasan laporan adaptif: dua kartu seimbang pada lebar yang cukup, kartu penuh pada layar kecil/teks besar, tanpa ellipsis nominal. Caption dan insight memakai kalimat natural dari data terpilih, tidak mengulang statistik satu hari sebagai pola panjang.
 - Kalender tanpa chip Tanggal/Rentang/Bulan/Tahun; pemilih bulan di atas tahun. Klik satu hari lalu Pilih untuk tanggal tunggal; klik hari kedua untuk rentang, klik berikutnya memulai rentang baru. Sebulan penuh/Setahun penuh mempertahankan kemampuan periode penuh. Range sebulan/setahun otomatis dinormalisasi seperti sebelumnya.
 - PDF menawarkan Simpan ke perangkat melalui Android file picker atau Bagikan PDF melalui printing. PDF generator, detail/filter dan pemulihan backup tetap berfungsi.
-- Status verifikasi: menunggu GitHub analyze/tests/signed APK. Uji HP tetap diperlukan untuk speech, IME asli, dialog Google dan lokasi penyimpanan Android.
+- Status verifikasi: analyze bersih, 119 tes lulus dan signed APK berhasil. Bukti final ada di atas; uji HP tetap diperlukan untuk speech, IME asli, dialog Google dan lokasi penyimpanan Android.
 
 ## Verified GitHub CI — 0.3.2+14 (5 Oktober 2026)
 
