@@ -9,6 +9,8 @@ CHANGELOG.md
 README.md
 UPDATE_GITHUB.bat
 analysis_options.yaml
+assets/brand/android_foreground.png
+assets/brand/android_foreground.svg
 assets/brand/android_icon.png
 assets/brand/android_icon.svg
 assets/brand/header.png
@@ -27,6 +29,7 @@ docs/AUDIT_0.3.2+12.md
 docs/AUDIT_0.3.2+13.md
 docs/AUDIT_0.3.2+14.md
 docs/AUDIT_0.3.2+15.md
+docs/AUDIT_0.3.2+16.md
 docs/BUGFIX_0.3.2+6_DATABASE_AI.md
 docs/FINCHAT_MASTER_CONTEXT.md
 docs/FULL_REPOSITORY_AUDIT.md

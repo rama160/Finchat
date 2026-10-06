@@ -59,7 +59,12 @@ class LocalTransactionParser {
   };
 
   List<ParsedTransaction> parse(String input) {
-    final source = normalizeSpokenMoney(input).trim();
+    // Bare salary amounts are common in typed input ("gaji 5000000").
+    // Add a currency prefix only beside an income keyword, never to dates.
+    final source = normalizeSpokenMoney(input).trim().replaceAllMapped(
+      RegExp(r'\b(gaji|gajian|salary|upah|honor|honorarium|bonus|komisi|thr|pemasukan|pendapatan|uang masuk)\s+(\d{4,})(?![\d.,])', caseSensitive: false),
+      (match) => '${match[1]} Rp ${match[2]}',
+    );
     if (source.isEmpty) return const [];
 
     final money = MoneyAmountParser.findAll(source);
@@ -111,12 +116,14 @@ class LocalTransactionParser {
     if (context.contains('bensin') || context.contains('solar') || context.contains('parkir')) {
       return 'transportasi';
     }
-    if (context.contains('makan') || context.contains('nasi')) {
+    if (RegExp(r'\b(makan\w*|minum\w*|nasi|bakso|kopi|teh|roti|mie|mi|jajan|susu|air mineral)\b').hasMatch(context)) {
       return 'makanan';
     }
-    if (context.contains('tagihan') || context.contains('listrik') || context.contains('air')) {
+    if (RegExp(r'\b(tagihan|listrik|air|internet|pulsa|wifi)\b').hasMatch(context)) {
       return 'tagihan';
     }
+    if (RegExp(r'\b(obat|dokter|rumah sakit|klinik|vitamin|apotek)\b').hasMatch(context)) return 'kesehatan';
+    if (RegExp(r'\b(sabun|deterjen|pampers|gas|elpiji|galon)\b').hasMatch(context)) return 'belanja_dapur';
     return 'lainnya';
   }
 

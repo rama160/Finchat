@@ -132,7 +132,7 @@ class _ReportScreenState extends State<ReportScreen> {
                   final data = snapshot.data;
                   final report = data?.report;
                   if (report == null) return const _ErrorState(message: 'Data laporan tidak tersedia.');
-                  return _ReportBody(report: report, points: data!.points, onExport: () => _exportPdf(report));
+                  return _ReportBody(report: report, points: data!.points);
                 },
               ),
             ),
@@ -143,14 +143,13 @@ class _ReportScreenState extends State<ReportScreen> {
 }
 
 class _ReportBody extends StatelessWidget {
-  const _ReportBody({required this.report, required this.points, required this.onExport});
+  const _ReportBody({required this.report, required this.points});
   final List<DailyExpense> points;
   final ReportSummary report;
-  final VoidCallback onExport;
   @override
   Widget build(BuildContext context) {
     if (report.transactionCount == 0) {
-      return ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 24), children: [_SummaryCard(report: report), const SizedBox(height: 12), _DailyExpenseChart(report: report, points: points), const SizedBox(height: 12), const Card(child: Padding(padding: EdgeInsets.all(24), child: Column(children: [Icon(Icons.receipt_long_outlined, size: 44), SizedBox(height: 10), Text('Belum ada transaksi', style: TextStyle(fontWeight: FontWeight.bold)), SizedBox(height: 4), Text('Tidak ada transaksi pada periode yang dipilih.', textAlign: TextAlign.center)]))), const SizedBox(height: 12), OutlinedButton.icon(onPressed: onExport, icon: const Icon(Icons.picture_as_pdf), label: const Text('Ekspor PDF'))]);
+      return ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 24), children: [_SummaryCard(report: report), const SizedBox(height: 12), _DailyExpenseChart(report: report, points: points), const SizedBox(height: 12), const Card(child: Padding(padding: EdgeInsets.all(24), child: Column(children: [Icon(Icons.receipt_long_outlined, size: 44), SizedBox(height: 10), Text('Belum ada transaksi', style: TextStyle(fontWeight: FontWeight.bold)), SizedBox(height: 4), Text('Tidak ada transaksi pada periode yang dipilih.', textAlign: TextAlign.center)])))]);
     }
     return ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 24), children: [
       _SummaryCard(report: report),
@@ -160,8 +159,6 @@ class _ReportBody extends StatelessWidget {
       _CategoryChart(report: report),
       const SizedBox(height: 12),
       _DailyExpenseChart(report: report, points: points),
-      const SizedBox(height: 12),
-      FilledButton.icon(onPressed: onExport, icon: const Icon(Icons.picture_as_pdf), label: const Text('Ekspor PDF')),
     ]);
   }
 }
@@ -178,11 +175,11 @@ class _SummaryCard extends StatelessWidget {
       onTap: r == null ? null : () => _showTypeDetails(context, TransactionType.expense, r.transactions));
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('Ringkasan periode', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold))),
-      LayoutBuilder(builder: (context, constraints) => constraints.maxWidth < 340 || MediaQuery.textScalerOf(context).scale(16) > 20
-        ? Column(children: [income, const SizedBox(height: 10), expense])
-        : Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: income), const SizedBox(width: 12), Expanded(child: expense)])),
+      income,
+      const SizedBox(height: 10),
+      expense,
       const SizedBox(height: 12),
-      _Metric('Selisih periode', _money(r?.balance ?? 0), Icons.account_balance_wallet_outlined, color: spenvaPurple, balance: true),
+      _Metric('Saldo', _money(r?.balance ?? 0), Icons.account_balance_wallet_outlined, color: spenvaPurple, balance: true),
     ]);
   }
 }

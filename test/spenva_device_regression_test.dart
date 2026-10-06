@@ -23,6 +23,10 @@ void main() {
   });
   test('currency, negative balance and provider answers use one format', () {
     expect(formatRupiah(15000), 'Rp 15.000');
+    for (final (amount, formatted) in [(100, 'Rp 100'), (160000, 'Rp 160.000'), (567765, 'Rp 567.765'), (100000000, 'Rp 100.000.000')]) {
+      expect(formatRupiah(amount), formatted);
+    }
+    expect(normalizeRupiahText('Rp .567.678 dan Rp.160.000'), 'Rp 567.678 dan Rp 160.000');
     expect(formatRupiah(-3620000), '-Rp 3.620.000');
     expect(normalizeRupiahText('Rp.15.000, Rp15000 dan Rp7.378.000,0'), 'Rp 15.000, Rp 15.000 dan Rp 7.378.000');
   });
@@ -50,6 +54,8 @@ void main() {
       expect(result.single.amount, 5000000, reason: word);
       expect(result.single.type, ParsedTransactionType.income, reason: word);
     }
+    expect(parser.parse('gaji 5000000').single.type, ParsedTransactionType.income);
+    expect(parser.parse('gaji 5000000').single.amount, 5000000);
     final mixed = parser.parse('gaji 5 juta, nasi goreng 10.000, bakso 5.000');
     expect(mixed.map((item) => item.amount), [5000000, 10000, 5000]);
     expect(mixed.map((item) => item.type), [ParsedTransactionType.income, ParsedTransactionType.expense, ParsedTransactionType.expense]);
@@ -94,6 +100,11 @@ void main() {
       sharePdf: (bytes, filename) async { expect(String.fromCharCodes(bytes.take(4)), '%PDF'); shares++; }))));
     await tester.pumpAndSettle();
     expect(find.text('Rp 5.000.000'), findsOneWidget);
+    expect(find.text('Saldo'), findsOneWidget);
+    expect(find.text('Selisih periode'), findsNothing);
+    expect(find.text('Ekspor PDF'), findsNothing);
+    final incomeRect = tester.getRect(find.byKey(const ValueKey('metric_Pemasukan')));
+    expect(incomeRect.width, greaterThan(200));
     expect(find.text('Rp 3.620.000'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.tap(find.byTooltip('Ekspor PDF')); await tester.pumpAndSettle();

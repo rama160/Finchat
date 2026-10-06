@@ -49,7 +49,7 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
-  final _inputController = TextEditingController();
+  final _inputController = _PlainComposerController();
   final ImagePicker _imagePicker = ImagePicker();
   late final FinChatDatabase _database;
   late final SqliteTransactionRepository _transactions;
@@ -222,7 +222,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       final service = FinancialQaService(reports: ReportService(transactions: _transactions, categories: _categories), provider: OpenAiCompatibleAiProvider());
       final result = await service.ask(userId: session.userId, question: input,
         start: period.start ?? DateTime(2000), end: period.end ?? DateTime(2100, 12, 31));
-      answer = '${period.label}\n$result';
+      final explicitAll = RegExp(r'semua tanggal|seluruh riwayat|sepanjang waktu', caseSensitive: false).hasMatch(input);
+      answer = period.kind == PeriodKind.all && !explicitAll ? result : '${period.label}\n$result';
     } on FormatException catch (error) {
       answer = error.message;
     } catch (_) {
@@ -674,7 +675,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           children: [
             Expanded(
               child: visibleItems.isEmpty && _answers.isEmpty
-                  ? _EmptyChat(email: session?.email ?? '')
+                  ? const _EmptyChat()
                   : ListView.builder(
                       key: const PageStorageKey('chat_timeline'),
                       controller: _chatScroll,
@@ -898,7 +899,7 @@ class _EditTransactionDialogState extends State<_EditTransactionDialog> {
                   helperText: 'Ketik kategori sendiri atau pilih kategori',
                   suffixIcon: PopupMenuButton<CategoryEntity>(tooltip: 'Pilih kategori',
                     icon: const Icon(Icons.arrow_drop_down),
-                    itemBuilder: (_) => widget.categories.where((c) => c.type == _type.name).map((c) => PopupMenuItem(value: c, child: Text(c.name))).toList(),
+                    itemBuilder: (_) => widget.categories.where((c) => c.type == _type.name && !c.id.startsWith('legacy_')).map((c) => PopupMenuItem(value: c, child: Text(c.name))).toList(),
                     onSelected: (category) => setState(() => _categoryName.text = category.name),
                   ),
                 ),
@@ -923,30 +924,17 @@ class _EditTransactionDialogState extends State<_EditTransactionDialog> {
 }
 
 class _EmptyChat extends StatelessWidget {
-  const _EmptyChat({required this.email});
-  final String email;
+  const _EmptyChat();
 
   @override
-  Widget build(BuildContext context) => Center(
-        child: SingleChildScrollView(child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.account_balance_wallet_outlined, size: 64),
-              const SizedBox(height: 16),
-              Text('Halo ${email.isEmpty ? '' : email}'),
-              const SizedBox(height: 8),
-              const Text(
-                'Ketik transaksi dengan bahasa sehari-hari. Spenva akan memisahkan beberapa transaksi dan langsung menyimpannya. Anda dapat edit atau hapus setelah tersimpan.',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              const Text('Contoh: Beli nasi 25rb dan bensin 50k'),
-            ],
-          ),
-        )),
-      );
+  Widget build(BuildContext context) => const SizedBox.expand();
+}
+
+// Keep the IME composing range for keyboard editing, but omit its underline.
+class _PlainComposerController extends TextEditingController {
+  @override
+  TextSpan buildTextSpan({required BuildContext context, TextStyle? style, required bool withComposing}) =>
+      super.buildTextSpan(context: context, style: style, withComposing: false);
 }
 
 class _Composer extends StatelessWidget {
@@ -974,7 +962,7 @@ class _Composer extends StatelessWidget {
     decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(32), boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)]),
     child: ValueListenableBuilder<TextEditingValue>(valueListenable: controller, builder: (context, value, _) => Row(children: [
       IconButton(onPressed: busy || listening ? null : () => _emoji(context), icon: const Icon(Icons.sentiment_satisfied_alt), tooltip: 'Emoji'),
-      Expanded(child: TextField(key: const ValueKey('chat_input'), controller: controller, focusNode: focusNode, readOnly: listening, minLines: 1, maxLines: 1, textInputAction: TextInputAction.send,
+      Expanded(child: TextField(key: const ValueKey('chat_input'), controller: controller, focusNode: focusNode, readOnly: listening, autocorrect: false, enableSuggestions: false, spellCheckConfiguration: const SpellCheckConfiguration.disabled(), minLines: 1, maxLines: 1, textInputAction: TextInputAction.send,
         onEditingComplete: () {},
         decoration: const InputDecoration(hintText: 'Pesan', border: InputBorder.none, contentPadding: EdgeInsets.symmetric(vertical: 12)), onSubmitted: (_) => onSubmit())),
       IconButton(onPressed: busy || listening ? null : onReceipt, icon: const Icon(Icons.attach_file), tooltip: 'Tambah struk'),

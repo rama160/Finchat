@@ -162,10 +162,8 @@ def configure_branding() -> None:
     (values / 'spenva_colors.xml').write_text('<resources><color name="spenva_background">#555D91</color></resources>')
     drawable = res / 'drawable'
     drawable.mkdir(parents=True, exist_ok=True)
-    (drawable / 'spenva_foreground.xml').write_text('''<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="256" android:viewportHeight="256">
-<path android:strokeColor="#F9F7FD" android:strokeWidth="24" android:strokeLineCap="round" android:pathData="M163,82 L110,82 C78,82 78,120 110,120 L140,120 C173,120 173,160 140,160 L96,160 L77,175"/>
-<path android:strokeColor="#21A5DE" android:strokeWidth="15" android:strokeLineCap="round" android:pathData="M111,100 L145,100"/>
-</vector>''')
+    shutil.copyfile(ROOT / 'assets' / 'brand' / 'android_foreground.png', drawable / 'spenva_foreground.png')
+    (drawable / 'spenva_foreground.xml').unlink(missing_ok=True)
     adaptive = res / 'mipmap-anydpi-v26'
     adaptive.mkdir(parents=True, exist_ok=True)
     (adaptive / 'ic_launcher.xml').write_text('<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android"><background android:drawable="@color/spenva_background"/><foreground android:drawable="@drawable/spenva_foreground"/></adaptive-icon>')

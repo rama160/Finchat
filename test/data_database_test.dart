@@ -64,6 +64,21 @@ void main() {
     addTearDown(second.close);
   });
 
+  test('defaults missing after a partial restore are added without replacing user data', () async {
+    await seedTestUser();
+    final custom = await categories.ensureCategory('Acara keluarga', 'expense');
+    await categories.learnMapping(userId: 'user-1', keyword: 'kumpul', categoryId: custom.id);
+    final db = await database.database;
+    await db.delete('categories', where: 'id = ?', whereArgs: ['gaji']);
+    expect(await db.query('categories', where: 'id = ?', whereArgs: ['gaji']), isEmpty);
+    await categories.getMappings('user-1');
+    expect((await categories.getById('gaji'))!.type, 'income');
+    expect((await categories.getById('makanan'))!.name, 'Makanan dan minuman');
+    expect((await categories.getById(custom.id))!.name, 'Acara keluarga');
+    expect((await categories.findMapping('user-1', 'kumpul'))!.categoryId, custom.id);
+    expect((await db.query('categories', where: 'id = ?', whereArgs: ['makanan'])).single['name'], 'Makanan');
+  });
+
   test('typed categories persist, reuse normalized names and learn for the user', () async {
     await seedTestUser();
     final custom = await categories.ensureCategory('  Acara   keluarga ', 'expense');

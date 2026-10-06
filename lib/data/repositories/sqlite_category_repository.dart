@@ -12,7 +12,50 @@ class SqliteCategoryRepository implements CategoryRepository {
 
   final FinChatDatabase database;
 
+  static const _defaults = <String, (String, String)>{
+    'gaji': ('Gaji dan upah', 'income'),
+    'bonus': ('Bonus dan pendapatan lain', 'income'),
+    'makanan': ('Makanan dan minuman', 'expense'),
+    'belanja_dapur': ('Kebutuhan rumah tangga', 'expense'),
+    'transportasi': ('Transportasi', 'expense'),
+    'tagihan': ('Tagihan', 'expense'),
+    'kesehatan': ('Kesehatan', 'expense'),
+    'hiburan': ('Hiburan', 'expense'),
+    'lainnya': ('Lainnya', 'expense'),
+  };
+
+  // Legacy backups may contain only categories used by their transactions.
+  // Restore missing defaults without replacing rows, IDs or learned mappings.
+  Future<void> _ensureDefaults() async {
+    final db = await database.database;
+    final ids = (await db.query('categories', columns: ['id'])).map((r) => r['id']).toSet();
+    final missing = _defaults.entries.where((entry) => !ids.contains(entry.key)).toList();
+    if (missing.isEmpty) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final batch = db.batch();
+    for (final entry in missing) {
+      batch.insert('categories', {'id': entry.key, 'name': entry.value.$1, 'type': entry.value.$2,
+        'is_system': 1, 'created_at': now, 'updated_at': now}, conflictAlgorithm: ConflictAlgorithm.ignore);
+    }
+    await batch.commit(noResult: true);
+  }
+
+  String _displayName(Map<String, Object?> row) {
+    final id = row['id']! as String;
+    if (_defaults.containsKey(id)) return _defaults[id]!.$1;
+    if (id.startsWith('legacy_')) {
+      final name = (row['name']! as String).toLowerCase();
+      if (RegExp(r'makan|minum|kopi|nasi|bakso').hasMatch(name)) return 'Makanan dan minuman';
+      if (RegExp(r'obat|dokter|kesehatan').hasMatch(name)) return 'Kesehatan';
+      if (RegExp(r'tagihan|listrik|pulsa|internet').hasMatch(name)) return 'Tagihan';
+      if (RegExp(r'bensin|transport|parkir').hasMatch(name)) return 'Transportasi';
+      return row['type'] == 'income' ? 'Pendapatan lain' : 'Lainnya';
+    }
+    return row['name']! as String;
+  }
+
   Future<CategoryEntity> ensureCategory(String name, String type) async {
+    await _ensureDefaults();
     final trimmed = name.trim().replaceAll(RegExp(r'\s+'), ' ');
     if (trimmed.isEmpty || trimmed.length > 50 || !['income', 'expense'].contains(type)) {
       throw ArgumentError('Kategori harus berisi 1–50 karakter.');
@@ -21,7 +64,7 @@ class SqliteCategoryRepository implements CategoryRepository {
     return db.transaction((txn) async {
       final rows = await txn.query('categories', where: 'type = ?', whereArgs: [type]);
       for (final row in rows) {
-        if ((row['name'] as String).trim().toLowerCase() == trimmed.toLowerCase()) return _categoryFromRow(row);
+        if (_displayName(row).trim().toLowerCase() == trimmed.toLowerCase()) return _categoryFromRow(row);
       }
       final now = DateTime.now().millisecondsSinceEpoch;
       final id = 'custom_${type}_${base64Url.encode(utf8.encode(trimmed.toLowerCase())).replaceAll('=', '')}';
@@ -34,6 +77,7 @@ class SqliteCategoryRepository implements CategoryRepository {
 
   @override
   Future<List<CategoryEntity>> getCategories({String? type}) async {
+    await _ensureDefaults();
     final db = await database.database;
     final rows = await db.query(
       'categories',
@@ -46,6 +90,7 @@ class SqliteCategoryRepository implements CategoryRepository {
 
   @override
   Future<CategoryEntity?> getById(String id) async {
+    await _ensureDefaults();
     final db = await database.database;
     final rows = await db.query('categories', where: 'id = ?', whereArgs: [id], limit: 1);
     return rows.isEmpty ? null : _categoryFromRow(rows.first);
@@ -115,6 +160,7 @@ class SqliteCategoryRepository implements CategoryRepository {
 
   @override
   Future<List<CategoryMapping>> getMappings(String userId) async {
+    await _ensureDefaults();
     final db = await database.database;
     final rows = await db.query(
       'category_mappings',
@@ -127,7 +173,7 @@ class SqliteCategoryRepository implements CategoryRepository {
 
   CategoryEntity _categoryFromRow(Map<String, Object?> row) => CategoryEntity(
         id: row['id']! as String,
-        name: row['name']! as String,
+        name: _displayName(row),
         type: row['type']! as String,
         isSystem: (row['is_system']! as int) == 1,
         createdAt: _date(row['created_at']),

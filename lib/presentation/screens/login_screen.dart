@@ -56,7 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
         Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white.withValues(alpha: .55), borderRadius: BorderRadius.circular(24)), child: Column(children: [
           Align(alignment: Alignment.centerRight, child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: spenvaBlue.withValues(alpha: .13), borderRadius: BorderRadius.circular(16)), child: const Text('Tadi beli kopi 18 ribu'))),
           const SizedBox(height: 10),
-          const Row(children: [SizedBox(width: 32, height: 32, child: SpenvaLogo(markOnly: true)), SizedBox(width: 10), Expanded(child: Text('Tercatat · Minuman · Rp 18.000', style: TextStyle(fontSize: 12))), Icon(Icons.check_circle_outline, color: Colors.teal)]),
+          const Row(children: [SizedBox(width: 32, height: 32, child: SpenvaLogo(markOnly: true)), SizedBox(width: 10), Expanded(child: Text('Tercatat · Makanan dan minuman · Rp 18.000', style: TextStyle(fontSize: 12))), Icon(Icons.check_circle_outline, color: Colors.teal)]),
         ])),
         const SizedBox(height: 28),
         SizedBox(width: double.infinity, child: FilledButton(onPressed: session.isBusy ? null : _loginWithGoogle,
