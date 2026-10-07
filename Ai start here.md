@@ -1,3 +1,5 @@
+> **CURRENT SOURCE OF TRUTH — 7 Oktober 2026:** gunakan branch `spenva-source-of-truth`. Status produk/rilis canonical ada di [docs/SPENVA_CANONICAL_SOURCE.md](docs/SPENVA_CANONICAL_SOURCE.md). Catatan branch/versi di bawah adalah riwayat kecuali dinyatakan current.
+
 > **Verifikasi +18 selesai:** runtime `7bfd653d6dfe3a893c1c2252a1f345f48f5a9122`; Flutter 134 lulus, backend 46 lulus, validator 5 lulus, suite Play 11 lulus dan integrasi Linux 1 lulus. Signed AAB 75.1 MB lolos pemeriksaan 16 KB. [CI](https://github.com/rama160/Finchat/actions/runs/37464173519), [AAB/APK](https://github.com/rama160/Finchat/actions/runs/37464173519/artifacts/11413279142). Pembelian dan deployment subscription belum aktif. Detail hasil: [VALIDATION.md](docs/playstore/VALIDATION.md).
 
 > **Subscription baseline 0.3.4+18 — 6 Oktober 2026**
