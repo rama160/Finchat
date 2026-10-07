@@ -87,7 +87,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
           const Divider(),
           Card(child: ListTile(leading: const Icon(Icons.workspace_premium_outlined), title: const Text('Paket Spenva'),
-            subtitle: const Text('Free, Basic, Pro dan Unlimited.'), trailing: const Icon(Icons.chevron_right),
+            subtitle: const Text('Free, Plus, Pro dan Max.'), trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionScreen())))),
           ListTile(leading: const Icon(Icons.privacy_tip_outlined), title: const Text('Privasi dan data'), trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyScreen()))),
