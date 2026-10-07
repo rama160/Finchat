@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="id">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kebijakan Privasi Spenva</title>
+<style>body{font-family:system-ui,-apple-system,sans-serif;max-width:860px;margin:40px auto;padding:0 20px;line-height:1.65;color:#202124}h1,h2{line-height:1.25}small{color:#5f6368}a{color:#1967d2}</style></head>
+<body>
+<h1>Kebijakan Privasi Spenva</h1>
+<p><small>Terakhir diperbarui: 7 Oktober 2026</small></p>
+<p>Spenva adalah aplikasi pengelolaan keuangan pribadi yang dikembangkan oleh developer Spenva. Kebijakan ini menjelaskan bagaimana Spenva mengakses, menggunakan, menyimpan, mentransmisikan, dan melindungi data pengguna.</p>
+<h2>1. Data yang diproses</h2>
+<p><strong>Akun Google.</strong> Saat pengguna memilih masuk dengan Google, Spenva memproses pengenal akun Google, alamat email, nama tampilan (jika tersedia), dan token autentikasi untuk login, sesi, otorisasi layanan yang dipilih pengguna, serta perlindungan akses ke layanan online.</p>
+<p><strong>Data keuangan pribadi.</strong> Transaksi yang dimasukkan pengguna, termasuk tanggal, jenis pemasukan/pengeluaran, jumlah, deskripsi, kategori, dan data laporan, terutama disimpan secara lokal pada perangkat menggunakan SQLite.</p>
+<p><strong>Gambar/struk.</strong> Bila pengguna memilih kamera atau lampiran, gambar diproses untuk OCR agar teks transaksi dapat dikenali. File kerja OCR sementara dihapus setelah pemrosesan. Pengguna meninjau hasil sebelum menjadikannya transaksi.</p>
+<p><strong>Suara.</strong> Bila pengguna mengaktifkan input suara, Spenva menggunakan layanan pengenalan ucapan pada perangkat/platform untuk mengubah ucapan menjadi teks. Akses mikrofon hanya digunakan untuk fungsi yang diminta pengguna.</p>
+<p><strong>Backup Google Drive.</strong> Atas tindakan/izin pengguna, Spenva dapat membuat atau memulihkan backup pada ruang aplikasi tersembunyi Google Drive (appDataFolder). Backup dapat memuat data Spenva yang diperlukan untuk pemulihan. Spenva meminta scope Drive app data dan tidak meminta akses umum ke seluruh file Drive pengguna.</p>
+<p><strong>AI.</strong> Spenva memprioritaskan pemrosesan lokal. Ketika fitur AI diperlukan, data yang relevan dengan permintaan dapat dikirim melalui gateway Spenva/Cloudflare ke penyedia model AI. Untuk pertanyaan keuangan, data yang dikirim dapat mencakup periode, total pemasukan/pengeluaran/saldo, transaksi relevan, dan pertanyaan pengguna. Token autentikasi Google dapat digunakan untuk mengautentikasi permintaan ke gateway. Data AI digunakan untuk memberikan jawaban atau klasifikasi yang diminta, bukan untuk iklan Spenva.</p>
+<p><strong>Langganan.</strong> Jika monetisasi diaktifkan, pembelian digital diproses melalui Google Play Billing. Spenva dapat memproses status paket, identitas produk, dan token/hasil verifikasi pembelian untuk menentukan hak akses. Informasi kartu pembayaran tidak diterima atau disimpan oleh Spenva.</p>
+<h2>2. Pihak ketiga</h2>
+<p>Fitur tertentu menggunakan layanan Google (Google Sign-In, Google Drive, Google Play), Cloudflare sebagai gateway layanan online, dan penyedia model AI yang dikonfigurasi oleh backend Spenva. Data hanya dikirim ketika diperlukan untuk menyediakan fitur terkait. Praktik pihak ketiga juga tunduk pada kebijakan privasi masing-masing penyedia.</p>
+<h2>3. Penyimpanan dan keamanan</h2>
+<p>Data transaksi utama bersifat local-first. Informasi sesi sensitif disimpan menggunakan secure storage perangkat. Komunikasi dengan layanan online menggunakan HTTPS. Kunci rahasia penyedia AI dan kredensial backend tidak disimpan di APK. Tidak ada jaminan sistem elektronik sepenuhnya bebas risiko, namun Spenva menerapkan pembatasan akses dan minimisasi data sesuai fungsi.</p>
+<h2>4. Izin perangkat</h2>
+<p>Kamera/foto digunakan untuk pemindaian struk, mikrofon untuk input suara, dan pemilih file untuk lampiran yang dipilih pengguna. Spenva tidak menggunakan lokasi presisi untuk berbagi lokasi dengan pengguna lain.</p>
+<h2>5. Retensi dan penghapusan</h2>
+<p>Data lokal tetap berada pada perangkat sampai pengguna menghapus data/aplikasi atau menggunakan fungsi penghapusan yang tersedia. Backup Google Drive berada pada appDataFolder akun pengguna sampai dihapus sesuai mekanisme layanan/aplikasi. Data layanan online dipertahankan hanya selama diperlukan untuk penyediaan, keamanan, pencegahan penyalahgunaan, verifikasi hak akses, dan kewajiban hukum yang berlaku.</p>
+<p>Pengguna dapat meminta penghapusan akun dan data terkait Spenva melalui halaman <a href="../delete-account/">Penghapusan Akun Spenva</a>. Penghapusan akun Spenva tidak menghapus akun Google pengguna. Data yang wajib dipertahankan karena kewajiban hukum, keamanan, pencegahan penipuan, atau pencatatan transaksi oleh penyedia pembayaran dapat tunduk pada periode retensi yang berlaku.</p>
+<h2>6. Anak-anak</h2>
+<p>Spenva ditujukan untuk pengguna berusia 18 tahun ke atas dan bukan aplikasi yang ditujukan untuk anak-anak.</p>
+<h2>7. Perubahan kebijakan</h2>
+<p>Kebijakan ini dapat diperbarui ketika fitur, penyedia layanan, atau persyaratan hukum berubah. Tanggal pembaruan terbaru ditampilkan di bagian atas halaman.</p>
+<h2>8. Kontak privasi</h2>
+<p>Pertanyaan privasi dan permintaan terkait data dapat dikirim ke <a href="mailto:spenva.review@gmail.com">spenva.review@gmail.com</a>.</p>
+</body></html>
