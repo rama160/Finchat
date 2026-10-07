@@ -11,13 +11,10 @@ class MonetizationConfig {
 
   static final plans = planCatalog.map((p) => SubscriptionPlan(tier: p.tier, enabled: true, monthlyPriceId: p.productId)).toList();
 
-  static const supportedPaymentMethods = <PaymentMethod>[
-    PaymentMethod.qris,
-    PaymentMethod.gopay,
-    PaymentMethod.bankTransfer,
-    PaymentMethod.card,
-    PaymentMethod.otherEwallet,
-  ];
+  // Production digital subscriptions use Google Play Billing only.
+  // Legacy PaymentMethod values remain in the domain model solely for source
+  // compatibility and are not offered as checkout methods.
+  static const supportedPaymentMethods = <PaymentMethod>[];
 
   static SubscriptionPlan planFor(SubscriptionTier tier) => plans.firstWhere((plan) => plan.tier == tier);
 }
