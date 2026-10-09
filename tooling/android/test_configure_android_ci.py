@@ -32,4 +32,5 @@ class AndroidConfiguration(unittest.TestCase):
         module.configure_gradle();first=module.GROOVY.read_text();module.configure_gradle()
         self.assertEqual(first,module.GROOVY.read_text());self.assertIn('minSdkVersion 24',first)
         self.assertEqual(first.count('signingConfigs {'),1)
+        self.assertLess(first.index('plugins {'),first.index('def keystoreProperties'))
 if __name__=='__main__':unittest.main()

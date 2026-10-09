@@ -2,15 +2,15 @@
 
 Archived evidence only; current instructions are in ../../Ai start here.md.
 
-> **CURRENT SOURCE OF TRUTH — 7 Oktober 2026:** gunakan branch `spenva-source-of-truth`. Status produk/rilis canonical ada di [docs/SPENVA_CANONICAL_SOURCE.md](docs/SPENVA_CANONICAL_SOURCE.md). Catatan branch/versi di bawah adalah riwayat kecuali dinyatakan current.
+> **CURRENT SOURCE OF TRUTH — 7 Oktober 2026:** gunakan branch `spenva-source-of-truth`. Status produk/rilis canonical ada di [docs/SPENVA_CANONICAL_SOURCE.md](../SPENVA_CANONICAL_SOURCE.md). Catatan branch/versi di bawah adalah riwayat kecuali dinyatakan current.
 
-> **Verifikasi +18 selesai:** runtime `7bfd653d6dfe3a893c1c2252a1f345f48f5a9122`; Flutter 134 lulus, backend 46 lulus, validator 5 lulus, suite Play 11 lulus dan integrasi Linux 1 lulus. Signed AAB 75.1 MB lolos pemeriksaan 16 KB. [CI](https://github.com/rama160/Finchat/actions/runs/37464173519), [AAB/APK](https://github.com/rama160/Finchat/actions/runs/37464173519/artifacts/11413279142). Pembelian dan deployment subscription belum aktif. Detail hasil: [VALIDATION.md](docs/playstore/VALIDATION.md).
+> **Verifikasi +18 selesai:** runtime `7bfd653d6dfe3a893c1c2252a1f345f48f5a9122`; Flutter 134 lulus, backend 46 lulus, validator 5 lulus, suite Play 11 lulus dan integrasi Linux 1 lulus. Signed AAB 75.1 MB lolos pemeriksaan 16 KB. [CI](https://github.com/rama160/Finchat/actions/runs/37464173519), [AAB/APK](https://github.com/rama160/Finchat/actions/runs/37464173519/artifacts/11413279142). Pembelian dan deployment subscription belum aktif. Detail hasil: [VALIDATION.md](../playstore/VALIDATION.md).
 
 > **Subscription baseline 0.3.4+18 — 6 Oktober 2026**
-> Paket/harga/kuota baru dari instruksi pengguna menggantikan penawaran +17: Free/Plus/Pro/Max, bulanan/tahunan, kuota Voice/Scan/AI terpisah dan serverpersisten. Implementasi dan batas aktivasi: [SUBSCRIPTION.md](docs/playstore/SUBSCRIPTION.md). Pembelian/server belum live. Gemini unpaid tidak menerima catatan pribadi; tidak ada paidtierotomatis. Riwayat di bawah dipertahankan.
+> Paket/harga/kuota baru dari instruksi pengguna menggantikan penawaran +17: Free/Plus/Pro/Max, bulanan/tahunan, kuota Voice/Scan/AI terpisah dan serverpersisten. Implementasi dan batas aktivasi: [SUBSCRIPTION.md](../playstore/SUBSCRIPTION.md). Pembelian/server belum live. Gemini unpaid tidak menerima catatan pribadi; tidak ada paidtierotomatis. Riwayat di bawah dipertahankan.
 
 > **Play Store preparation — 0.3.3+17 (6 Oktober 2026)**
-> Free mempertahankan fungsi lokal yang sudah berjalan. Empat tier disiapkan melalui Google Play Billing; AI Play memerlukan verifikasi server, provider berbayar dan persetujuan18+. Application ID/database/OAuth/Drive tetap. Workflow Play terpisah menyiapkan AAB; publikasi dan pembelian belum aktif karena Play Console, identitas/kontak publik serta konfigurasi produk/provider belum tersedia. Panduan dan status aktual: [docs/playstore/LAUNCH.md](docs/playstore/LAUNCH.md), [paket](docs/playstore/PLANS.md), [data](docs/playstore/DATA_SAFETY.md). Catatan di bawah mempertahankan riwayat pilot, bukan klaim bahwa pembayaran sudah live.
+> Free mempertahankan fungsi lokal yang sudah berjalan. Empat tier disiapkan melalui Google Play Billing; AI Play memerlukan verifikasi server, provider berbayar dan persetujuan18+. Application ID/database/OAuth/Drive tetap. Workflow Play terpisah menyiapkan AAB; publikasi dan pembelian belum aktif karena Play Console, identitas/kontak publik serta konfigurasi produk/provider belum tersedia. Panduan dan status aktual: [docs/playstore/LAUNCH.md](../playstore/LAUNCH.md), [paket](../playstore/PLANS.md), [data](../playstore/DATA_SAFETY.md). Catatan di bawah mempertahankan riwayat pilot, bukan klaim bahwa pembayaran sudah live.
 
 ## Verified GitHub CI — Spenva 0.3.2+16 (6 Oktober 2026)
 

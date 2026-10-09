@@ -26,7 +26,13 @@ if (!keystorePropertiesFile.exists()) {
 keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 
 """
-            text = preamble + text
+            plugin_start = text.find("plugins {")
+            plugin_end = text.find("}", plugin_start)
+            if plugin_start >= 0 and plugin_end >= 0:
+                text = text[:plugin_end + 1] + "\n\n" + preamble + text[plugin_end + 1:]
+            else:
+                # Older Groovy templates use apply plugin instead of plugins {}.
+                text = preamble + text
         if "signingConfigs {" not in text:
             marker = "    buildTypes {"
             signing = """    signingConfigs {
