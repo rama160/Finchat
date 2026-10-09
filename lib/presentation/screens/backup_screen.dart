@@ -117,8 +117,9 @@ class _BackupScreenState extends State<BackupScreen> {
         await _backup.restoreBytes(bytes);
       }, 'Backup lokal berhasil dipulihkan.');
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() => _status = 'Gagal memilih/membaca backup: $error');
+      }
     }
   }
 
@@ -133,10 +134,11 @@ class _BackupScreenState extends State<BackupScreen> {
         restoreUserEmail: widget.email,
       );
       final account = _googleAuth.currentUser;
-      if (account != null && mounted)
+      if (account != null && mounted) {
         setState(
           () => _status = 'Google Drive terhubung sebagai ${account.email}.',
         );
+      }
     }, 'Google Drive terhubung.');
   }
 
@@ -183,28 +185,31 @@ class _BackupScreenState extends State<BackupScreen> {
         restoreUserEmail: widget.email,
       );
       final restored = await _backup.restoreFromCloud();
-      if (!restored)
+      if (!restored) {
         throw StateError('Belum ada backup Spenva di Google Drive.');
+      }
     }, 'Backup Google Drive berhasil dipulihkan.');
   }
 
   Future<void> _setAutomaticBackup(bool enabled) async {
     if (!enabled) {
       await _preferences.setAutomaticBackupEnabled(false);
-      if (mounted)
+      if (mounted) {
         setState(() {
           _automatic = false;
           _status = 'Backup otomatis dinonaktifkan.';
         });
+      }
       return;
     }
 
     await _run(
       () async {
-        if (!await PlayBillingService.instance.hasFeature('automaticBackup'))
+        if (!await PlayBillingService.instance.hasFeature('automaticBackup')) {
           throw StateError(
             'Backup otomatis tersedia mulai Plus. Backup manual tetap dapat digunakan.',
           );
+        }
         final client = await _googleAuth.authorizeDrive();
         _backup = BackupService(
           _database,

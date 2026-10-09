@@ -9,14 +9,22 @@ class AppRouter {
   AppRouter(this.sessionManager);
   final SessionManager sessionManager;
 
-  RouterConfig<Object> get router => RouterConfig<Object>(
-    routerDelegate: _Delegate(sessionManager),
+  late final _Delegate _delegate = _Delegate(sessionManager);
+  late final PlatformRouteInformationProvider _provider =
+      PlatformRouteInformationProvider(
+        initialRouteInformation: RouteInformation(uri: Uri.parse('/')),
+      );
+  late final RouterConfig<Object> router = RouterConfig<Object>(
+    routerDelegate: _delegate,
     backButtonDispatcher: RootBackButtonDispatcher(),
     routeInformationParser: const _Parser(),
-    routeInformationProvider: PlatformRouteInformationProvider(
-      initialRouteInformation: RouteInformation(uri: Uri.parse('/')),
-    ),
+    routeInformationProvider: _provider,
   );
+
+  void dispose() {
+    _delegate.dispose();
+    _provider.dispose();
+  }
 }
 
 class _Parser extends RouteInformationParser<Object> {

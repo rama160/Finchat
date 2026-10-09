@@ -1,7 +1,5 @@
 name: Prepare Play Store AAB
 on:
-  push:
-    branches: [spenva-source-of-truth, 'audit/**']
   pull_request:
     branches: [main, develop]
   workflow_dispatch:

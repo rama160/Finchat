@@ -29,10 +29,11 @@ Future<void> main() async {
   );
   await sessionManager.initialize();
   runApp(FinChatApp(sessionManager: sessionManager));
-  if (PlayReleaseConfig.isPlay)
+  if (PlayReleaseConfig.isPlay) {
     unawaited(
       PlayBillingService.instance.initialize().catchError((Object _) {}),
     );
+  }
 }
 
 class FinChatApp extends StatefulWidget {
@@ -45,27 +46,20 @@ class FinChatApp extends StatefulWidget {
 }
 
 class _FinChatAppState extends State<FinChatApp> {
-  late RouterConfig<Object> _router = AppRouter(widget.sessionManager).router;
-
-  void _disposeRouter() {
-    final delegate = _router.routerDelegate;
-    final provider = _router.routeInformationProvider;
-    if (delegate is ChangeNotifier) delegate.dispose();
-    if (provider is ChangeNotifier) provider.dispose();
-  }
+  late AppRouter _router = AppRouter(widget.sessionManager);
 
   @override
   void didUpdateWidget(FinChatApp oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.sessionManager, widget.sessionManager)) {
-      _disposeRouter();
-      _router = AppRouter(widget.sessionManager).router;
+      _router.dispose();
+      _router = AppRouter(widget.sessionManager);
     }
   }
 
   @override
   void dispose() {
-    _disposeRouter();
+    _router.dispose();
     super.dispose();
   }
 
@@ -77,7 +71,7 @@ class _FinChatAppState extends State<FinChatApp> {
         title: 'Spenva',
         debugShowCheckedModeBanner: false,
         theme: spenvaTheme(),
-        routerConfig: _router,
+        routerConfig: _router.router,
       ),
     );
   }

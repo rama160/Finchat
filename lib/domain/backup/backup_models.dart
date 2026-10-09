@@ -184,8 +184,9 @@ class BackupSnapshot {
   }
 
   void validateForRestore() {
-    if (formatVersion != currentFormatVersion)
+    if (formatVersion != currentFormatVersion) {
       throw const FormatException('Versi backup tidak didukung.');
+    }
     const requiredTables = <String>{
       'users',
       'categories',
@@ -245,42 +246,48 @@ class BackupSnapshot {
       },
       'app_settings': {'key', 'value', 'updated_at'},
     };
-    if (!tables.keys.toSet().containsAll(requiredTables))
+    if (!tables.keys.toSet().containsAll(requiredTables)) {
       throw const FormatException(
         'Backup tidak lengkap: tabel FinChat yang wajib tidak tersedia.',
       );
+    }
     final unknown = tables.keys.where((key) => !requiredTables.contains(key));
-    if (unknown.isNotEmpty)
+    if (unknown.isNotEmpty) {
       throw FormatException(
         'Backup memiliki tabel yang tidak didukung: ${unknown.join(', ')}.',
       );
+    }
     for (final entry in tables.entries) {
       final allowed = columns[entry.key]!;
       for (final row in entry.value) {
-        if (row.keys.any((key) => !allowed.contains(key)))
+        if (row.keys.any((key) => !allowed.contains(key))) {
           throw FormatException(
             'Backup tabel ${entry.key} memiliki kolom yang tidak didukung.',
           );
-        if (!row.keys.toSet().containsAll(allowed))
+        }
+        if (!row.keys.toSet().containsAll(allowed)) {
           throw FormatException(
             'Backup tabel ${entry.key} tidak memiliki kolom yang lengkap.',
           );
+        }
       }
     }
     for (final row in tables['transactions']!) {
       final amount = row['amount'];
       final confidence = row['confidence'];
-      if (amount is! num || !amount.isFinite || amount <= 0)
+      if (amount is! num || !amount.isFinite || amount <= 0) {
         throw const FormatException(
           'Backup memiliki nominal transaksi yang tidak valid.',
         );
+      }
       if (confidence is! num ||
           !confidence.isFinite ||
           confidence < 0 ||
-          confidence > 1)
+          confidence > 1) {
         throw const FormatException(
           'Backup memiliki confidence transaksi yang tidak valid.',
         );
+      }
       if (!TransactionType.values.any((v) => v.name == row['type']) ||
           !InputSource.values.any((v) => v.name == row['input_source']) ||
           !ProcessedBy.values.any((v) => v.name == row['processed_by'])) {
@@ -313,28 +320,32 @@ class BackupSnapshot {
       identities[entry.key] = ids;
       for (final row in entry.value) {
         final id = row[entry.key == 'app_settings' ? 'key' : 'id'];
-        if (id is! String || id.trim().isEmpty || !ids.add(id))
+        if (id is! String || id.trim().isEmpty || !ids.add(id)) {
           throw const FormatException(
             'Backup memiliki ID kosong atau duplikat.',
           );
+        }
         for (final cell in row.entries) {
           if (cell.value == null &&
-              nullableColumns[entry.key]!.contains(cell.key))
+              nullableColumns[entry.key]!.contains(cell.key)) {
             continue;
+          }
           final valid = integerColumns.contains(cell.key)
               ? cell.value is int
               : {'amount', 'confidence'}.contains(cell.key)
               ? cell.value is num && (cell.value as num).isFinite
               : cell.value is String;
-          if (!valid)
+          if (!valid) {
             throw FormatException(
               'Nilai backup tidak valid: ${entry.key}.${cell.key}.',
             );
+          }
         }
         if (entry.key == 'categories' &&
             (!TransactionType.values.any((v) => v.name == row['type']) ||
-                !{0, 1}.contains(row['is_system'])))
+                !{0, 1}.contains(row['is_system']))) {
           throw const FormatException('Kategori backup tidak valid.');
+        }
       }
     }
     for (final table in [
@@ -343,17 +354,20 @@ class BackupSnapshot {
       'category_history',
     ]) {
       for (final row in tables[table]!) {
-        if (!identities['users']!.contains(row['user_id']))
+        if (!identities['users']!.contains(row['user_id'])) {
           throw const FormatException('Referensi pengguna backup tidak valid.');
+        }
         if (table != 'category_history' &&
-            !identities['categories']!.contains(row['category_id']))
+            !identities['categories']!.contains(row['category_id'])) {
           throw const FormatException('Referensi kategori backup tidak valid.');
+        }
         if (table == 'category_history' &&
             row['transaction_id'] != null &&
-            !identities['transactions']!.contains(row['transaction_id']))
+            !identities['transactions']!.contains(row['transaction_id'])) {
           throw const FormatException(
             'Referensi transaksi backup tidak valid.',
           );
+        }
       }
     }
   }

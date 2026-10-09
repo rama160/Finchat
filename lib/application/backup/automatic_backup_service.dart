@@ -27,8 +27,9 @@ class AutomaticBackupService {
         !await PlayBillingService.instance.hasFeature(
           'automaticBackup',
           backgroundOnly: true,
-        ))
+        )) {
       return false;
+    }
     final client = await googleAuth.tryAuthorizeDriveSilently();
     if (client == null) return false;
     final backup = BackupService(
