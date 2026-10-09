@@ -1,3 +1,5 @@
+> Current source status: **0.3.4+19**, 9 October 2026 UTC. See [../SPENVA_CANONICAL_SOURCE.md](../SPENVA_CANONICAL_SOURCE.md) and the current detailed audit. Older version/build statements below are historical evidence and do not verify this patch.
+
 > **Verifikasi +18 selesai:** runtime `7bfd653d6dfe3a893c1c2252a1f345f48f5a9122`; Flutter 134 lulus, backend 46 lulus, validator 5 lulus, suite Play 11 lulus dan integrasi Linux 1 lulus. Signed AAB 75.1 MB lolos pemeriksaan 16 KB. [CI](https://github.com/rama160/Finchat/actions/runs/37464173519), [AAB/APK](https://github.com/rama160/Finchat/actions/runs/37464173519/artifacts/11413279142). Pembelian dan deployment subscription belum aktif. Detail hasil: [VALIDATION.md](VALIDATION.md).
 
 # Subscription baseline 0.3.4+18

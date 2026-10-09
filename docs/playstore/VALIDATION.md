@@ -1,3 +1,5 @@
+> Current source status: **0.3.4+19**, 9 October 2026 UTC. See [../SPENVA_CANONICAL_SOURCE.md](../SPENVA_CANONICAL_SOURCE.md) and the current detailed audit. Older version/build statements below are historical evidence and do not verify this patch.
+
 # Verifikasi subscription Spenva 0.3.4+18 — 6 Oktober 2026
 
 Runtime yang diuji: `7bfd653d6dfe3a893c1c2252a1f345f48f5a9122`, branch `codex/finchat-input-navigation-audit`. Commit dokumentasi sesudahnya tidak mengubah runtime atau artefak. Hasil ini menggantikan +17; catatan lama di bawah hanya riwayat.

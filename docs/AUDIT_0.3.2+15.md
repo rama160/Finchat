@@ -1,3 +1,5 @@
+> Current source status: **0.3.4+19**, 9 October 2026 UTC. See [SPENVA_CANONICAL_SOURCE.md](SPENVA_CANONICAL_SOURCE.md) and the current detailed audit. Older version/build statements below are historical evidence and do not verify this patch.
+
 ## Verified GitHub CI — Spenva 0.3.2+15 (6 Oktober 2026)
 
 - Runtime/test commit `0b9d9b0ca738f4c28a3847581920c07b9d08c933`, branch `codex/finchat-input-navigation-audit`. Dokumen final sesudah commit ini tidak mengubah kode/aset yang diuji.

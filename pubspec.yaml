@@ -1,7 +1,7 @@
 name: finchat
 description: "Offline-first personal finance assistant."
 publish_to: "none"
-version: "0.3.4+18"
+version: "0.3.4+19"
 
 environment:
   sdk: ">=3.12.0 <4.0.0"

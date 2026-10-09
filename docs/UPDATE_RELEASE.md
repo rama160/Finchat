@@ -1,3 +1,5 @@
+> Current source status: **0.3.4+19**, 9 October 2026 UTC. See [SPENVA_CANONICAL_SOURCE.md](SPENVA_CANONICAL_SOURCE.md) and the current detailed audit. Older version/build statements below are historical evidence and do not verify this patch.
+
 > **Play Store preparation — 0.3.3+17 (6 Oktober 2026)**
 > Free mempertahankan fungsi lokal yang sudah berjalan. Empat tier disiapkan melalui Google Play Billing; AI Play memerlukan verifikasi server, provider berbayar dan persetujuan18+. Application ID/database/OAuth/Drive tetap. Workflow Play terpisah menyiapkan AAB; publikasi dan pembelian belum aktif karena Play Console, identitas/kontak publik serta konfigurasi produk/provider belum tersedia. Panduan dan status aktual: [docs/playstore/LAUNCH.md](playstore/LAUNCH.md), [paket](playstore/PLANS.md), [data](playstore/DATA_SAFETY.md). Catatan di bawah mempertahankan riwayat pilot, bukan klaim bahwa pembayaran sudah live.
 

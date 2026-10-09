@@ -1,5 +1,6 @@
 import '../billing/play_billing_service.dart';
 import '../../core/release/play_release_config.dart';
+
 import 'package:googleapis/drive/v3.dart' as drive;
 
 import '../../data/backup/google_drive_backup_provider.dart';
@@ -13,8 +14,8 @@ class AutomaticBackupService {
     this.database, {
     BackupPreferenceService? preferences,
     GoogleDriveAuthService? googleAuth,
-  })  : preferences = preferences ?? BackupPreferenceService(database),
-        googleAuth = googleAuth ?? GoogleDriveAuthService();
+  }) : preferences = preferences ?? BackupPreferenceService(database),
+       googleAuth = googleAuth ?? GoogleDriveAuthService();
 
   final FinChatDatabase database;
   final BackupPreferenceService preferences;
@@ -22,14 +23,23 @@ class AutomaticBackupService {
 
   Future<bool> runIfEnabled() async {
     if (!await preferences.isAutomaticBackupEnabled()) return false;
-    if (PlayReleaseConfig.isPlay && !await PlayBillingService.instance.hasFeature('automaticBackup', backgroundOnly: true)) return false;
+    if (PlayReleaseConfig.isPlay &&
+        !await PlayBillingService.instance.hasFeature(
+          'automaticBackup',
+          backgroundOnly: true,
+        ))
+      return false;
     final client = await googleAuth.tryAuthorizeDriveSilently();
     if (client == null) return false;
     final backup = BackupService(
       database,
       cloudProvider: GoogleDriveBackupProvider(drive.DriveApi(client)),
     );
-    await backup.backupToCloud();
-    return true;
+    try {
+      await backup.backupToCloud();
+      return true;
+    } finally {
+      client.close();
+    }
   }
 }

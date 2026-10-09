@@ -27,3 +27,7 @@ android/app/release/
 /android/key.properties
 /android/app/*.jks
 /android/app/*.keystore
+
+# Python/tooling cache
+__pycache__/
+*.pyc

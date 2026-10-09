@@ -1,3 +1,5 @@
+> Current source status: **0.3.4+19**, 9 October 2026 UTC. See [../SPENVA_CANONICAL_SOURCE.md](../SPENVA_CANONICAL_SOURCE.md) and the current detailed audit. Older version/build statements below are historical evidence and do not verify this patch.
+
 # Data safety and review access — preparation matrix
 
 This is an implementation-informed draft, not a completed Console declaration. The publisher must reconcile it with current Google SDK disclosures, backend hosting/logging, voice recognizer providers and actual release configuration. Data sent off-device can be collected even if ephemeral. Do not tick “no data collected” simply because the primary database is local.

@@ -1,5 +1,7 @@
 name: Prepare Play Store AAB
 on:
+  push:
+    branches: [spenva-source-of-truth, 'audit/**']
   pull_request:
     branches: [main, develop]
   workflow_dispatch:
@@ -20,6 +22,8 @@ jobs:
           node-version: '24'
       - name: Check billing server and publication validator
         run: |
+          python3 tooling/check_repository.py
+          python3 tooling/android/test_configure_android_ci.py
           python3 tooling/play/generate_subscription.py --check
           node --test server/play-billing/*.test.mjs
           python3 tooling/play/test_check_bundle.py
@@ -73,6 +77,7 @@ jobs:
           chmod 600 android/key.properties android/app/upload-keystore.jks
       - name: Build isolated Play release
         env:
+          FINCHAT_GOOGLE_SERVER_CLIENT_ID: ${{ secrets.FINCHAT_GOOGLE_SERVER_CLIENT_ID }}
           SPENVA_PUBLISHER: ${{ vars.SPENVA_PUBLISHER }}
           SPENVA_SUPPORT_EMAIL: ${{ vars.SPENVA_SUPPORT_EMAIL }}
           SPENVA_PRIVACY_URL: ${{ vars.SPENVA_PRIVACY_URL }}

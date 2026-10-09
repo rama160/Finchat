@@ -1,3 +1,5 @@
+> Current source status: **0.3.4+19**, 9 October 2026 UTC. See [../SPENVA_CANONICAL_SOURCE.md](../SPENVA_CANONICAL_SOURCE.md) and the current detailed audit. Older version/build statements below are historical evidence and do not verify this patch.
+
 > Baseline subscription terbaru 0.3.4+18: [SUBSCRIPTION.md](SUBSCRIPTION.md). Buat enam produk monthly/yearly sesuai konfigurasi final. Kuota Voice/Scan/AI memerlukan ledger akun server; fungsi inti tetap lokal. Tidak ada aktivasi infrastruktur berbayar otomatis. Gemini unpaid hanya dapat menerima fixed topic edukasi tanpa informasi pribadi, dan default belum aktif.
 
 # Spenva — persiapan Google Play 0.3.3+17

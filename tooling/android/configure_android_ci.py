@@ -1,5 +1,5 @@
 from pathlib import Path
-import re
+import xml.etree.ElementTree as ET
 import shutil
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -78,7 +78,13 @@ if (!keystorePropertiesFile.exists()) {
 keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 
 """
-            text = preamble + text
+            imports, properties = preamble.split("val keystoreProperties =", 1)
+            # Gradle requires plugins {} before ordinary executable statements.
+            plugin_start = text.find("plugins {")
+            plugin_end = text.find("}", plugin_start)
+            if plugin_start < 0 or plugin_end < 0:
+                raise SystemExit("Could not locate Kotlin plugins block")
+            text = imports + text[:plugin_end + 1] + "\n\nval keystoreProperties =" + properties + text[plugin_end + 1:]
         if "signingConfigs {" not in text:
             marker = "    buildTypes {"
             signing = """    signingConfigs {
@@ -119,33 +125,38 @@ keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 def configure_manifest() -> None:
     if not MANIFEST.exists():
         raise SystemExit('android/app/src/main/AndroidManifest.xml does not exist')
-    text = MANIFEST.read_text(encoding='utf-8')
+    android_ns = 'http://schemas.android.com/apk/res/android'
+    ET.register_namespace('android', android_ns)
+    name_key = f'{{{android_ns}}}name'
+    tree = ET.parse(MANIFEST)
+    root = tree.getroot()
+    existing = {node.get(name_key) for node in root.findall('uses-permission')}
+    for permission in ['INTERNET', 'CAMERA', 'RECORD_AUDIO', 'BLUETOOTH', 'BLUETOOTH_ADMIN', 'BLUETOOTH_CONNECT']:
+        name = f'android.permission.{permission}'
+        if name not in existing:
+            attrs = {name_key: name}
+            if permission in ['BLUETOOTH', 'BLUETOOTH_ADMIN']:
+                attrs[f'{{{android_ns}}}maxSdkVersion'] = '30'
+            root.insert(0, ET.Element('uses-permission', attrs))
+    # Camera/microphone are optional input methods, not install prerequisites.
+    for feature in ['android.hardware.camera', 'android.hardware.microphone']:
+        if not any(node.get(name_key) == feature for node in root.findall('uses-feature')):
+            root.insert(0, ET.Element('uses-feature', {name_key: feature, f'{{{android_ns}}}required': 'false'}))
+    queries = root.find('queries')
+    if queries is None:
+        queries = ET.SubElement(root, 'queries')
+    speech_action = 'android.speech.RecognitionService'
+    if not any(node.get(name_key) == speech_action for node in queries.findall('intent/action')):
+        intent = ET.SubElement(queries, 'intent')
+        ET.SubElement(intent, 'action', {name_key: speech_action})
+    application = root.find('application')
+    if application is None:
+        raise SystemExit('Android manifest application element is missing')
+    application.set(f'{{{android_ns}}}allowBackup', 'false')
+    application.set(f'{{{android_ns}}}label', 'Spenva')
+    ET.indent(tree, space='    ')
+    tree.write(MANIFEST, encoding='unicode')
 
-    permissions = [
-        '<uses-permission android:name="android.permission.INTERNET"/>',
-        '<uses-permission android:name="android.permission.CAMERA"/>',
-        '<uses-permission android:name="android.permission.RECORD_AUDIO"/>',
-        '<uses-permission android:name="android.permission.BLUETOOTH"/>',
-        '<uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>',
-        '<uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>',
-    ]
-    for permission in permissions:
-        if permission not in text:
-            text = text.replace('\n    <application', f'\n    {permission}\n    <application', 1)
-
-    speech_query = '''<queries>
-        <intent>
-            <action android:name="android.speech.RecognitionService" />
-        </intent>
-    </queries>'''
-    if '<queries>' not in text:
-        text = text.replace('\n    <application', f'\n    {speech_query}\n    <application', 1)
-
-    if 'android:allowBackup=' not in text:
-        text = text.replace('<application', '<application android:allowBackup="false"', 1)
-
-    text = re.sub(r'android:label="[^"]*"', 'android:label="Spenva"', text, count=1)
-    MANIFEST.write_text(text, encoding='utf-8')
 
 
 def configure_branding() -> None:

@@ -1,8 +1,10 @@
-# SPENVA CANONICAL SOURCE — 7 Oktober 2026
+> Current source status: **0.3.4+19**, 9 October 2026 UTC. See [SPENVA_CANONICAL_SOURCE.md](SPENVA_CANONICAL_SOURCE.md) and the current detailed audit. Older version/build statements below are historical evidence and do not verify this patch.
+
+# SPENVA CANONICAL SOURCE — 0.3.4+19
 
 ## Otoritas sumber
 Branch integrasi resmi: `spenva-source-of-truth`.
-Basis: `codex/finchat-input-navigation-audit` 0.3.4+18 yang telah melewati CI Play. Branch `main`, `codex/gateway-recovery-validation`, `spenva-production-readiness`, dan `spenva-privacy-play-policy` adalah riwayat/branch pendahulu dan tidak boleh dipakai sebagai sumber rilis baru tanpa rekonsiliasi ke branch ini.
+Basis runtime sebelumnya: 0.3.4+18. Patch audit +19 dibangun dari canonical commit `da61888d8151ee5bff52cea2a4cff846da8d5aa1`; CI baru wajib sebelum klaim terverifikasi. Branch `main`, `codex/gateway-recovery-validation`, `spenva-production-readiness`, dan `spenva-privacy-play-policy` adalah riwayat/branch pendahulu dan tidak boleh dipakai sebagai sumber rilis baru tanpa rekonsiliasi ke branch ini.
 
 ## Identitas produk
 Nama: Spenva. Application ID Android: `com.finchat.finchat`. Database: `finchat.db`, schema 1. Arsitektur local-first: SQLite sumber kebenaran transaksi; parser/perhitungan lokal didahulukan; AI hanya fallback/fitur online. Google Drive appDataFolder digunakan untuk backup pilihan pengguna.

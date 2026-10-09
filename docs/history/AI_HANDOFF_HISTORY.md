@@ -1,4 +1,16 @@
-> Current source status: **0.3.4+19**, 9 October 2026 UTC. See [SPENVA_CANONICAL_SOURCE.md](SPENVA_CANONICAL_SOURCE.md) and the current detailed audit. Older version/build statements below are historical evidence and do not verify this patch.
+# Historical AI handoffs through 0.3.4+18
+
+Archived evidence only; current instructions are in ../../Ai start here.md.
+
+> **CURRENT SOURCE OF TRUTH — 7 Oktober 2026:** gunakan branch `spenva-source-of-truth`. Status produk/rilis canonical ada di [docs/SPENVA_CANONICAL_SOURCE.md](docs/SPENVA_CANONICAL_SOURCE.md). Catatan branch/versi di bawah adalah riwayat kecuali dinyatakan current.
+
+> **Verifikasi +18 selesai:** runtime `7bfd653d6dfe3a893c1c2252a1f345f48f5a9122`; Flutter 134 lulus, backend 46 lulus, validator 5 lulus, suite Play 11 lulus dan integrasi Linux 1 lulus. Signed AAB 75.1 MB lolos pemeriksaan 16 KB. [CI](https://github.com/rama160/Finchat/actions/runs/37464173519), [AAB/APK](https://github.com/rama160/Finchat/actions/runs/37464173519/artifacts/11413279142). Pembelian dan deployment subscription belum aktif. Detail hasil: [VALIDATION.md](docs/playstore/VALIDATION.md).
+
+> **Subscription baseline 0.3.4+18 — 6 Oktober 2026**
+> Paket/harga/kuota baru dari instruksi pengguna menggantikan penawaran +17: Free/Plus/Pro/Max, bulanan/tahunan, kuota Voice/Scan/AI terpisah dan serverpersisten. Implementasi dan batas aktivasi: [SUBSCRIPTION.md](docs/playstore/SUBSCRIPTION.md). Pembelian/server belum live. Gemini unpaid tidak menerima catatan pribadi; tidak ada paidtierotomatis. Riwayat di bawah dipertahankan.
+
+> **Play Store preparation — 0.3.3+17 (6 Oktober 2026)**
+> Free mempertahankan fungsi lokal yang sudah berjalan. Empat tier disiapkan melalui Google Play Billing; AI Play memerlukan verifikasi server, provider berbayar dan persetujuan18+. Application ID/database/OAuth/Drive tetap. Workflow Play terpisah menyiapkan AAB; publikasi dan pembelian belum aktif karena Play Console, identitas/kontak publik serta konfigurasi produk/provider belum tersedia. Panduan dan status aktual: [docs/playstore/LAUNCH.md](docs/playstore/LAUNCH.md), [paket](docs/playstore/PLANS.md), [data](docs/playstore/DATA_SAFETY.md). Catatan di bawah mempertahankan riwayat pilot, bukan klaim bahwa pembayaran sudah live.
 
 ## Verified GitHub CI — Spenva 0.3.2+16 (6 Oktober 2026)
 
@@ -100,226 +112,126 @@
 - AI 503 remains an upstream operational issue until a corrected Gateway is deployed and tested against the real provider. Android OCR quality/camera/attach still requires device validation.
 - Verification pending GitHub analyze/tests/signed APK. Original workflows, schema, database lifecycle, money parser and transaction repository retained.
 
-# FinChat Roadmap Audit — Baseline after Phase 9
+## Verified GitHub CI — 0.3.2+12 (5 Oktober 2026)
+
+- Tested code commit: `93ccf38c8a7d5e8be9e386d86321dd8f9bbaee8f`, branch `codex/finchat-input-navigation-audit`.
+- Run https://github.com/rama160/Finchat/actions/runs/37293049436 — completed / success.
+- Flutter stable 3.47.6: dependency resolution passed; `flutter analyze` No issues found; **94 tests passed**; release APK **92.0 MB** built successfully.
+- APK artifact: https://github.com/rama160/Finchat/actions/runs/37293049436/artifacts/11337048743 (`finchat-audit-release-apk`). Permanent release keystore and build Google server client ID retained; no secrets changed.
+- Regression coverage includes final-vs-partial speech callbacks, word/numeric amounts, local multi-item capture with zero AI calls, scoped nota and local saving tips, active token reuse/expiry/concurrent restoration/logout, daily view rollover preserving SQLite, daily expense zero buckets/total reconciliation, user error messages and existing Back navigation.
+- First iteration had 86 passing / 1 failing word-number regression (hundred arithmetic), corrected. Second iteration passed 92 tests and signed build; final iteration adds daily-reset/error-message regressions and passes 94 tests and signed build.
+- Main remains `91252bddf4a4eadaa99dafe095f72c2e04a4bab1`; three original workflows, schema, database lifecycle and transaction repository unchanged. Docs-only follow-up uses `[skip ci]` and does not change tested code.
+- **Device gate remains open:** actual receipt OCR/camera/attach, microphone recognition quality, live Google/Gateway token refresh and Drive must be tried on Android. CI and keep-rule mitigation do not prove the obfuscated native OCR NPE is resolved on the user's device.
+
+## Follow-up regression coverage
+
+- Android stopped/notListening status no longer submits an unfinished voice transcript; final nominal is required. Regression tests reproduce partial "nasi" arriving before final "nasi 10 ribu".
+- Google ID-token session tests cover cached-login reuse, expiry/malformed tokens, single restoration for concurrent calls, sign-out and late restoration rejection. Cache remains in memory and no Google token is written to documentation/storage/logs.
+- New widget regression verifies next-day resume hides previous-day items without deleting SQLite history.
+- Initial device-patch CI: analyze passed, 86 passed/1 failed (word-number hundred arithmetic); corrected and re-run. Final results are recorded at the top of this document.
+
+## Device follow-up — 0.3.2+12 (5 Oktober 2026)
+
+- Capture teks/suara/struk kini menggunakan parser dan mapping lokal tanpa HTTP AI per item; mapping dibaca sekali per input. AI Q&A tetap tersedia sebagai fallback.
+- Normalisasi nominal suara mendukung "nasi sepuluh ribu" serta "nasi 10 ribu".
+- Provider AI menggunakan akun Google hasil authenticate yang diingat coordinator sebelum mencoba restorasi lightweight; JWT kedaluwarsa tidak digunakan dan cache dibersihkan saat sign-out.
+- Pertanyaan nota dengan kata kunci menghitung dan merinci hanya deskripsi yang cocok; saran hemat dasar dapat dijawab lokal. Kendala yang belum didukung tidak diam-diam dijawab sebagai total keseluruhan.
+- Input default hari ini; midnight/resume mengatur ulang tampilan harian dan Q&A tanpa menghapus data SQLite. Pertanyaan dan jawaban memakai bubble terpisah.
+- Laporan mempertahankan total berdasarkan periode dan pie chart; bagian jumlah/detail transaksi di bawah chart diganti grafik pengeluaran harian. Hari tanpa pengeluaran bernilai nol; rentang/bulan mengikuti filter.
+- Preprocessing gambar dipindahkan ke isolate. Error OCR tidak menampilkan stack trace di layar; cleanup recognizer tidak menimpa hasil. Keep rules native ML Kit/component registrar diperkuat untuk release.
+- Tidak ada perubahan schema, database lifecycle, Drive backup, endpoint Gateway, secrets, atau tiga workflow asli. Perubahan login terbatas pada penyimpanan akun aktif, bukan alur pemilihan akun.
+- Status: source patch teruji pada CI 37293049436; lihat hasil terbaru di atas. OCR native dan AI live perlu tes perangkat. Screenshot stack trace terobfuscate tidak cukup untuk memastikan akar NPE; keep rules adalah mitigasi release, bukan klaim hasil perangkat.
+
+# AI START HERE — FINCHAT
+
+## Hasil CI GitHub — 5 Oktober 2026
+
+- Workflow: https://github.com/rama160/Finchat/actions/runs/37281161336 — SUCCESS.
+- Commit kode teruji: d40976563b27c55395672c9428ef2c49ae4ea9cf, branch codex/finchat-input-navigation-audit.
+- Flutter stable 3.47.6: pub get lulus; analyze No issues found; **84 tests passed**; release APK berhasil (91.8 MB).
+- APK: https://github.com/rama160/Finchat/actions/runs/37281161336/artifacts/11332107826 (finchat-audit-release-apk).
+- Signing memakai permanent FinChat release keystore; Google server client ID diberikan dari secret build. Tidak ada perubahan secrets.
+- Perbaikan hasil CI: RootBackButtonDispatcher, callback void pada setState laporan, null-safe SQL acknowledgement; fixture tes widget memakai SQLite FFI tanpa isolate, runAsync untuk membuka DB, frame pump dan snackbar wait.
+- Main dan tiga workflow lama tidak diubah. Workflow tambahan untuk validasi hanya aktif pada branch audit. Kamera/mic/OAuth/Gateway/Drive langsung pada Android masih membutuhkan QA perangkat; CI tidak membuktikan konektivitas layanan terdeploy.
+
 
 ## Current patch — 0.3.2+11 (2026-10-05)
 
-Authoritative current audit: `AUDIT_0.3.2+11.md`. Fixes RouterDelegate navigatorKey/system Back, CI FFI factory setup, integrated local/AI questions, money-in-question routing, guarded camera/file pickers, voice cancel callbacks, Google Drive snapshot acknowledgements, bottom navigation reports and shared smart period filter. Transaction cards use gestures only; white rounded composer includes emoji/attachment/camera/mic/send.
+Authoritative current audit: `docs/AUDIT_0.3.2+11.md`. Fixes RouterDelegate navigatorKey/system Back, CI FFI factory setup, integrated local/AI questions, money-in-question routing, guarded camera/file pickers, voice cancel callbacks, Google Drive snapshot acknowledgements, bottom navigation reports and shared smart period filter. Transaction cards use gestures only; white rounded composer includes emoji/attachment/camera/mic/send.
 
 SQLite schema and existing workflows unchanged. Source is matched to main commit `91252bddf4a4eadaa99dafe095f72c2e04a4bab1`. Flutter SDK unavailable locally; CI and real Android device acceptance are required. Baseline CI had 72 passed / 1 failed (global FFI factory test setup); do not describe the baseline result as verification of this patch.
 
 
-Tanggal audit: 27 September 2026
-Sumber: repository ZIP yang dikirim user, git history sampai commit `25064f5 phase 9 v2`, dan requirement FinChat yang tercatat di project documentation.
+## Current continuation point — Bugfix package 0.3.2+10
 
-## Kesimpulan
+Read this file first, then:
+1. `docs/FULL_REPOSITORY_AUDIT.md`
+2. `docs/FINCHAT_MASTER_CONTEXT.md`
+3. `docs/PRD.md`
+4. `docs/ARCHITECTURE.md`
+5. `docs/PHASES.md`
+6. `docs/AI_CONTRACT.md`
+7. `docs/IMPLEMENTATION_STATUS.md`
+8. `CHANGELOG.md`
+9. actual source code
 
-Phase 1–9 memiliki fondasi teknis yang nyata dan test coverage bertambah secara bertahap. Namun status "phase selesai" tidak sama dengan "seluruh PRD end-to-end selesai". Beberapa phase saat ini baru menyediakan contract/service/adapter dan test, sementara UI integration, device integration, OAuth, dan beberapa acceptance criteria produk belum lengkap.
+## Current truth
 
-Phase 10 karena itu dibagi menjadi dua jenis pekerjaan:
-1. **Release/update foundation** — update checker berbasis GitHub Releases, secure persistent session, Settings entry point, versioning, dan release documentation.
-2. **Carry-over backlog** — gap PRD yang harus ditutup pada Phase 11–12 sebelum production readiness.
+- Technical work exists through Phase 12 hardening.
+- This package fixes two device-reported runtime regressions without changing the established product workflow: `DatabaseException(error database_closed)` during text/voice/receipt transaction capture, and AI Gateway fallback being disabled by the legacy local `ai.enabled` gate.
+- Production `FinChatDatabase()` instances now share one application database handle; screen-level `dispose()` calls no longer close that shared production connection. Custom database factory/path instances remain isolated for tests.
+- The database open path is serialized and reopens a handle if the cached handle is no longer open.
+- The AI provider is Gateway-first in production. It reuses the existing `GoogleSignInCoordinator` session configuration to obtain the logged-in Google ID token, then calls the Cloudflare Gateway. Gemini API credentials remain server-side. The legacy local AI enable switch is retained only when an `AiSecureConfigService` is explicitly injected, preserving existing test/config contracts.
+- Google Sign-In and restore/migration behavior are intentionally left unchanged.
+- Flutter/Dart SDK is not available in the artifact workspace, so local analyze/test/APK build is not claimed. A GitHub Actions run exposed analyzer-only issues in the AI provider/test fixture; those issues are fixed in 0.3.2+7. GitHub Actions remains the canonical verification environment.
+- Real Android-device acceptance is still required for camera, microphone, OCR quality, Google Sign-In/OAuth, Google Drive and Gateway/AI behavior.
 
-## Phase matrix
+## Non-negotiable product rules
 
-| Phase | Status teknis | Sudah ada | Gap penting |
-|---|---|---|---|
-| 1 | Complete baseline | PRD, architecture, phase docs, CI/uploader | Wireframe/UX acceptance belum menjadi UI final |
-| 2 | Complete CI foundation; product carry-over | Flutter foundation, router, CI, Android build | Session masih in-memory pada baseline audit; transaction UI belum lengkap |
-| 3 | Complete parser baseline | Rupiah shorthand, multi-expression parser | Parser belum menjadi full transaction-entry UI |
-| 3B | Complete persistence baseline | SQLite, repository, category mapping/history | Repository belum sepenuhnya di-wire ke UI/application composition |
-| 4 | Complete service baseline | AI fallback contract + transaction intelligence | Belum ada provider AI nyata; chat financial Q&A belum end-to-end |
-| 5 | Complete OCR baseline | preprocessing + ML Kit adapter + service | Camera/file picker UI dan receipt parser multi-line belum lengkap |
-| 6 | Complete voice service baseline | speech contract + adapter + service | Voice UI/device permission flow belum end-to-end |
-| 7 | Complete report baseline | daily/range/month report, grouping, report screen | Pie chart/category counts, tap-through transaction details, insight chart belum lengkap |
-| 8 | Complete PDF baseline | A4 PDF + share/export | Production UX and file lifecycle need device verification |
-| 9 | Complete backup baseline | JSON snapshot, restore, Google Drive provider | OAuth/account setup, automatic trigger, settings UI, offline backup/restore UI, sync/conflict workflow belum lengkap |
-| 10 | **Current** | secure session, update checker, settings entry, release versioning | APK self-install/update automation remains deferred; release signing/distribution needs hardening |
-| 11 | Next | — | End-to-end integration, device QA, permissions, failure paths, UI acceptance |
-| 12 | Future | — | production hardening, security, observability, release signing, migration drills |
+- Offline-first; SQLite is the source of truth.
+- Local parser/category history first; AI only as fallback/support.
+- AI never writes directly to SQLite.
+- Text/voice transactions save immediately when recognized.
+- Saved transactions expose swipe right to edit and swipe left to delete; no edit/delete buttons on transaction rows.
+- User category corrections must be learned locally.
+- Receipt images are preprocessed/compressed before OCR and reviewed before persistence.
+- Common financial questions are answered from application-computed local report data before AI fallback.
+- Automatic Drive backup requires one-time Google authorization; once enabled it is attempted on app load/data changes and must not block transaction capture.
+- Every meaningful change updates changelog/status/audit documentation.
+- Never force-push automatically.
 
-## Requirement gaps from original PRD
+## 0.3.2+8 analyzer follow-up
 
-### Authentication/session
-- [x] Login screen baseline.
-- [x] Logout.
-- [x] Persistent session implementation added in Phase 10 using secure storage.
-- [ ] Real authentication/identity provider, if required later, is not implemented.
+GitHub Actions reported two analyzer errors remaining in `lib/data/ai/openai_compatible_ai_provider.dart` after 0.3.2+7. They are fixed in this package:
 
-### Transaction entry
-- [x] Local parser.
-- [x] Indonesian amount shorthand: `25 rb`, `25 ribu`, `25k`, etc.
-- [x] Multi-transaction parsing baseline.
-- [x] Local database/repository.
-- [x] Category learning baseline.
-- [ ] Full transaction entry/edit UI.
-- [ ] Camera and attachment input UI.
-- [ ] Transaction detail editor wired to repository.
-
-### AI
-- [x] AI fallback contract.
-- [x] AI category fallback abstraction.
-- [x] Transaction intelligence orchestration.
-- [ ] Real AI provider configuration.
-- [ ] Financial chat/question answering over application-computed data.
-- [ ] Review UI for low-confidence AI output.
-
-### Receipt/OCR
-- [x] Image preprocessing before OCR.
-- [x] ML Kit adapter.
-- [ ] Camera UI.
-- [ ] File attachment UI.
-- [ ] Receipt line-item parser producing multiple transactions.
-- [ ] Receipt review/edit screen.
-
-### Voice
-- [x] Provider abstraction.
-- [x] `speech_to_text` adapter.
-- [ ] Microphone UI integrated with transaction input.
-- [ ] Device permission UX and Indonesian locale selection in product UI.
-- [ ] Voice-to-multi-transaction end-to-end acceptance test.
-
-### Reports
-- [x] Income/expense totals.
-- [x] Daily/range/month periods.
-- [x] Grouped transaction details.
-- [x] PDF export.
-- [ ] Expense pie chart by category.
-- [ ] Transaction count per category visualization.
-- [ ] Additional chart/insight.
-- [ ] Tap income/expense/category into transaction detail list.
-
-### Backup/sync
-- [x] Local JSON snapshot.
-- [x] Transactional restore.
-- [x] Google Drive provider abstraction.
-- [ ] Google OAuth/account connection UI.
-- [ ] Automatic backup after account setup.
-- [ ] Automatic restore flow after account setup.
-- [ ] Manual offline backup/restore UI.
-- [ ] Sync status/conflict resolution UX.
-
-### Update/release
-- [x] Versioned app package.
-- [x] GitHub Release workflow.
-- [x] Update checker against public GitHub Releases.
-- [x] Settings entry point.
-- [ ] Signed production APK/Play distribution.
-- [ ] In-app installation flow where distribution channel permits it.
-- [ ] Rollback/update failure recovery drill.
-
-## Documentation gaps found in the supplied ZIP
-
-The source code had reached Phase 9, but several handoff documents still described Phase 2 as the current phase. `README.md` and `Ai start here.md` also listed old Phase 2 next steps. The changelog contained Phase 6–9 entries but not a complete historical record of Phases 1–5.
-
-Phase 10 updates these documents so another AI can use the repository without relying on the chat history.
-
-## Rule for future phases
-
-Every phase must update all applicable handoff artifacts:
-- `Ai start here.md`
-- `README.md`
-- `docs/FINCHAT_MASTER_CONTEXT.md`
-- `docs/PRD.md` when acceptance criteria change
-- `docs/ARCHITECTURE.md` when architecture changes
-- `docs/PHASES.md`
-- `docs/AI_CONTRACT.md` when AI behavior changes
-- `docs/IMPLEMENTATION_STATUS.md`
-- `CHANGELOG.md`
-- tests for changed behavior
-
-A phase is not considered product-complete merely because `flutter analyze` and unit tests pass. End-to-end acceptance must also be marked separately.
+- The optional `idTokenProvider` callback is now assigned through an initialized private final field in the constructor, removing `final_not_initialized_constructor`.
+- `_chat()` copies the nullable callback into a local `tokenProvider` before invocation, so the non-null branch is promoted and `unchecked_use_of_nullable_value` is removed.
+- No production workflow or business logic was changed.
+- The Gateway endpoint, Google Sign-In coordinator, database lifecycle fix, restore flow, OCR, voice, transaction parsing, reports, backup, and GitHub workflow remain unchanged.
 
 
-## Phase 11.1 progress
+- Fixed `prefer_initializing_formals` in `OpenAiCompatibleAiProvider` without changing the public constructor argument `idTokenProvider` or Gateway behavior.
+- Removed the unnecessary non-null assertion when invoking the injected ID-token provider.
+- Rewrote the Gateway JSON test fixture with `jsonEncode()` so analyzer no longer reports unnecessary string escapes.
+- No database, authentication, restore/migration, transaction, OCR, voice, report, backup, Gateway endpoint, or GitHub workflow logic was changed.
 
-The first end-to-end vertical slice is now connected: text composer -> parser/intelligence -> editable review -> SQLite transaction repository. Multiple transactions are supported in one input, and user category corrections are persisted as local mappings/history. Voice, receipt, reports visualization/drill-down, backup UI and financial Q&A remain subsequent Phase 11 work.
+## Exact next gate
 
+1. Run `UPDATE_GITHUB.bat` from the package root.
+2. Confirm GitHub Actions passes `flutter pub get`, `flutter analyze`, `flutter test`, `flutter build apk --release`.
+3. Fix any CI issue against this exact package without reverting the audit goals.
+4. Perform the device acceptance matrix in `docs/FULL_REPOSITORY_AUDIT.md` and `docs/PHASE_12_HARDENING_MATRIX.md`.
 
-## Phase 11.2 Receipt/OCR progress
-- Existing OCR technical baseline reused; no duplicate OCR provider created.
-- UI entry point: receipt attachment action in the chat composer.
-- Sources: camera and gallery.
-- Review gate: OCR results are not written directly to SQLite; they pass through review first.
-- Persistence: only reviewed transactions are saved through the existing SQLite repository.
-- Learning: category corrections are recorded after review.
-- Remaining acceptance: full analyze/tests, release APK, real-device camera/gallery permissions, poor-image and malformed-receipt scenarios.
+## Handoff requirement
 
+At the end of each patch, record current version, changed files, exact issue, exact fix, schema/data impact, tests/CI result, device result, and any remaining PRD gap.
 
-## Phase 11.3 Voice audit update
+### 0.3.2+9 analyzer follow-up
+The CI analyzer reported two remaining errors in `openai_compatible_ai_provider.dart`. The constructor now uses an initializing formal for `_idTokenProvider`, and token-provider invocation uses explicit nullable-flow promotion. No existing workflow or business logic was changed.
 
-The voice vertical slice is now integrated into the existing chat transaction flow. The microphone action initializes the existing speech adapter, requests/uses Indonesian speech recognition, captures transcript state, and sends the transcript through `TransactionIntelligenceService` before SQLite persistence. The implementation records `InputSource.voice` and does not create a parallel persistence path.
+### 0.3.2+10 database test follow-up
+GitHub Actions reported one failing test after the analyzer fixes: `test/data_database_test.dart` failed with `Bad state: databaseFactory not initialized`. The cause was eager initialization of the static production `FinChatDatabase` singleton, which evaluated the global `databaseFactory` before `sqflite_common_ffi` test setup ran.
 
-Acceptance deliberately remains split: automated source/test verification is a CI responsibility, while microphone permission, actual speech recognition quality, interruption behavior, and device UX are deferred to the final Phase 11 device QA cycle.
+Fix: `FinChatDatabase._shared` is now a lazy getter backed by `_sharedInstance`. The global `databaseFactory` is therefore not read until the first production `FinChatDatabase()` call. This preserves the established production shared-connection behavior and `close()` protection, while allowing `setUpAll(sqfliteFfiInit)` to initialize the FFI factory first. No schema, business logic, restore flow, Google Sign-In, OCR, voice, AI Gateway, or GitHub workflow was changed.
 
-
-### Phase 11.4 audit
-- Scope: Reports/PDF integration.
-- SQLite schema: unchanged.
-- Existing report date/range/month selectors preserved.
-- Added category/count summaries, insight, drill-down, empty/loading/error handling and PDF category summary.
-- Device verification remains pending for Phase 11.7.
-
-
-### Phase 11.5 audit
-- Existing BackupService and GoogleDriveBackupProvider retained and wired into user-facing UI.
-- Google authentication uses the current google_sign_in authorization model and an official bridge to googleapis.
-- No SQLite schema change; automatic-backup preference uses existing app_settings.
-- Device OAuth/Drive verification deferred to Phase 11.7.
-
-
-### Phase 11.6 audit
-- Existing AiCategoryProvider/AiCategoryFallback contracts retained.
-- AI provider is concrete but opt-in and safe when unconfigured.
-- Q&A uses ReportService-computed totals and transaction data; AI does not write to SQLite.
-- Secure credentials are kept outside SQLite.
-
-
-### Phase 11.7 audit
-- QA covers all Phase 11.1–11.6 vertical slices, permissions, malformed/offline states, release build and Android device verification.
-- No production schema change introduced by QA tooling.
-- Phase 12 engineering is now prepared from the CI/release-verified Phase 11 baseline. Phase 11 device/product acceptance remains a separate final verification gate.
-
-### Phase 11 CI stabilization note
-The cumulative 11.4–11.7 package required analyzer corrections after merge. The corrections are limited to syntax/import cleanup and test alignment with already-existing production contracts. They do not change the Phase 11 feature scope or SQLite schema. The Phase 11 cumulative package has since been reported by the project owner as passing analyze, test, and release APK. Phase 12 now requires a fresh CI run after hardening changes.
-
-
-## Phase 12 audit
-Phase 12.1–12.8 is implemented from the CI/release-verified Phase 11 baseline. No SQLite schema migration. Production signing is not fabricated and still depends on repository-owner keystore secrets. Device verification remains the final acceptance gate.
-
-### Multi-user / monetization audit
-- Google Sign-In is integrated without changing the SQLite schema.
-- Local `userId` remains normalized email for compatibility with existing user-scoped transaction data.
-- Google provider user ID is stored in secure session storage for future backend identity linking.
-- Four subscription tiers and payment methods are modeled but monetization is disabled.
-- Production payment and subscription entitlement must be server-side; no payment credential is embedded in the Android client.
-
-### Google OAuth build configuration audit
-- No prior Phase 12 business logic was reverted or removed.
-- CI configuration now passes the Google server client ID without committing it to source.
-- Release default tag is aligned with `pubspec.yaml` version.
-
----
-
-## Repository re-audit — 2026-09-29 / version 0.3.2+5
-
-A full file-by-file audit of the cumulative repository was completed. The authoritative detailed matrix is now `docs/FULL_REPOSITORY_AUDIT.md`.
-
-The re-audit found that technical code existed through Phase 12, but several original product requirements were still only partial in the uploaded ZIP. This package closes the static gaps that can be addressed without a physical Android device:
-
-- explicit receipt image-file attachment in addition to camera/gallery;
-- finance-question recognition from the main chat composer;
-- local-first answers for common finance questions before AI fallback;
-- true expense pie chart and transaction count per category;
-- tapping income/expense summaries to inspect matching transactions;
-- automatic Google Drive backup that actually executes after one-time authorization;
-- one shared Android CI configurator for build and release workflows;
-- one Windows GitHub sync script that stages additions, updates and deletions;
-- stale phase-copy files consolidated and handoff/status documents reconciled.
-
-This re-audit does **not** claim runtime acceptance. Fresh GitHub Actions and one real-device QA cycle remain required because the artifact workspace has no Flutter/Dart SDK and cannot validate microphone, camera, OAuth/Drive, OCR quality or platform sharing behavior.
-
-
-## Runtime re-audit — 2026-10-05 / version 0.3.2+6
-
-The device report exposed two runtime regressions after the Phase 12 audit: shared SQLite handles could be closed by screen lifecycle disposal, and the new Cloudflare Gateway provider was still blocked by the legacy local AI enable flag. Both are fixed without changing the established Google Sign-In, restore/migration, parser-first, OCR, voice, backup or release workflows. GitHub Actions and real-device verification remain mandatory.
+Verification status: source-level fix prepared from CI failure. Run the canonical GitHub Actions sequence again: `flutter analyze`, `flutter test`, then release APK build.

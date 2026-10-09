@@ -2,7 +2,7 @@ name: FinChat Audit Validation
 
 on:
   push:
-    branches: [codex/finchat-input-navigation-audit]
+    branches: [codex/finchat-input-navigation-audit, spenva-source-of-truth, 'audit/**']
   workflow_dispatch:
 
 jobs:

@@ -1,5 +1,5 @@
 """Validate real bundle contents, bundletool dumps and public launch blockers."""
-import argparse,json,struct,zipfile,xml.etree.ElementTree as ET
+import argparse,json,re,struct,zipfile,xml.etree.ElementTree as ET
 from pathlib import Path
 
 def elf_alignments(data):
@@ -9,10 +9,18 @@ def elf_alignments(data):
     offset=struct.unpack_from(order+'Q',data,32)[0]; size,count=struct.unpack_from(order+'HH',data,54)
     return [struct.unpack_from(order+'Q',data,offset+i*size+48)[0] for i in range(count) if struct.unpack_from(order+'I',data,offset+i*size)[0]==1]
 
+def source_version():
+    text=(Path(__file__).resolve().parents[2]/'pubspec.yaml').read_text()
+    version=re.search(r'^version:\s*[\"\']?([^\"\'\s]+)',text,re.M)
+    if not version:raise ValueError('Missing source version')
+    return version.group(1).split('+')
+
 def check_manifest(xml):
     root=ET.fromstring(xml);a='{http://schemas.android.com/apk/res/android}'
     assert root.get('package')=='com.finchat.finchat','Application ID changed'
-    assert root.get(a+'versionCode')=='18','Unexpected version code'
+    version,code=source_version()
+    assert root.get(a+'versionCode')==code,'Unexpected version code'
+    assert root.get(a+'versionName')==version,'Unexpected version name'
     sdk=root.find('uses-sdk');assert int(sdk.get(a+'targetSdkVersion'))>=36,'Target SDK below 36'
     assert int(sdk.get(a+'minSdkVersion'))==24,'Unexpected minimum SDK'
     app=root.find('application');assert app.get(a+'debuggable','false')=='false','Debuggable release'

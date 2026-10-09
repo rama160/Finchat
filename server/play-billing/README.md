@@ -1,3 +1,5 @@
+> Current source patch 0.3.4+19; product authority: [SPENVA_CANONICAL_SOURCE.md](../../docs/SPENVA_CANONICAL_SOURCE.md). This server remains an undeployed foundation. No paid infrastructure or provider is enabled by the audit.
+
 # Spenva subscription and quota server — 0.3.4+18
 
 Separate Worker from the existing finchat-ai-gateway. Prepared source, not deployed. Run Node24 `node --test` or `npm test` for all backend tests. Upstream tests are simulations, not evidence of real Play purchases. Catalog, prices, quotas and AI level are generated from assets/config/subscription_plans.json; regenerate with tooling/play/generate_subscription.py, and validate with --check.

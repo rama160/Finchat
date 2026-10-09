@@ -1,3 +1,16 @@
+# 0.3.4+19 — Canonical source audit (2026-10-09 UTC)
+
+- Reconciled source against the current Spenva integration branch rather than the obsolete main baseline.
+- Fixed UTF-8 backup import, transactional snapshots and pre-restore duplicate/enum/type/reference validation; restore rejects conflicting rows instead of replacing them silently.
+- Retained router configuration and separated root pages by account/login identity so logout clears pageless screens; added regression coverage.
+- Fixed generated Android Kotlin plugin order and existing query blocks, with idempotent template tests.
+- Restricted Windows cleanup to explicitly obsolete instructions and canonical branch; already committed changes can still be pushed when working tree is clean.
+- Added source/manifest metadata consistency gate, source-derived AAB version and Google server client ID propagation in Play builds.
+- Reconciled stale external-payment expectation with canonical Google Play Billing-only contract.
+- Removed duplicate source pointer; caches ignored; old handoffs archived and documentation marked by current authority.
+- Preserved schema 1, application ID, login/restore mapping, logo/assets, input/report UX, quota/prices and inactive subscription/provider deployment.
+- Local: backend 46, Android template 3, publication validator 5 tests pass; Flutter CI result belongs to VALIDATION.md, device acceptance pending.
+
 > **Verifikasi +18 selesai:** runtime `7bfd653d6dfe3a893c1c2252a1f345f48f5a9122`; Flutter 134 lulus, backend 46 lulus, validator 5 lulus, suite Play 11 lulus dan integrasi Linux 1 lulus. Signed AAB 75.1 MB lolos pemeriksaan 16 KB. [CI](https://github.com/rama160/Finchat/actions/runs/37464173519), [AAB/APK](https://github.com/rama160/Finchat/actions/runs/37464173519/artifacts/11413279142). Pembelian dan deployment subscription belum aktif. Detail hasil: [VALIDATION.md](docs/playstore/VALIDATION.md).
 
 > **Subscription baseline 0.3.4+18 — 6 Oktober 2026**

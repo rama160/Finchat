@@ -1,3 +1,5 @@
+> Current source status: **0.3.4+19**, 9 October 2026 UTC. See [../SPENVA_CANONICAL_SOURCE.md](../SPENVA_CANONICAL_SOURCE.md) and the current detailed audit. Older version/build statements below are historical evidence and do not verify this patch.
+
 > Paket final dan batas Voice/Scan/AI/PDF: lihat SUBSCRIPTION.md. Jangan mengiklankan Voice/Scan/PDF gratis tanpa batas atau personalAIunpaid.
 
 # Materi listing Bahasa Indonesia — Spenva

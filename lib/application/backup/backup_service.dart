@@ -1,4 +1,5 @@
 import '../privacy/data_operation_gate.dart';
+
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -8,7 +9,12 @@ import '../../data/local/finchat_database.dart';
 import '../../domain/backup/backup_models.dart';
 
 class BackupService {
-  BackupService(this.database, {this.cloudProvider, this.restoreUserId, this.restoreUserEmail});
+  BackupService(
+    this.database, {
+    this.cloudProvider,
+    this.restoreUserId,
+    this.restoreUserEmail,
+  });
 
   final FinChatDatabase database;
   final CloudBackupProvider? cloudProvider;
@@ -27,12 +33,14 @@ class BackupService {
   Future<BackupSnapshot> createSnapshot() async {
     final db = await database.database;
     final tables = <String, List<Map<String, Object?>>>{};
-    for (final table in _tableOrder) {
-      final rows = await db.query(table);
-      tables[table] = rows
-          .map((row) => Map<String, Object?>.from(row))
-          .toList(growable: false);
-    }
+    await db.transaction((txn) async {
+      for (final table in _tableOrder) {
+        final rows = await txn.query(table);
+        tables[table] = rows
+            .map((row) => Map<String, Object?>.from(row))
+            .toList(growable: false);
+      }
+    });
     return BackupSnapshot(
       formatVersion: BackupSnapshot.currentFormatVersion,
       createdAt: DateTime.now().toUtc(),
@@ -42,9 +50,10 @@ class BackupService {
 
   Future<String> exportJson() async => (await createSnapshot()).encode();
 
-  Future<Uint8List> exportBytes() async => Uint8List.fromList(
-        utf8.encode(await exportJson()),
-      );
+  Future<Uint8List> exportBytes() async =>
+      Uint8List.fromList(utf8.encode(await exportJson()));
+
+  Future<void> restoreBytes(List<int> bytes) => restoreJson(utf8.decode(bytes));
 
   Future<void> restoreJson(String json) async {
     await restoreSnapshot(BackupSnapshot.decode(json));
@@ -70,11 +79,18 @@ class BackupService {
               row['id'] = restoreUserId;
               row['email'] = restoreUserEmail ?? row['email'];
               row['display_name'] = restoreUserEmail ?? row['display_name'];
-            } else if ((table == 'transactions' || table == 'category_mappings' || table == 'category_history') && row['user_id'] == 'local_user') {
+            } else if ((table == 'transactions' ||
+                    table == 'category_mappings' ||
+                    table == 'category_history') &&
+                row['user_id'] == 'local_user') {
               row['user_id'] = restoreUserId;
             }
           }
-          await txn.insert(table, row, conflictAlgorithm: ConflictAlgorithm.replace);
+          await txn.insert(
+            table,
+            row,
+            conflictAlgorithm: ConflictAlgorithm.abort,
+          );
         }
       }
     });
@@ -93,11 +109,20 @@ class BackupService {
     // A transaction edited while uploading must remain locally pending.
     final db = await database.database;
     await db.transaction((txn) async {
-      for (final row in snapshot.tables['transactions'] ?? <Map<String, Object?>>[]) {
+      for (final row
+          in snapshot.tables['transactions'] ?? <Map<String, Object?>>[]) {
         final fields = row.keys.where((key) => key != 'sync_status').toList();
-        await txn.update('transactions', {'sync_status': 'backed_up'},
-          where: fields.map((key) => row[key] == null ? '$key IS NULL' : '$key = ?').join(' AND '),
-          whereArgs: fields.where((key) => row[key] != null).map((key) => row[key]).toList());
+        await txn.update(
+          'transactions',
+          {'sync_status': 'backed_up'},
+          where: fields
+              .map((key) => row[key] == null ? '$key IS NULL' : '$key = ?')
+              .join(' AND '),
+          whereArgs: fields
+              .where((key) => row[key] != null)
+              .map((key) => row[key])
+              .toList(),
+        );
       }
     });
   }

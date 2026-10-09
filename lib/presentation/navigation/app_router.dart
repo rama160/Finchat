@@ -10,13 +10,13 @@ class AppRouter {
   final SessionManager sessionManager;
 
   RouterConfig<Object> get router => RouterConfig<Object>(
-        routerDelegate: _Delegate(sessionManager),
-        backButtonDispatcher: RootBackButtonDispatcher(),
-        routeInformationParser: const _Parser(),
-        routeInformationProvider: PlatformRouteInformationProvider(
-          initialRouteInformation: RouteInformation(uri: Uri.parse('/')),
-        ),
-      );
+    routerDelegate: _Delegate(sessionManager),
+    backButtonDispatcher: RootBackButtonDispatcher(),
+    routeInformationParser: const _Parser(),
+    routeInformationProvider: PlatformRouteInformationProvider(
+      initialRouteInformation: RouteInformation(uri: Uri.parse('/')),
+    ),
+  );
 }
 
 class _Parser extends RouteInformationParser<Object> {
@@ -25,8 +25,7 @@ class _Parser extends RouteInformationParser<Object> {
   @override
   Future<Object> parseRouteInformation(
     RouteInformation routeInformation,
-  ) async =>
-      routeInformation.uri.toString();
+  ) async => routeInformation.uri.toString();
 }
 
 class _Delegate extends RouterDelegate<Object>
@@ -51,8 +50,11 @@ class _Delegate extends RouterDelegate<Object>
     }
 
     final page = sessionManager.isAuthenticated
-        ? const MaterialPage(child: ChatScreen())
-        : const MaterialPage(child: LoginScreen());
+        ? MaterialPage(
+            key: ValueKey(sessionManager.session!.userId),
+            child: const ChatScreen(),
+          )
+        : const MaterialPage(key: ValueKey('login'), child: LoginScreen());
 
     return Navigator(
       key: navigatorKey,

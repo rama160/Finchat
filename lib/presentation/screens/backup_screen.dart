@@ -1,5 +1,7 @@
 import '../../application/billing/play_billing_service.dart';
+
 import 'dart:io';
+
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -32,7 +34,11 @@ class _BackupScreenState extends State<BackupScreen> {
   void initState() {
     super.initState();
     _database = FinChatDatabase();
-    _backup = BackupService(_database, restoreUserId: widget.userId, restoreUserEmail: widget.email);
+    _backup = BackupService(
+      _database,
+      restoreUserId: widget.userId,
+      restoreUserEmail: widget.email,
+    );
     _preferences = BackupPreferenceService(_database);
     _googleAuth = GoogleDriveAuthService();
     _loadPreference();
@@ -66,9 +72,16 @@ class _BackupScreenState extends State<BackupScreen> {
     await _run(() async {
       final bytes = await _backup.exportBytes();
       final directory = Directory.systemTemp;
-      final file = File('${directory.path}/finchat_backup_${DateTime.now().millisecondsSinceEpoch}.json');
+      final file = File(
+        '${directory.path}/finchat_backup_${DateTime.now().millisecondsSinceEpoch}.json',
+      );
       await file.writeAsBytes(bytes, flush: true);
-      await SharePlus.instance.share(ShareParams(files: [XFile(file.path, mimeType: 'application/json')], subject: 'Backup Spenva'));
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'application/json')],
+          subject: 'Backup Spenva',
+        ),
+      );
     }, 'Backup lokal dibuat. Simpan file finchat_backup.json di lokasi aman.');
   }
 
@@ -83,20 +96,29 @@ class _BackupScreenState extends State<BackupScreen> {
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('Pulihkan backup?'),
-          content: const Text('Data lokal yang ada akan diganti oleh isi backup. Tindakan ini tidak dapat dibatalkan.'),
+          content: const Text(
+            'Data lokal yang ada akan diganti oleh isi backup. Tindakan ini tidak dapat dibatalkan.',
+          ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
-            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Pulihkan')),
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Batal'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Pulihkan'),
+            ),
           ],
         ),
       );
       if (confirmed != true) return;
       await _run(() async {
         final bytes = await file.readAsBytes();
-        await _backup.restoreJson(String.fromCharCodes(bytes));
+        await _backup.restoreBytes(bytes);
       }, 'Backup lokal berhasil dipulihkan.');
     } catch (error) {
-      if (mounted) setState(() => _status = 'Gagal memilih/membaca backup: $error');
+      if (mounted)
+        setState(() => _status = 'Gagal memilih/membaca backup: $error');
     }
   }
 
@@ -104,70 +126,181 @@ class _BackupScreenState extends State<BackupScreen> {
     await _run(() async {
       final client = await _googleAuth.authorizeDrive();
       final provider = GoogleDriveBackupProvider(drive.DriveApi(client));
-      _backup = BackupService(_database, cloudProvider: provider, restoreUserId: widget.userId, restoreUserEmail: widget.email);
+      _backup = BackupService(
+        _database,
+        cloudProvider: provider,
+        restoreUserId: widget.userId,
+        restoreUserEmail: widget.email,
+      );
       final account = _googleAuth.currentUser;
-      if (account != null && mounted) setState(() => _status = 'Google Drive terhubung sebagai ${account.email}.');
+      if (account != null && mounted)
+        setState(
+          () => _status = 'Google Drive terhubung sebagai ${account.email}.',
+        );
     }, 'Google Drive terhubung.');
   }
 
   Future<void> _backupGoogle() async {
     await _run(() async {
       final client = await _googleAuth.authorizeDrive();
-      _backup = BackupService(_database, cloudProvider: GoogleDriveBackupProvider(drive.DriveApi(client)), restoreUserId: widget.userId, restoreUserEmail: widget.email);
+      _backup = BackupService(
+        _database,
+        cloudProvider: GoogleDriveBackupProvider(drive.DriveApi(client)),
+        restoreUserId: widget.userId,
+        restoreUserEmail: widget.email,
+      );
       await _backup.backupToCloud();
     }, 'Backup Google Drive berhasil.');
   }
 
   Future<void> _restoreGoogle() async {
-    final confirmed = await showDialog<bool>(context: context, builder: (context) => AlertDialog(title: const Text('Pulihkan dari Google Drive?'), content: const Text('Data lokal akan diganti oleh backup terakhir yang tersedia di Google Drive.'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')), FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Pulihkan'))]));
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Pulihkan dari Google Drive?'),
+        content: const Text(
+          'Data lokal akan diganti oleh backup terakhir yang tersedia di Google Drive.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Pulihkan'),
+          ),
+        ],
+      ),
+    );
     if (confirmed != true) return;
     await _run(() async {
       final client = await _googleAuth.authorizeDrive();
-      _backup = BackupService(_database, cloudProvider: GoogleDriveBackupProvider(drive.DriveApi(client)), restoreUserId: widget.userId, restoreUserEmail: widget.email);
+      _backup = BackupService(
+        _database,
+        cloudProvider: GoogleDriveBackupProvider(drive.DriveApi(client)),
+        restoreUserId: widget.userId,
+        restoreUserEmail: widget.email,
+      );
       final restored = await _backup.restoreFromCloud();
-      if (!restored) throw StateError('Belum ada backup Spenva di Google Drive.');
+      if (!restored)
+        throw StateError('Belum ada backup Spenva di Google Drive.');
     }, 'Backup Google Drive berhasil dipulihkan.');
   }
-
 
   Future<void> _setAutomaticBackup(bool enabled) async {
     if (!enabled) {
       await _preferences.setAutomaticBackupEnabled(false);
-      if (mounted) setState(() { _automatic = false; _status = 'Backup otomatis dinonaktifkan.'; });
+      if (mounted)
+        setState(() {
+          _automatic = false;
+          _status = 'Backup otomatis dinonaktifkan.';
+        });
       return;
     }
 
-    await _run(() async {
-      if (!await PlayBillingService.instance.hasFeature('automaticBackup')) throw StateError('Backup otomatis tersedia mulai Plus. Backup manual tetap dapat digunakan.');
-      final client = await _googleAuth.authorizeDrive();
-      _backup = BackupService(_database, cloudProvider: GoogleDriveBackupProvider(drive.DriveApi(client)), restoreUserId: widget.userId, restoreUserEmail: widget.email);
-      await _backup.backupToCloud();
-      await _preferences.setAutomaticBackupEnabled(true);
-      if (mounted) setState(() => _automatic = true);
-    }, 'Backup otomatis aktif. Spenva akan mencoba backup saat aplikasi dibuka dan setelah data transaksi berubah.');
+    await _run(
+      () async {
+        if (!await PlayBillingService.instance.hasFeature('automaticBackup'))
+          throw StateError(
+            'Backup otomatis tersedia mulai Plus. Backup manual tetap dapat digunakan.',
+          );
+        final client = await _googleAuth.authorizeDrive();
+        _backup = BackupService(
+          _database,
+          cloudProvider: GoogleDriveBackupProvider(drive.DriveApi(client)),
+          restoreUserId: widget.userId,
+          restoreUserEmail: widget.email,
+        );
+        await _backup.backupToCloud();
+        await _preferences.setAutomaticBackupEnabled(true);
+        if (mounted) setState(() => _automatic = true);
+      },
+      'Backup otomatis aktif. Spenva akan mencoba backup saat aplikasi dibuka dan setelah data transaksi berubah.',
+    );
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Backup & Pemulihan')),
-        body: ListView(padding: const EdgeInsets.all(16), children: [
-          Card(child: Column(children: [
-            const ListTile(leading: Icon(Icons.phone_android), title: Text('Backup lokal'), subtitle: Text('Ekspor dan impor JSON tanpa mengubah schema database.')),
-            ListTile(leading: const Icon(Icons.upload_file), title: const Text('Ekspor backup'), onTap: _busy ? null : _exportLocal),
-            ListTile(leading: const Icon(Icons.file_open), title: const Text('Impor & pulihkan'), onTap: _busy ? null : _importLocal),
-          ])),
-          const SizedBox(height: 12),
-          Card(child: Column(children: [
-            const ListTile(leading: Icon(Icons.cloud_outlined), title: Text('Google Drive'), subtitle: Text('Backup disimpan di area appDataFolder aplikasi.')),
-            ListTile(leading: const Icon(Icons.login), title: const Text('Hubungkan akun Google'), onTap: _busy ? null : _connectGoogle),
-            ListTile(leading: const Icon(Icons.cloud_upload_outlined), title: const Text('Backup sekarang'), onTap: _busy ? null : _backupGoogle),
-            ListTile(leading: const Icon(Icons.cloud_download_outlined), title: const Text('Pulihkan dari Google Drive'), onTap: _busy ? null : _restoreGoogle),
-            SwitchListTile(title: const Text('Backup otomatis'), subtitle: const Text('Memerlukan otorisasi Google Drive satu kali. Setelah aktif, backup dicoba saat aplikasi dibuka dan setiap transaksi berubah.'), value: _automatic, onChanged: _busy ? null : _setAutomaticBackup),
-          ])),
-          const SizedBox(height: 12),
-          Card(child: ListTile(leading: _busy ? const CircularProgressIndicator() : const Icon(Icons.info_outline), title: const Text('Status'), subtitle: Text(_status))),
-          const SizedBox(height: 12),
-          const Text('Catatan konfigurasi: Google Drive memerlukan OAuth client Android yang terdaftar pada Google Cloud Console, API Google Drive aktif, dan SHA-1 aplikasi. Detail langkah ada di docs/GOOGLE_ACCOUNT_AND_DRIVE_SETUP.md.'),
-        ]),
-      );
+    appBar: AppBar(title: const Text('Backup & Pemulihan')),
+    body: ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Card(
+          child: Column(
+            children: [
+              const ListTile(
+                leading: Icon(Icons.phone_android),
+                title: Text('Backup lokal'),
+                subtitle: Text(
+                  'Ekspor dan impor JSON tanpa mengubah schema database.',
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.upload_file),
+                title: const Text('Ekspor backup'),
+                onTap: _busy ? null : _exportLocal,
+              ),
+              ListTile(
+                leading: const Icon(Icons.file_open),
+                title: const Text('Impor & pulihkan'),
+                onTap: _busy ? null : _importLocal,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: Column(
+            children: [
+              const ListTile(
+                leading: Icon(Icons.cloud_outlined),
+                title: Text('Google Drive'),
+                subtitle: Text(
+                  'Backup disimpan di area appDataFolder aplikasi.',
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.login),
+                title: const Text('Hubungkan akun Google'),
+                onTap: _busy ? null : _connectGoogle,
+              ),
+              ListTile(
+                leading: const Icon(Icons.cloud_upload_outlined),
+                title: const Text('Backup sekarang'),
+                onTap: _busy ? null : _backupGoogle,
+              ),
+              ListTile(
+                leading: const Icon(Icons.cloud_download_outlined),
+                title: const Text('Pulihkan dari Google Drive'),
+                onTap: _busy ? null : _restoreGoogle,
+              ),
+              SwitchListTile(
+                title: const Text('Backup otomatis'),
+                subtitle: const Text(
+                  'Memerlukan otorisasi Google Drive satu kali. Setelah aktif, backup dicoba saat aplikasi dibuka dan setiap transaksi berubah.',
+                ),
+                value: _automatic,
+                onChanged: _busy ? null : _setAutomaticBackup,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: ListTile(
+            leading: _busy
+                ? const CircularProgressIndicator()
+                : const Icon(Icons.info_outline),
+            title: const Text('Status'),
+            subtitle: Text(_status),
+          ),
+        ),
+        const SizedBox(height: 12),
+        const Text(
+          'Catatan konfigurasi: Google Drive memerlukan OAuth client Android yang terdaftar pada Google Cloud Console, API Google Drive aktif, dan SHA-1 aplikasi. Detail langkah ada di docs/GOOGLE_ACCOUNT_AND_DRIVE_SETUP.md.',
+        ),
+      ],
+    ),
+  );
 }

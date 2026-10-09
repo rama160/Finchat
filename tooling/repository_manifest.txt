@@ -50,8 +50,10 @@ docs/PHASE_12_COMPLETION_REPORT.md
 docs/PHASE_12_HARDENING_MATRIX.md
 docs/PRD.md
 docs/ROADMAP_AUDIT.md
+docs/SPENVA_CANONICAL_SOURCE.md
 docs/UPDATE_RELEASE.md
 docs/VOICE_INPUT.md
+docs/history/AI_HANDOFF_HISTORY.md
 docs/playstore/DATA_SAFETY.md
 docs/playstore/LAUNCH.md
 docs/playstore/LISTING_ID.md
@@ -61,6 +63,7 @@ docs/playstore/VALIDATION.md
 docs/playstore/feature-graphic.png
 docs/playstore/publication-profile.json
 docs/playstore/store-icon.png
+docs/privacy/index.html
 integration_test/phase_11_end_to_end_test.dart
 lib/application/ai/ai_secure_config_service.dart
 lib/application/ai/financial_qa_service.dart
@@ -159,6 +162,7 @@ server/play-billing/worker.mjs
 server/play-billing/worker.test.mjs
 server/play-billing/wrangler.jsonc
 test/application/automatic_backup_service_test.dart
+test/application/backup_audit_regression_test.dart
 test/application/backup_preference_service_test.dart
 test/application/backup_service_test.dart
 test/application/backup_snapshot_validation_test.dart
@@ -207,6 +211,8 @@ test/subscription_quota_test.dart
 test/widget_test.dart
 tooling/android/configure_android_ci.py
 tooling/android/proguard-rules.pro
+tooling/android/test_configure_android_ci.py
+tooling/check_repository.py
 tooling/play/check_bundle.py
 tooling/play/configure_play.py
 tooling/play/generate_subscription.py
