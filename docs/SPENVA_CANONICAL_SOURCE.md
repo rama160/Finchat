@@ -4,7 +4,7 @@
 
 ## Otoritas sumber
 Branch integrasi resmi: `spenva-source-of-truth`.
-Basis runtime sebelumnya: 0.3.4+18. Patch audit +19 dibangun dari canonical commit `da61888d8151ee5bff52cea2a4cff846da8d5aa1`; CI baru wajib sebelum klaim terverifikasi. Branch `main`, `codex/gateway-recovery-validation`, `spenva-production-readiness`, dan `spenva-privacy-play-policy` adalah riwayat/branch pendahulu dan tidak boleh dipakai sebagai sumber rilis baru tanpa rekonsiliasi ke branch ini.
+Basis runtime sebelumnya: 0.3.4+18. Patch audit +19 dibangun dari canonical commit `da61888d8151ee5bff52cea2a4cff846da8d5aa1`; CI final +19 pada `2f8d47e642c835197ffd9786f0013d12a7f79d5d` sudah lulus analyze/tests, APK, AAB signed/16KB dan integrasi; bukti ada di [playstore/VALIDATION.md](playstore/VALIDATION.md). Commit dokumentasi setelahnya tidak mengubah runtime/workflow. PR4 belum di-merge. Branch `main`, `codex/gateway-recovery-validation`, `spenva-production-readiness`, dan `spenva-privacy-play-policy` adalah riwayat/branch pendahulu dan tidak boleh dipakai sebagai sumber rilis baru tanpa rekonsiliasi ke branch ini.
 
 ## Identitas produk
 Nama: Spenva. Application ID Android: `com.finchat.finchat`. Database: `finchat.db`, schema 1. Arsitektur local-first: SQLite sumber kebenaran transaksi; parser/perhitungan lokal didahulukan; AI hanya fallback/fitur online. Google Drive appDataFolder digunakan untuk backup pilihan pengguna.

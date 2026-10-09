@@ -1,3 +1,34 @@
+# Verifikasi audit Spenva 0.3.4+19 — 9 Oktober 2026
+
+Source yang diuji: `2f8d47e642c835197ffd9786f0013d12a7f79d5d`, branch `spenva-source-of-truth`. Commit dokumentasi sesudahnya tidak mengubah runtime, tooling, workflow atau artefak. PR4 belum di-merge ke main.
+
+## Hasil final
+
+- [Flutter Test](https://github.com/rama160/Finchat/actions/runs/37970485674): success, Flutter 3.47.7; analyze tanpa issue; **141 tes lulus, 2 skipped**. Screenshot dan guard Play dijalankan terpisah.
+- [Audit APK](https://github.com/rama160/Finchat/actions/runs/37970477583): success; analyze/tests lulus; APK release **93.8 MB**, memakai permanent release keystore yang sudah dikonfigurasi.
+- [Prepare Play Store AAB](https://github.com/rama160/Finchat/actions/runs/37970485990): prepare dan integration success. Suite normal **141 lulus/2 skipped**, profile Play **11 lulus/1 skipped**, native Linux **1 lulus** (offline capture, multi transaksi, database, laporan dan navigasi).
+- Signed AAB **75.2 MB**, versi **0.3.4+19**; jarsigner, manifest/version, native ELF 64-bit 16 KB, bundle alignment 16 KB dan universal APK zipalign `-P 16` lulus.
+- Backend **46 tes**, validator bundle **5 tes**, konfigurasi Android **3 tes**, generator katalog dan inventaris **222 file** konsisten. Tidak ada migrasi schema; database tetap schema1.
+- Empat screenshot 1080×1920 dibuat dengan aset/font aplikasi. Ini bukti capture CI, bukan tes HP atau persetujuan desain.
+- Run duplikat PR/push dibatalkan oleh concurrency yang disengaja; run final di atas sukses. Run percobaan awal yang gagal tetap menjadi riwayat, bukan hasil final.
+
+## Unduhan +19
+
+- [APK release pilot](https://github.com/rama160/Finchat/actions/runs/37970477583/artifacts/11636860365).
+- [AAB + APK validasi + laporan teknis](https://github.com/rama160/Finchat/actions/runs/37970485990/artifacts/11635643068). SHA256 arsip `83ec5ad32599a94ba8fcc2128640fd5934b725f9788737fd525cae929a032bcf`.
+- [Empat screenshot review](https://github.com/rama160/Finchat/actions/runs/37970485990/artifacts/11635920843). SHA256 arsip `d3feaf86b696a3f1e4ce1a09b5bedca1fe46c01dfb8eeff5e6dcdc7551d8ee1b`.
+- Artefak Play/screenshot kedaluwarsa 7 Januari 2027. AAB untuk persiapan Console; APK pilot dan APK validasi adalah profile berbeda.
+
+## Batas hasil
+
+Validator masih mencatat **9 persyaratan publikasi** yang belum terpenuhi: identitas/contact/URL, Console, OAuth Play App Signing, review Data Safety/screenshot dan closed testing sesuai akun. Backend subscription belum di-deploy; pembelian, personal AI dan infrastruktur berbayar tidak diaktifkan oleh audit. Pengujian provider/backend memakai simulasi, bukan pembayaran sungguhan. Physical Android, OAuth/Drive lintas perangkat, kamera/mikrofon/OCR/PDF/IME dan lifecycle billing tetap memerlukan acceptance nyata. Lihat [LAUNCH.md](LAUNCH.md).
+
+Local Flutter initialization diblokir automatic review setelah percobaan akses metadata-service. Tidak ada klaim local Flutter analyze/test/build; hasil Flutter di atas berasal dari GitHub CI.
+
+---
+
+## Riwayat +18 dan +17
+
 > Current source status: **0.3.4+19**, 9 October 2026 UTC. See [../SPENVA_CANONICAL_SOURCE.md](../SPENVA_CANONICAL_SOURCE.md) and the current detailed audit. Older version/build statements below are historical evidence and do not verify this patch.
 
 # Verifikasi subscription Spenva 0.3.4+18 — 6 Oktober 2026
