@@ -2,7 +2,7 @@
 
 **Versi sumber: 0.3.5+20**
 
-Audit ulang 10 Oktober 2026. Baseline main `91252bddf4a4eadaa99dafe095f72c2e04a4bab1` masih0.3.2+10; staging audit sebelumnya `452d85c49e4177558e46cc243b6fef121e919aa2` adalah0.3.4+19. Ini sebab versi yang terlihat pengguna berbeda. Penyelesaian wajib memasukkan tree teruji ke main dan membaca ulang remote pubspec, bukan cukup mengubah branch lain.
+Audit ulang 10 Oktober 2026. Baseline main `91252bddf4a4eadaa99dafe095f72c2e04a4bab1` masih0.3.2+10; staging audit sebelumnya `452d85c49e4177558e46cc243b6fef121e919aa2` adalah0.3.4+19. Ini sebab versi yang terlihat pengguna berbeda. Perbaikan sudah digabung melalui PR #4 ke main pada commit `678f08da89e9b39b170376032387d6c46a95dafc`. Remote pubspec dan AppConstants dibaca ulang: keduanya0.3.5+20; tree main identik dengan hasil audit. Bukti rinci ada di VALIDATION.
 
 ## Gap dan keputusan
 
@@ -47,7 +47,7 @@ Local46 backend tests,3 Android template tests,5 bundle tests dan Play overlay i
 | `Ai start here.md` | AI START HERE — Spenva / FinChat | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint 90fe99b7775d. |
 | `CHANGELOG.md` | Changelog Spenva | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint 99e9e166d407. |
 | `README.md` | Spenva — pencatat keuangan pribadi | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint 7eece49689bd. |
-| `UPDATE_GITHUB.bat` | 104 baris, 3530 bytes | Target main; stage add/update/delete, rebase/stash conflict stop, retry push; bukan deletion whitelist. Identity/config/source reference diperiksa; dipertahankan sesuai caller/asset/contract. Fingerprint 426f9c7eb727. |
+| `UPDATE_GITHUB.bat` | 104 baris, 4258 bytes | Target main; stage add/update/delete, rebase/stash conflict stop, retry push; cleanup eksplisit 28 path usang termasuk 21 penghapusan audit ini agar overlay ZIP tidak menghidupkan file lama; bukan inventory deletion whitelist. Identity/config/source reference diperiksa; dipertahankan sesuai caller/asset/contract. Fingerprint c69a3d281f8a. |
 | `analysis_options.yaml` | 5 baris, 84 bytes | Identity/config/source reference diperiksa; dipertahankan sesuai caller/asset/contract. Fingerprint 46bff9d71ca0. |
 | `assets/brand/GOOGLE_ASSET_SOURCE.txt` | 7 baris, 657 bytes | Identity/config/source reference diperiksa; dipertahankan sesuai caller/asset/contract. Fingerprint 8440c417ddc8. |
 | `assets/brand/android_foreground.png` | PNG 432×432, 2256 bytes | Signature/dimension valid; bundled/listing asset dipertahankan sesuai peran. Fingerprint 26f981ef16b6. |
@@ -74,7 +74,7 @@ Local46 backend tests,3 Android template tests,5 bundle tests dan Play overlay i
 | `docs/GOOGLE_ACCOUNT_AND_DRIVE_SETUP.md` | Google login dan Drive | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint 5ea2aceaaabd. |
 | `docs/PRD.md` | Spesifikasi produk Spenva | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint 30a51736881a. |
 | `docs/SPENVA_CANONICAL_SOURCE.md` | Status dan keputusan canonical | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint 32d64dacbca8. |
-| `docs/UPDATE_RELEASE.md` | Sinkronisasi, build dan release | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint 5593b5622dc1. |
+| `docs/UPDATE_RELEASE.md` | Sinkronisasi, build dan release | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint 32f7a3e24d34. |
 | `docs/VOICE_INPUT.md` | Input suara | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint 6a9f3052ea2d. |
 | `docs/history/README.md` | Riwayat dokumentasi | Arsip link SHA immutable, bukan panduan aktif. Fingerprint 05a18f96a784. |
 | `docs/playstore/DATA_SAFETY.md` | Data Safety dan akses reviewer | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint 2c1b8336130e. |
@@ -82,7 +82,7 @@ Local46 backend tests,3 Android template tests,5 bundle tests dan Play overlay i
 | `docs/playstore/LISTING_ID.md` | Materi listing Bahasa Indonesia | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint 32e06e67c18c. |
 | `docs/playstore/PLANS.md` | Paket Spenva | Tabel generated dari JSON + versi pubspec; harga live ditentukan Google ProductDetails. Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint 9a12f46d83c2. |
 | `docs/playstore/SUBSCRIPTION.md` | Langganan dan kuota | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint d5f865855de7. |
-| `docs/playstore/VALIDATION.md` | Validasi runtime dan build saat ini | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint 70013ae8cef6. |
+| `docs/playstore/VALIDATION.md` | Validasi runtime dan build saat ini | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint dc82bd8d120f. |
 | `docs/playstore/feature-graphic.png` | PNG 1024×500, 34787 bytes | Signature/dimension valid; bundled/listing asset dipertahankan sesuai peran. Fingerprint 69673fb7bb32. |
 | `docs/playstore/publication-profile.json` | 19 baris, 544 bytes | 9 blocker masih false/kosong; nilai bukan error yang boleh direkayasa menjadi true. Identity/config/source reference diperiksa; dipertahankan sesuai caller/asset/contract. Fingerprint d77e07c1d1de. |
 | `docs/playstore/store-icon.png` | PNG 512×512, 6336 bytes | Signature/dimension valid; bundled/listing asset dipertahankan sesuai peran. Fingerprint 41109ffe26d6. |

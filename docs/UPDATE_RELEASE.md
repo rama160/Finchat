@@ -4,7 +4,7 @@
 
 ## Sumber dan versi
 
-Gunakan **main** untuk clone/ZIP/build harian. UPDATE_GITHUB.bat menargetkan main, stash perubahan lokal saat pull/rebase, memulihkan stash, stage add/update/delete dan push normal. Konflik menghentikan push. Tidak memakai manifest sebagai deletion whitelist; hanya daftar eksplisit instruksi fase usang boleh dibersihkan. Unduh paket utuh agar file tracked tidak dianggap hilang.
+Gunakan **main** untuk clone/ZIP/build harian. UPDATE_GITHUB.bat menargetkan main, stash perubahan lokal saat pull/rebase, memulihkan stash, stage add/update/delete dan push normal. Konflik menghentikan push. Tidak memakai manifest sebagai deletion whitelist; hanya daftar eksplisit instruksi fase, 17 dokumen usang dan empat file source yang dihapus/disatukan boleh dibersihkan. Unduh paket utuh agar file tracked tidak dianggap hilang.
 
 Edit versi hanya pubspec, selalu major.minor.patch+build Android yang meningkat. Jalankan `python3 tooling/sync_metadata.py`; AppConstants dan default release tag mengikuti. Tag release termasuk build (`v0.3.5+20`) agar APK revisi tidak menimpa tag patch lama. UpdateProvider membaca semver dan build; tag historis tanpa build hanya dapat menunjukkan upgrade semver.
 
