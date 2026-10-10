@@ -1,5 +1,7 @@
 # Changelog Spenva
 
+Versi aktif dan bukti tes terdapat pada entri terbaru dan [VALIDATION](docs/playstore/VALIDATION.md). Entri lama adalah riwayat; keterangan branch/versi/status lama tidak berlaku sebagai panduan source saat ini.
+
 ## 0.3.5+20 — 10 Oktober 2026
 
 - Selaraskan main/default GitHub/ZIP dengan source yang diuji; BAT kembali menargetkan main.
@@ -11,7 +13,7 @@
 - Backup menolak duplikat mapping, confidence/usage tidak valid serta referensi kategori history sebelum delete.
 - Base workflow/build/signing/application ID/database schema/pricing/kuota tetap; tidak ada deploy, payment activation atau paid infrastructure.
 
-# 0.3.4+19 — Canonical source audit (2026-10-09 UTC)
+## 0.3.4+19 — Canonical source audit (2026-10-09 UTC)
 
 - Reconciled source against the current Spenva integration branch rather than the obsolete main baseline.
 - Fixed UTF-8 backup import, transactional snapshots and pre-restore duplicate/enum/type/reference validation; restore rejects conflicting rows instead of replacing them silently.

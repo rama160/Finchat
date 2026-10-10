@@ -18,7 +18,7 @@ Edit versi hanya pubspec, selalu major.minor.patch+build Android yang meningkat.
 | Prepare Play Store AAB | Suite server/tooling/Play, screenshot, native Linux, signed AAB/16KB |
 | FinChat Release | Manual publish GitHub release; permanent signing; tag harus cocok pubspec |
 
-Flutter3.47.7 dipin agar SDK tidak berubah diam-diam. Struktur langkah build dan secret signing dipertahankan. APK pilot menggunakan Gateway lama; AAB Play memakai define distribusi Play dan endpoint tersendiri. Build Play bukan publikasi Console otomatis.
+Flutter3.47.7 dipin agar SDK tidak berubah diam-diam. Lockfile aplikasi dipulihkan dari Git setelah `flutter create --no-pub`, lalu `flutter pub get --enforce-lockfile` dijalankan; pembuatan runner tidak boleh mengganti dependensi aplikasi. Struktur langkah build dan secret signing dipertahankan. APK pilot menggunakan Gateway lama; AAB Play memakai define distribusi Play dan endpoint tersendiri. Build Play bukan publikasi Console otomatis.
 
 ## Pemeriksaan
 
