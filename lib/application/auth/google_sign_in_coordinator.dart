@@ -1,4 +1,5 @@
 
+import 'google_id_token_session.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class GoogleSignInCoordinator {
@@ -17,6 +18,26 @@ class GoogleSignInCoordinator {
   final GoogleSignIn _signIn;
   String? _serverClientId;
   Future<void>? _initialization;
+  final GoogleIdTokenSession _tokenSession = GoogleIdTokenSession();
+  GoogleSignInAccount? _account;
+  GoogleSignInAccount? get currentAccount => _account;
+
+  void rememberAccount(GoogleSignInAccount account) {
+    _account = account;
+    _tokenSession.remember(account.authentication.idToken);
+  }
+
+  void clearAccount() { _account = null; _tokenSession.clear(); }
+
+  String? get cachedIdToken => _tokenSession.cachedToken;
+
+  Future<String?> currentIdToken() async {
+    await initialize();
+    return _tokenSession.current(() async {
+      final restored = await _signIn.attemptLightweightAuthentication();
+      return restored?.authentication.idToken;
+    });
+  }
 
   GoogleSignIn get signIn => _signIn;
 

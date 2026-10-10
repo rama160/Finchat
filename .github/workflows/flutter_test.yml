@@ -2,10 +2,14 @@ name: Flutter Test
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, spenva-source-of-truth]
   pull_request:
     branches: [main, develop]
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -15,12 +19,21 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: '3.47.7'
           cache: true
       - name: Show Flutter version
         run: flutter --version
+      - name: Check source consistency
+        run: python3 tooling/check_repository.py
       - name: Get dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
       - name: Analyze
         run: flutter analyze
       - name: Test
         run: flutter test
+      - name: Upload resolved dependency lock
+        uses: actions/upload-artifact@v4
+        with:
+          name: spenva-dependency-lock
+          path: pubspec.lock
+          if-no-files-found: error

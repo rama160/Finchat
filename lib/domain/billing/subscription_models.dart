@@ -10,9 +10,9 @@ extension SubscriptionTierX on SubscriptionTier {
 
   String get displayName => switch (this) {
         SubscriptionTier.free => 'Free',
-        SubscriptionTier.basic => 'Basic',
+        SubscriptionTier.basic => 'Plus',
         SubscriptionTier.pro => 'Pro',
-        SubscriptionTier.unlimited => 'Unlimited',
+        SubscriptionTier.unlimited => 'Max',
       };
 }
 

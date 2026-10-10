@@ -1,14 +1,22 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+
+import 'core/release/play_release_config.dart';
+import 'application/billing/play_billing_service.dart';
 
 import 'application/auth/google_auth_service.dart';
 import 'application/auth/google_sign_in_coordinator.dart';
 import 'application/session/session_manager.dart';
 import 'data/session/secure_session_repository.dart';
 import 'presentation/navigation/app_router.dart';
+import 'presentation/widgets/spenva_brand.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final googleServerClientId = const String.fromEnvironment('FINCHAT_GOOGLE_SERVER_CLIENT_ID');
+  final googleServerClientId = const String.fromEnvironment(
+    'FINCHAT_GOOGLE_SERVER_CLIENT_ID',
+  );
   final googleAuth = GoogleAuthService(
     serverClientId: googleServerClientId.isEmpty ? null : googleServerClientId,
   );
@@ -21,33 +29,60 @@ Future<void> main() async {
   );
   await sessionManager.initialize();
   runApp(FinChatApp(sessionManager: sessionManager));
+  if (PlayReleaseConfig.isPlay) {
+    unawaited(
+      PlayBillingService.instance.initialize().catchError((Object _) {}),
+    );
+  }
 }
 
-class FinChatApp extends StatelessWidget {
+class FinChatApp extends StatefulWidget {
   const FinChatApp({super.key, required this.sessionManager});
 
   final SessionManager sessionManager;
 
   @override
+  State<FinChatApp> createState() => _FinChatAppState();
+}
+
+class _FinChatAppState extends State<FinChatApp> {
+  late AppRouter _router = AppRouter(widget.sessionManager);
+
+  @override
+  void didUpdateWidget(FinChatApp oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.sessionManager, widget.sessionManager)) {
+      _router.dispose();
+      _router = AppRouter(widget.sessionManager);
+    }
+  }
+
+  @override
+  void dispose() {
+    _router.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SessionScope(
-      sessionManager: sessionManager,
+      sessionManager: widget.sessionManager,
       child: MaterialApp.router(
-        title: 'FinChat',
+        title: 'Spenva',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
-          useMaterial3: true,
-        ),
-        routerConfig: AppRouter(sessionManager).router,
+        theme: spenvaTheme(),
+        routerConfig: _router.router,
       ),
     );
   }
 }
 
 class SessionScope extends InheritedNotifier<SessionManager> {
-  const SessionScope({super.key, required SessionManager sessionManager, required super.child})
-      : super(notifier: sessionManager);
+  const SessionScope({
+    super.key,
+    required SessionManager sessionManager,
+    required super.child,
+  }) : super(notifier: sessionManager);
 
   static SessionManager of(BuildContext context) {
     final scope = context.dependOnInheritedWidgetOfExactType<SessionScope>();

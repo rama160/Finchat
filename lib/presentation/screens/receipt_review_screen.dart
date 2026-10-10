@@ -1,3 +1,4 @@
+import '../../core/formatting/rupiah.dart';
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/category_entity.dart';
@@ -164,4 +165,4 @@ class _ReceiptReviewScreenState extends State<ReceiptReviewScreen> {
   }
 }
 
-String _money(double value) => 'Rp ${value.toStringAsFixed(0).replaceAllMapped(RegExp(r'(?=(\d{3})+(?!\d))'), (m) => '.') }';
+String _money(double value) => formatRupiah(value);

@@ -13,11 +13,14 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: '3.47.7'
           cache: true
       - name: Show Flutter version
         run: flutter --version
+      - name: Check source consistency
+        run: python3 tooling/check_repository.py
       - name: Get dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
       - name: Analyze
         run: flutter analyze
       - name: Test
@@ -28,6 +31,8 @@ jobs:
           if [ ! -f android/app/build.gradle ] && [ ! -f android/app/build.gradle.kts ]; then
             flutter create --platforms=android --project-name finchat --org com.finchat --no-pub .
           fi
+          git restore -- pubspec.lock
+          flutter pub get --enforce-lockfile
           test -f android/app/build.gradle || test -f android/app/build.gradle.kts
       - name: Configure Android release, permissions, and R8
         run: python3 tooling/android/configure_android_ci.py

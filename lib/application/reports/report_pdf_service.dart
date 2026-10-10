@@ -1,3 +1,4 @@
+import '../../core/formatting/rupiah.dart';
 import 'dart:typed_data';
 
 import 'package:pdf/pdf.dart';
@@ -13,7 +14,7 @@ class ReportPdfService {
   }) async {
     final document = pw.Document(
       title: reportTitle,
-      author: 'FinChat',
+      author: 'Spenva',
     );
 
     document.addPage(
@@ -61,7 +62,7 @@ class ReportPdfService {
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
           pw.Text(
-            'FinChat',
+            'Spenva',
             style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
           ),
           pw.Text(title, style: const pw.TextStyle(fontSize: 12)),
@@ -173,16 +174,8 @@ class ReportPdfService {
       '${value.day.toString().padLeft(2, '0')}/'
       '${value.month.toString().padLeft(2, '0')}/${value.year}';
 
-  static String _money(double value) {
-    final negative = value < 0;
-    final rounded = value.abs().round().toString();
-    final buffer = StringBuffer();
-    for (var i = 0; i < rounded.length; i++) {
-      if (i > 0 && (rounded.length - i) % 3 == 0) buffer.write('.');
-      buffer.write(rounded[i]);
-    }
-    return '${negative ? '-' : ''}Rp ${buffer.toString()}';
-  }
+  static String _money(double value) => formatRupiah(value);
+
 }
 
 String reportPdfFileName(String title, DateTime start) {

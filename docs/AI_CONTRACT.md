@@ -1,31 +1,15 @@
-# FinChat AI Contract
+# Kontrak AI dan jawaban lokal
 
-AI is supporting intelligence, not source of truth.
+**Versi sumber: 0.3.5+20**
 
-## AI must not
-- write the database directly;
-- invent amounts, dates, totals, or transactions;
-- bypass validation;
-- silently replace a confirmed user category;
-- overwrite confirmed transactions;
-- assume missing data as fact.
+AI adalah jalur read-only opsional. Jawaban angka selalu berangkat dari ReportService/SQLite. FinancialQaService menjawab lokal total, saldo, jumlah transaksi, kategori terbesar, kata kunci/nota dan saran hemat sederhana. Constraint yang tidak didukung tidak boleh diam-diam dibuang lalu diberi total global.
 
-## Fallback rule
-Local parser runs first. AI is called only when local parsing cannot confidently resolve the input.
+Pilot endpoint yang dipertahankan: `https://finchat-ai-gateway.finchat-ai-gateway.workers.dev/v1/ai/chat`. Payload memakai `messages` dengan role/text, bukan endpoint OpenAI standar. Authorization adalah Google ID token singkat; key Gemini hanya di server. HTTP/network/status failure memberi pesan yang sesuai dan tidak menggagalkan local capture. Provider tidak dianggap live hanya karena tes mock lulus.
 
-## Validation
-Application validates type, amount, date, category, confidence, and context before persistence.
+Play tidak fallback ke pilot. Endpoint berasal dari SPENVA_BILLING_ENDPOINT; state/kuota/provider diperiksa sebelum request; consent cloud dan konfirmasi usia18+ dibutuhkan. Personal AI default nonaktif. Edukasi jika diaktifkan hanya menerima fixed topic budget/emergency/saving tanpa teks mentah atau transaksi.
 
-## Failure behavior
-If AI fails, preserve the original input, allow manual correction, and never lose a transaction.
+QA personal mengirim pertanyaan, total periode dan maksimal25 cuplikan transaksi; menyebutkan bahwa cuplikan tidak lengkap. Payload maksimal20KB, prompt10K karakter; response JSON harus memiliki text, body dibatasi1MB dan output20K karakter. Client timeout65 detik. Angka respons dinormalisasi rupiah, tetapi model tidak dianggap sumber total.
 
-## Financial answers
-Use application-computed facts from local data. AI should explain results, not manufacture financial records.
+Category suggestion hanya category_id yang tersedia dan confidence finite0–1. Provider exception/invalid category/low confidence kembali ke kategori lokal. Text/OCR normal diselesaikan lokal; voice ambiguous hanya dapat meminta fallback setelah konfigurasi state mengizinkan. Legacy AiSecureConfigService dipertahankan sebagai kontrak injection/test, bukan toggle yang menonaktifkan jalur production default.
 
-## Production Gateway
-The production mobile app uses the FinChat Cloudflare AI Gateway. The app sends a verifiable Google ID token over HTTPS; the Gateway verifies identity and calls Gemini with a server-side secret. The mobile app never contains the shared Gemini API key.
-
-The normal `OpenAiCompatibleAiProvider()` path does not require the legacy local `ai.enabled` switch. `AiSecureConfigService` remains available for explicit legacy/test configuration so existing tests and configuration contracts remain compatible.
-
-## Network hardening
-Gateway requests are HTTPS-only, time-bounded and reject oversized or malformed responses. AI remains read-only with respect to SQLite.
+Pelaporan jawaban adalah tindakan eksplisit pengguna; alasan wajib, salinan Q/A hanya dengan checkbox. Retensi dan data safety mengikuti [SUBSCRIPTION](playstore/SUBSCRIPTION.md) dan [DATA_SAFETY](playstore/DATA_SAFETY.md). Uji Gateway/token/provider live harus dicatat terpisah dari suite unit.

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:sqflite/sqflite.dart';
 
 import '../../domain/entities/category_entity.dart';
@@ -11,8 +13,86 @@ class SqliteCategoryRepository implements CategoryRepository {
 
   final FinChatDatabase database;
 
+  static const _defaults = systemCategoryDefaults;
+
+  // Legacy backups may contain only categories used by their transactions.
+  // Restore missing defaults without replacing rows, IDs or learned mappings.
+  Future<void> _ensureDefaults() async {
+    final db = await database.database;
+    final ids = (await db.query(
+      'categories',
+      columns: ['id'],
+    )).map((r) => r['id']).toSet();
+    final missing = _defaults.entries
+        .where((entry) => !ids.contains(entry.key))
+        .toList();
+    if (missing.isEmpty) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final batch = db.batch();
+    for (final entry in missing) {
+      batch.insert('categories', {
+        'id': entry.key,
+        'name': entry.value.$1,
+        'type': entry.value.$3,
+        'is_system': 1,
+        'created_at': now,
+        'updated_at': now,
+      }, conflictAlgorithm: ConflictAlgorithm.ignore);
+    }
+    await batch.commit(noResult: true);
+  }
+
+  String _displayName(Map<String, Object?> row) {
+    final id = row['id']! as String;
+    if (_defaults.containsKey(id)) return _defaults[id]!.$2;
+    if (id.startsWith('legacy_')) {
+      final name = (row['name']! as String).toLowerCase();
+      if (RegExp(r'makan|minum|kopi|nasi|bakso').hasMatch(name)) { return 'Makanan dan minuman'; }
+      if (RegExp(r'obat|dokter|kesehatan').hasMatch(name)) return 'Kesehatan';
+      if (RegExp(r'tagihan|listrik|pulsa|internet').hasMatch(name)) { return 'Tagihan'; }
+      if (RegExp(r'bensin|transport|parkir').hasMatch(name)) { return 'Transportasi'; }
+      return row['type'] == 'income' ? 'Pendapatan lain' : 'Lainnya';
+    }
+    return row['name']! as String;
+  }
+
+  Future<CategoryEntity> ensureCategory(String name, String type) async {
+    await _ensureDefaults();
+    final trimmed = name.trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (trimmed.isEmpty ||
+        trimmed.length > 50 ||
+        !['income', 'expense'].contains(type)) {
+      throw ArgumentError('Kategori harus berisi 1–50 karakter.');
+    }
+    final db = await database.database;
+    return db.transaction((txn) async {
+      final rows = await txn.query(
+        'categories',
+        where: 'type = ?',
+        whereArgs: [type],
+      );
+      for (final row in rows) {
+        if (_displayName(row).trim().toLowerCase() == trimmed.toLowerCase()) { return _categoryFromRow(row); }
+      }
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final id =
+          'custom_${type}_${base64Url.encode(utf8.encode(trimmed.toLowerCase())).replaceAll('=', '')}';
+      final row = <String, Object?>{
+        'id': id,
+        'name': trimmed,
+        'type': type,
+        'is_system': 0,
+        'created_at': now,
+        'updated_at': now,
+      };
+      await txn.insert('categories', row);
+      return _categoryFromRow(row);
+    });
+  }
+
   @override
   Future<List<CategoryEntity>> getCategories({String? type}) async {
+    await _ensureDefaults();
     final db = await database.database;
     final rows = await db.query(
       'categories',
@@ -25,8 +105,14 @@ class SqliteCategoryRepository implements CategoryRepository {
 
   @override
   Future<CategoryEntity?> getById(String id) async {
+    await _ensureDefaults();
     final db = await database.database;
-    final rows = await db.query('categories', where: 'id = ?', whereArgs: [id], limit: 1);
+    final rows = await db.query(
+      'categories',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
     return rows.isEmpty ? null : _categoryFromRow(rows.first);
   }
 
@@ -62,22 +148,18 @@ class SqliteCategoryRepository implements CategoryRepository {
     final usage = (existing?.usageCount ?? 0) + 1;
 
     await db.transaction((txn) async {
-      await txn.insert(
-        'category_mappings',
-        {
-          'id': id,
-          'user_id': userId,
-          'normalized_keyword': normalized,
-          'category_id': categoryId,
-          'source': source,
-          'confidence': confidence,
-          'usage_count': usage,
-          'last_used_at': now,
-          'created_at': existing?.createdAt.millisecondsSinceEpoch ?? now,
-          'updated_at': now,
-        },
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
+      await txn.insert('category_mappings', {
+        'id': id,
+        'user_id': userId,
+        'normalized_keyword': normalized,
+        'category_id': categoryId,
+        'source': source,
+        'confidence': confidence,
+        'usage_count': usage,
+        'last_used_at': now,
+        'created_at': existing?.createdAt.millisecondsSinceEpoch ?? now,
+        'updated_at': now,
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
 
       await txn.insert('category_history', {
         'id': '${id}_${now}_$usage',
@@ -94,6 +176,7 @@ class SqliteCategoryRepository implements CategoryRepository {
 
   @override
   Future<List<CategoryMapping>> getMappings(String userId) async {
+    await _ensureDefaults();
     final db = await database.database;
     final rows = await db.query(
       'category_mappings',
@@ -105,26 +188,29 @@ class SqliteCategoryRepository implements CategoryRepository {
   }
 
   CategoryEntity _categoryFromRow(Map<String, Object?> row) => CategoryEntity(
-        id: row['id']! as String,
-        name: row['name']! as String,
-        type: row['type']! as String,
-        isSystem: (row['is_system']! as int) == 1,
-        createdAt: _date(row['created_at']),
-        updatedAt: _date(row['updated_at']),
-      );
+    id: row['id']! as String,
+    name: _displayName(row),
+    type: row['type']! as String,
+    isSystem: (row['is_system']! as int) == 1,
+    createdAt: _date(row['created_at']),
+    updatedAt: _date(row['updated_at']),
+  );
 
   CategoryMapping _mappingFromRow(Map<String, Object?> row) => CategoryMapping(
-        id: row['id']! as String,
-        userId: row['user_id']! as String,
-        normalizedKeyword: row['normalized_keyword']! as String,
-        categoryId: row['category_id']! as String,
-        source: row['source']! as String,
-        confidence: (row['confidence']! as num).toDouble(),
-        usageCount: row['usage_count']! as int,
-        lastUsedAt: DateTime.fromMillisecondsSinceEpoch(row['last_used_at']! as int),
-        createdAt: DateTime.fromMillisecondsSinceEpoch(row['created_at']! as int),
-        updatedAt: DateTime.fromMillisecondsSinceEpoch(row['updated_at']! as int),
-      );
+    id: row['id']! as String,
+    userId: row['user_id']! as String,
+    normalizedKeyword: row['normalized_keyword']! as String,
+    categoryId: row['category_id']! as String,
+    source: row['source']! as String,
+    confidence: (row['confidence']! as num).toDouble(),
+    usageCount: row['usage_count']! as int,
+    lastUsedAt: DateTime.fromMillisecondsSinceEpoch(
+      row['last_used_at']! as int,
+    ),
+    createdAt: DateTime.fromMillisecondsSinceEpoch(row['created_at']! as int),
+    updatedAt: DateTime.fromMillisecondsSinceEpoch(row['updated_at']! as int),
+  );
 
-  DateTime? _date(Object? value) => value == null ? null : DateTime.fromMillisecondsSinceEpoch(value as int);
+  DateTime? _date(Object? value) =>
+      value == null ? null : DateTime.fromMillisecondsSinceEpoch(value as int);
 }

@@ -10,6 +10,7 @@ class CategoryLearningService {
     required String userId,
     required String text,
     String? fallbackCategoryId,
+    List<CategoryMapping>? mappings,
   }) async {
     final normalized = normalize(text);
     if (normalized.isEmpty) return fallbackCategoryId;
@@ -17,7 +18,10 @@ class CategoryLearningService {
     final tokens = <String>{normalized, ..._tokens(normalized)};
     CategoryMapping? best;
     for (final token in tokens) {
-      final mapping = await repository.findMapping(userId, token);
+      final matching = mappings?.where((item) => item.userId == userId && item.normalizedKeyword == token);
+      final mapping = matching == null
+          ? await repository.findMapping(userId, token)
+          : (matching.isEmpty ? null : matching.first);
       if (mapping == null) continue;
       if (best == null || _score(mapping, token) > _score(best, best.normalizedKeyword)) {
         best = mapping;

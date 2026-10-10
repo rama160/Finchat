@@ -1,75 +1,21 @@
-# AI START HERE — FINCHAT
+# AI START HERE — Spenva / FinChat
 
-## Current continuation point — Bugfix package 0.3.2+10
+**Versi sumber: 0.3.5+20**
 
-Read this file first, then:
-1. `docs/FULL_REPOSITORY_AUDIT.md`
-2. `docs/FINCHAT_MASTER_CONTEXT.md`
-3. `docs/PRD.md`
-4. `docs/ARCHITECTURE.md`
-5. `docs/PHASES.md`
-6. `docs/AI_CONTRACT.md`
-7. `docs/IMPLEMENTATION_STATUS.md`
-8. `CHANGELOG.md`
-9. actual source code
+Repository `rama160/Finchat`. Target akhir dan sumber utama pengguna: **main**. Branch `spenva-source-of-truth` hanya staging integrasi; sesudah CI hijau gabungkan ke main agar tampilan default GitHub, ZIP dan `pubspec.yaml` benar-benar sama. Jangan menyatakan pembaruan main selesai sebelum membaca ulang remote main.
 
-## Current truth
+Baca: [status canonical](docs/SPENVA_CANONICAL_SOURCE.md), [PRD](docs/PRD.md), [arsitektur](docs/ARCHITECTURE.md), [kontrak AI](docs/AI_CONTRACT.md), [audit setiap file](docs/FULL_REPOSITORY_AUDIT.md), [validasi](docs/playstore/VALIDATION.md), lalu CHANGELOG dan implementasi. Riwayat lama hanya pada [indeks arsip](docs/history/README.md).
 
-- Technical work exists through Phase 12 hardening.
-- This package fixes two device-reported runtime regressions without changing the established product workflow: `DatabaseException(error database_closed)` during text/voice/receipt transaction capture, and AI Gateway fallback being disabled by the legacy local `ai.enabled` gate.
-- Production `FinChatDatabase()` instances now share one application database handle; screen-level `dispose()` calls no longer close that shared production connection. Custom database factory/path instances remain isolated for tests.
-- The database open path is serialized and reopens a handle if the cached handle is no longer open.
-- The AI provider is Gateway-first in production. It reuses the existing `GoogleSignInCoordinator` session configuration to obtain the logged-in Google ID token, then calls the Cloudflare Gateway. Gemini API credentials remain server-side. The legacy local AI enable switch is retained only when an `AiSecureConfigService` is explicitly injected, preserving existing test/config contracts.
-- Google Sign-In and restore/migration behavior are intentionally left unchanged.
-- Flutter/Dart SDK is not available in the artifact workspace, so local analyze/test/APK build is not claimed. A GitHub Actions run exposed analyzer-only issues in the AI provider/test fixture; those issues are fixed in 0.3.2+7. GitHub Actions remains the canonical verification environment.
-- Real Android-device acceptance is still required for camera, microphone, OCR quality, Google Sign-In/OAuth, Google Drive and Gateway/AI behavior.
+Aturan perubahan:
+- Pertahankan Google login/session mapping email, application ID, kunci signing, SQLite schema1, data lama, backup legacy, branding serta UX input/laporan yang sudah berjalan.
+- SQLite adalah sumber transaksi. Parser/perhitungan lokal didahulukan. AI tidak menulis database; kegagalan AI tidak menghilangkan hasil lokal.
+- Satu sumber versi: pubspec. Satu katalog paket: JSON. Satu katalog kategori: systemCategoryDefaults pada category_entity.dart. Output generated bukan konfigurasi manual kedua.
+- Background Drive tidak menampilkan dialog autentikasi. Backup whole-database tetap dengan konfirmasi sebelum restore; validasi berjalan sebelum delete dan rollback mempertahankan data jika insert gagal. Acknowledgement memakai versi baris, bukan seluruh baris baru.
+- Hapus hanya dead code/instruksi duplikat/cache yang terkonfirmasi. Jangan menggabungkan interface, adapter platform dan layanan bisnis hanya karena nama fiturnya sama.
+- Jangan force-push, mengubah signing, mengaktifkan subscription/personal AI, melakukan publikasi atau menyalakan infrastruktur berbayar sebagai efek audit.
 
-## Non-negotiable product rules
+Perubahan versi: edit pubspec → `python3 tooling/sync_metadata.py` → generator paket jika perlu → `python3 tooling/check_repository.py`. Build memakai Flutter 3.47.7 agar konsisten dengan SDK yang diuji. Jalankan tes backend/tooling/Flutter/profil Play/native integration, signed APK dan AAB/16KB. Catat SHA yang benar dan tautan run pada VALIDATION; hasil versi lama tidak mengesahkan runtime baru.
 
-- Offline-first; SQLite is the source of truth.
-- Local parser/category history first; AI only as fallback/support.
-- AI never writes directly to SQLite.
-- Text/voice transactions save immediately when recognized.
-- Saved transactions expose Edit/Delete; swipe right edits and swipe left deletes.
-- User category corrections must be learned locally.
-- Receipt images are preprocessed/compressed before OCR and reviewed before persistence.
-- Common financial questions are answered from application-computed local report data before AI fallback.
-- Automatic Drive backup requires one-time Google authorization; once enabled it is attempted on app load/data changes and must not block transaction capture.
-- Every meaningful change updates changelog/status/audit documentation.
-- Never force-push automatically.
+Local Flutter initialization sebelumnya diblokir automatic review karena percobaan akses metadata-service. Jangan mengulang jalur tersebut; gunakan GitHub CI untuk analyze/test/build. Formatter Dart mandiri dan tes Node/Python tersedia lokal.
 
-## 0.3.2+8 analyzer follow-up
-
-GitHub Actions reported two analyzer errors remaining in `lib/data/ai/openai_compatible_ai_provider.dart` after 0.3.2+7. They are fixed in this package:
-
-- The optional `idTokenProvider` callback is now assigned through an initialized private final field in the constructor, removing `final_not_initialized_constructor`.
-- `_chat()` copies the nullable callback into a local `tokenProvider` before invocation, so the non-null branch is promoted and `unchecked_use_of_nullable_value` is removed.
-- No production workflow or business logic was changed.
-- The Gateway endpoint, Google Sign-In coordinator, database lifecycle fix, restore flow, OCR, voice, transaction parsing, reports, backup, and GitHub workflow remain unchanged.
-
-
-- Fixed `prefer_initializing_formals` in `OpenAiCompatibleAiProvider` without changing the public constructor argument `idTokenProvider` or Gateway behavior.
-- Removed the unnecessary non-null assertion when invoking the injected ID-token provider.
-- Rewrote the Gateway JSON test fixture with `jsonEncode()` so analyzer no longer reports unnecessary string escapes.
-- No database, authentication, restore/migration, transaction, OCR, voice, report, backup, Gateway endpoint, or GitHub workflow logic was changed.
-
-## Exact next gate
-
-1. Run `UPDATE_GITHUB.bat` from the package root.
-2. Confirm GitHub Actions passes `flutter pub get`, `flutter analyze`, `flutter test`, `flutter build apk --release`.
-3. Fix any CI issue against this exact package without reverting the audit goals.
-4. Perform the device acceptance matrix in `docs/FULL_REPOSITORY_AUDIT.md` and `docs/PHASE_12_HARDENING_MATRIX.md`.
-
-## Handoff requirement
-
-At the end of each patch, record current version, changed files, exact issue, exact fix, schema/data impact, tests/CI result, device result, and any remaining PRD gap.
-
-### 0.3.2+9 analyzer follow-up
-The CI analyzer reported two remaining errors in `openai_compatible_ai_provider.dart`. The constructor now uses an initializing formal for `_idTokenProvider`, and token-provider invocation uses explicit nullable-flow promotion. No existing workflow or business logic was changed.
-
-### 0.3.2+10 database test follow-up
-GitHub Actions reported one failing test after the analyzer fixes: `test/data_database_test.dart` failed with `Bad state: databaseFactory not initialized`. The cause was eager initialization of the static production `FinChatDatabase` singleton, which evaluated the global `databaseFactory` before `sqflite_common_ffi` test setup ran.
-
-Fix: `FinChatDatabase._shared` is now a lazy getter backed by `_sharedInstance`. The global `databaseFactory` is therefore not read until the first production `FinChatDatabase()` call. This preserves the established production shared-connection behavior and `close()` protection, while allowing `setUpAll(sqfliteFfiInit)` to initialize the FFI factory first. No schema, business logic, restore flow, Google Sign-In, OCR, voice, AI Gateway, or GitHub workflow was changed.
-
-Verification status: source-level fix prepared from CI failure. Run the canonical GitHub Actions sequence again: `flutter analyze`, `flutter test`, then release APK build.
+Handoff harus mencatat source/version, sebab dan perbaikan per file, schema impact, bukti tes/build, perubahan branch main serta acceptance perangkat/layanan eksternal yang belum dilakukan. Jangan mengklaim CI sebagai uji HP atau simulasi billing sebagai pembelian nyata.

@@ -1,27 +1,20 @@
+import 'plan_catalog.dart';
 import '../../domain/billing/subscription_models.dart';
 
-/// Monetization is deliberately disabled while the app is in pilot testing.
-/// These definitions are the foundation only; no user is charged while the
-/// feature flags remain false.
+/// The four-tier catalog is enabled. Legacy external payments remain off.
+/// PlayBillingService requires Play products and server verification before
+/// it can start a payment or grant a paid entitlement.
 class MonetizationConfig {
-  static const enabled = false;
+  static const enabled = true;
   static const paymentsEnabled = false;
-  static const subscriptionsEnabled = false;
+  static const subscriptionsEnabled = true;
 
-  static const plans = <SubscriptionPlan>[
-    SubscriptionPlan(tier: SubscriptionTier.free, enabled: true),
-    SubscriptionPlan(tier: SubscriptionTier.basic, enabled: false, monthlyPriceId: 'finchat_basic_monthly'),
-    SubscriptionPlan(tier: SubscriptionTier.pro, enabled: false, monthlyPriceId: 'finchat_pro_monthly'),
-    SubscriptionPlan(tier: SubscriptionTier.unlimited, enabled: false, monthlyPriceId: 'finchat_unlimited_monthly'),
-  ];
+  static final plans = planCatalog.map((p) => SubscriptionPlan(tier: p.tier, enabled: true, monthlyPriceId: p.productId)).toList();
 
-  static const supportedPaymentMethods = <PaymentMethod>[
-    PaymentMethod.qris,
-    PaymentMethod.gopay,
-    PaymentMethod.bankTransfer,
-    PaymentMethod.card,
-    PaymentMethod.otherEwallet,
-  ];
+  // Production digital subscriptions use Google Play Billing only.
+  // Legacy PaymentMethod values remain in the domain model solely for source
+  // compatibility and are not offered as checkout methods.
+  static const supportedPaymentMethods = <PaymentMethod>[];
 
   static SubscriptionPlan planFor(SubscriptionTier tier) => plans.firstWhere((plan) => plan.tier == tier);
 }

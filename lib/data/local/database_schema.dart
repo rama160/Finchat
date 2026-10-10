@@ -1,5 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 
+import '../../domain/entities/category_entity.dart';
+
 class FinChatDatabaseSchema {
   static const databaseName = 'finchat.db';
   static const version = 1;
@@ -89,16 +91,30 @@ class FinChatDatabaseSchema {
       )
     ''');
 
-    await db.execute('CREATE INDEX idx_transactions_user_date ON transactions(user_id, transaction_date)');
-    await db.execute('CREATE INDEX idx_transactions_user_type ON transactions(user_id, type)');
-    await db.execute('CREATE INDEX idx_transactions_user_category ON transactions(user_id, category_id)');
-    await db.execute('CREATE INDEX idx_category_mapping_user_keyword ON category_mappings(user_id, normalized_keyword)');
-    await db.execute('CREATE INDEX idx_category_history_user_created ON category_history(user_id, created_at)');
+    await db.execute(
+      'CREATE INDEX idx_transactions_user_date ON transactions(user_id, transaction_date)',
+    );
+    await db.execute(
+      'CREATE INDEX idx_transactions_user_type ON transactions(user_id, type)',
+    );
+    await db.execute(
+      'CREATE INDEX idx_transactions_user_category ON transactions(user_id, category_id)',
+    );
+    await db.execute(
+      'CREATE INDEX idx_category_mapping_user_keyword ON category_mappings(user_id, normalized_keyword)',
+    );
+    await db.execute(
+      'CREATE INDEX idx_category_history_user_created ON category_history(user_id, created_at)',
+    );
 
     await _seedCategories(db);
   }
 
-  static Future<void> onUpgrade(Database db, int oldVersion, int newVersion) async {
+  static Future<void> onUpgrade(
+    Database db,
+    int oldVersion,
+    int newVersion,
+  ) async {
     if (oldVersion < 2 && newVersion >= 2) {
       // Reserved for the next schema migration. Never destructively recreate user data.
     }
@@ -106,20 +122,11 @@ class FinChatDatabaseSchema {
 
   static Future<void> _seedCategories(Database db) async {
     final now = DateTime.now().millisecondsSinceEpoch;
-    const categories = <Map<String, Object>>[
-      {'id': 'gaji', 'name': 'Gaji', 'type': 'income'},
-      {'id': 'bonus', 'name': 'Bonus', 'type': 'income'},
-      {'id': 'makanan', 'name': 'Makanan', 'type': 'expense'},
-      {'id': 'belanja_dapur', 'name': 'Belanja Dapur', 'type': 'expense'},
-      {'id': 'transportasi', 'name': 'Transportasi', 'type': 'expense'},
-      {'id': 'tagihan', 'name': 'Tagihan', 'type': 'expense'},
-      {'id': 'kesehatan', 'name': 'Kesehatan', 'type': 'expense'},
-      {'id': 'hiburan', 'name': 'Hiburan', 'type': 'expense'},
-      {'id': 'lainnya', 'name': 'Lainnya', 'type': 'expense'},
-    ];
-    for (final category in categories) {
+    for (final entry in systemCategoryDefaults.entries) {
       await db.insert('categories', {
-        ...category,
+        'id': entry.key,
+        'name': entry.value.$1,
+        'type': entry.value.$3,
         'is_system': 1,
         'created_at': now,
         'updated_at': now,

@@ -9,13 +9,50 @@ class FakeAiProvider implements AiCategoryProvider {
   int calls = 0;
 
   @override
-  Future<AiCategorySuggestion?> suggestCategory(AiCategoryRequest request) async {
+  Future<AiCategorySuggestion?> suggestCategory(
+    AiCategoryRequest request,
+  ) async {
     calls++;
     return result;
   }
 }
 
+class ThrowingProvider implements AiCategoryProvider {
+  @override
+  Future<AiCategorySuggestion?> suggestCategory(
+    AiCategoryRequest request,
+  ) async => throw StateError('offline');
+}
+
 void main() {
+  test(
+    'provider errors and non-finite confidence leave local capture available',
+    () async {
+      const request = AiCategoryRequest(
+        userId: 'u',
+        originalText: 'kopi 20rb',
+        description: 'kopi',
+        type: TransactionType.expense,
+        amount: 20000,
+        localCategoryId: 'lainnya',
+      );
+      final failed = AiCategoryFallback(
+        provider: ThrowingProvider(),
+        categoryExists: (_) async => true,
+      );
+      expect(await failed.resolve(request), isNull);
+      final invalid = AiCategoryFallback(
+        provider: FakeAiProvider(
+          const AiCategorySuggestion(
+            categoryId: 'makanan',
+            confidence: double.nan,
+          ),
+        ),
+        categoryExists: (_) async => true,
+      );
+      expect(await invalid.resolve(request), isNull);
+    },
+  );
   test('accepts a valid category suggestion above threshold', () async {
     final provider = FakeAiProvider(
       const AiCategorySuggestion(categoryId: 'makanan', confidence: 0.9),

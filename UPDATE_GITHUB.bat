@@ -50,7 +50,7 @@ if not exist ".git" (
 
   git fetch origin %BRANCH% || exit /b 1
   git checkout %BRANCH% >nul 2>&1
-  if errorlevel 1 git checkout -B %BRANCH% origin/%BRANCH% || exit /b 1
+  if errorlevel 1 exit /b 1
   git pull --rebase origin %BRANCH%
   if errorlevel 1 (
     echo [ERROR] Pull/rebase gagal. Selesaikan conflict secara manual. Tidak ada push dilakukan.
@@ -67,16 +67,9 @@ if not exist ".git" (
 )
 
 echo.
-echo [INFO] Membersihkan file tracked lama yang tidak lagi termasuk paket FinChat...
-if not exist "tooling\repository_manifest.txt" (
-  echo [ERROR] tooling\repository_manifest.txt tidak ditemukan. Cleanup dibatalkan agar aman.
-  exit /b 1
-)
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $keep = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase); Get-Content 'tooling/repository_manifest.txt' | ForEach-Object { $v=$_.Trim(); if($v){ [void]$keep.Add($v.Replace('\','/')) } }; git ls-files | ForEach-Object { $v=$_.Trim().Replace('\','/'); if($v -and -not $keep.Contains($v)){ Write-Host ('[DELETE] ' + $v); if(Test-Path -LiteralPath $_){ Remove-Item -LiteralPath $_ -Force -Recurse } } }"
-if errorlevel 1 (
-  echo [ERROR] Cleanup file lama gagal. Tidak ada push dilakukan.
-  exit /b 1
-)
+echo [INFO] Membersihkan hanya file instruksi lama yang sudah dikonsolidasi...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $legacy=@('PHASE_11_2_COPY_INSTRUCTIONS.md','PHASE_11_3_COPY_INSTRUCTIONS.md','PHASE_11_4_COPY_INSTRUCTIONS.md','PHASE_11_5_COPY_INSTRUCTIONS.md','PHASE_11_6_COPY_INSTRUCTIONS.md','PHASE_11_7_COPY_INSTRUCTIONS.md','PHASE_12_COPY_INSTRUCTIONS.md'); foreach($p in $legacy){ if(Test-Path -LiteralPath $p){ Remove-Item -LiteralPath $p -Force } }"
+if errorlevel 1 exit /b 1
 
 echo [INFO] Mendeteksi file baru, berubah, dan file yang harus dihapus...
 git add -A || exit /b 1
@@ -85,7 +78,7 @@ git diff --cached --quiet
 if not errorlevel 1 (
   echo [INFO] Tidak ada perubahan untuk dikirim ke GitHub.
   git status --short
-  exit /b 0
+  goto PUSH
 )
 
 echo.
@@ -95,6 +88,7 @@ git diff --cached --name-status
 echo.
 git commit -m "%COMMIT_MESSAGE%" || exit /b 1
 
+:PUSH
 echo [INFO] Push ke GitHub...
 git push origin %BRANCH%
 if errorlevel 1 (

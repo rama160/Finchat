@@ -29,7 +29,7 @@ class ReceiptOcrService {
     final processed = await _preprocessor.preprocess(imageBytes, config: config);
     final file = File(workingImagePath);
     await file.parent.create(recursive: true);
-    await file.writeAsBytes(processed, flush: true);
+    await file.writeAsBytes(processed);
 
     try {
       return await _provider.recognizeText(file.path);

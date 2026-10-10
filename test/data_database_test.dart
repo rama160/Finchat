@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -8,7 +9,12 @@ import 'package:finchat/domain/entities/transaction_entity.dart';
 import 'package:finchat/domain/services/category_learning_service.dart';
 
 void main() {
-  setUpAll(sqfliteFfiInit);
+  setUpAll(() async {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+    final directory = await Directory.systemTemp.createTemp('finchat_database_');
+    await databaseFactoryFfi.setDatabasesPath(directory.path);
+  });
 
   late FinChatDatabase database;
   late SqliteTransactionRepository transactions;
@@ -44,6 +50,7 @@ void main() {
     expect(identical(first, second), isTrue);
 
     final db = await first.database;
+    addTearDown(db.close);
     await second.close();
     expect(db.isOpen, isTrue);
     expect((await first.database).isOpen, isTrue);
@@ -55,6 +62,36 @@ void main() {
     expect(identical(first, second), isFalse);
     addTearDown(first.close);
     addTearDown(second.close);
+  });
+
+  test('defaults missing after a partial restore are added without replacing user data', () async {
+    await seedTestUser();
+    final custom = await categories.ensureCategory('Acara keluarga', 'expense');
+    await categories.learnMapping(userId: 'user-1', keyword: 'kumpul', categoryId: custom.id);
+    final db = await database.database;
+    await db.delete('categories', where: 'id = ?', whereArgs: ['gaji']);
+    expect(await db.query('categories', where: 'id = ?', whereArgs: ['gaji']), isEmpty);
+    await categories.getMappings('user-1');
+    expect((await categories.getById('gaji'))!.type, 'income');
+    expect((await categories.getById('makanan'))!.name, 'Makanan dan minuman');
+    expect((await categories.getById(custom.id))!.name, 'Acara keluarga');
+    expect((await categories.findMapping('user-1', 'kumpul'))!.categoryId, custom.id);
+    expect((await db.query('categories', where: 'id = ?', whereArgs: ['makanan'])).single['name'], 'Makanan');
+  });
+
+  test('typed categories persist, reuse normalized names and learn for the user', () async {
+    await seedTestUser();
+    final custom = await categories.ensureCategory('  Acara   keluarga ', 'expense');
+    final duplicate = await categories.ensureCategory('acara keluarga', 'expense');
+    final income = await categories.ensureCategory('Acara keluarga', 'income');
+    expect(duplicate.id, custom.id);
+    expect(income.id, isNot(custom.id));
+    expect(custom.isSystem, false);
+    final learning = CategoryLearningService(categories);
+    await learning.recordCorrection(userId: 'user-1', text: 'konsumsi acara', categoryId: custom.id);
+    expect((await categories.findMapping('user-1', 'konsumsi acara'))!.categoryId, custom.id);
+    expect(await categories.findMapping('other-user', 'konsumsi acara'), isNull);
+    expect((await categories.getById(custom.id))!.name, 'Acara keluarga');
   });
 
   test('creates schema and seeds system categories', () async {

@@ -53,6 +53,7 @@ class SpeechToTextProvider implements SpeechRecognitionProvider {
         listenFor: listenFor,
         pauseFor: pauseFor,
         partialResults: true,
+        listenMode: stt.ListenMode.dictation,
       ),
       onResult: (result) => onResult(
         SpeechRecognitionResult(

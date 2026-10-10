@@ -1,0 +1,19 @@
+{
+  "publisher": "",
+  "support_email": "",
+  "privacy_url": "",
+  "deletion_url": "",
+  "billing_endpoint": "",
+  "play_console_account": false,
+  "app_signing_oauth_verified": false,
+  "data_safety_reviewed": false,
+  "store_screenshots_reviewed": false,
+  "closed_test_completed_if_required": false,
+  "play_products_verified": false,
+  "paid_ai_confirmed": false,
+  "billing_server_verified": false,
+  "reporting_verified": false,
+  "personal_ai_enabled": false,
+  "unpaid_education_enabled": false,
+  "education_privacy_verified": false
+}

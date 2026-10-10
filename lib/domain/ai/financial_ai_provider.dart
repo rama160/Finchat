@@ -14,3 +14,7 @@ class FinancialAiRequest {
 abstract interface class FinancialAiProvider {
   Future<String?> answer(FinancialAiRequest request);
 }
+
+abstract interface class FinancialAiAvailability {
+  String? get failureMessage;
+}

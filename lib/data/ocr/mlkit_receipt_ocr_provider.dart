@@ -28,6 +28,10 @@ class MlKitReceiptOcrProvider implements ReceiptOcrProvider {
       rawText: result.text.trim(),
       blockCount: result.blocks.length,
       lineCount: lineCount,
+      lines: [for (final block in result.blocks) for (final line in block.lines)
+        ReceiptOcrLine(text: line.text, left: line.boundingBox.left,
+          top: line.boundingBox.top, right: line.boundingBox.right,
+          bottom: line.boundingBox.bottom)],
     );
   }
 

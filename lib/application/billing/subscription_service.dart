@@ -1,3 +1,4 @@
+import 'play_billing_service.dart';
 import '../../domain/billing/subscription_models.dart';
 import 'monetization_config.dart';
 
@@ -6,7 +7,7 @@ class SubscriptionService {
 
   SubscriptionTier get defaultTier => SubscriptionTier.free;
 
-  SubscriptionPlan get currentPlan => MonetizationConfig.planFor(defaultTier);
+  SubscriptionPlan get currentPlan => MonetizationConfig.planFor(PlayBillingService.currentEntitlement?.active == true ? PlayBillingService.currentEntitlement!.tier : defaultTier);
 
   bool canUsePremiumFeatures() => currentPlan.tier != SubscriptionTier.free && MonetizationConfig.enabled;
 

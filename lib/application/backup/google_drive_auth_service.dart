@@ -6,43 +6,49 @@ import '../auth/google_sign_in_coordinator.dart';
 
 class GoogleDriveAuthService {
   GoogleDriveAuthService({GoogleSignInCoordinator? coordinator})
-      : _coordinator = coordinator ?? GoogleSignInCoordinator.instance;
+    : _coordinator = coordinator ?? GoogleSignInCoordinator.instance;
 
   final GoogleSignInCoordinator _coordinator;
-  static const scopes = <String>['https://www.googleapis.com/auth/drive.appdata'];
-  GoogleSignInAccount? _currentUser;
+  static const scopes = <String>[
+    'https://www.googleapis.com/auth/drive.appdata',
+  ];
 
   Future<void> initialize() async {
     await _coordinator.initialize();
-    _currentUser ??=
-        await _coordinator.signIn.attemptLightweightAuthentication();
   }
 
-  GoogleSignInAccount? get currentUser => _currentUser;
+  GoogleSignInAccount? get currentUser => _coordinator.currentAccount;
 
   Future<GoogleSignInAccount> signIn() async {
     await initialize();
     if (!_coordinator.signIn.supportsAuthenticate()) {
-      throw StateError('Google Sign-In pada platform ini tidak menyediakan authenticate().');
+      throw StateError(
+        'Google Sign-In pada platform ini tidak menyediakan authenticate().',
+      );
     }
     final user = await _coordinator.signIn.authenticate();
-    _currentUser = user;
+    _coordinator.rememberAccount(user);
     return user;
   }
 
-
   Future<auth.AuthClient?> tryAuthorizeDriveSilently() async {
     await initialize();
-    final user = _currentUser;
-    if (user == null) return null;
-    final authorization = await user.authorizationClient.authorizationForScopes(scopes);
+    final user = currentUser;
+    // No authenticate/lightweight restore here: both can show Android UI.
+    // This API returns null rather than prompting when consent is unavailable.
+    final authorization =
+        await (user?.authorizationClient ??
+                _coordinator.signIn.authorizationClient)
+            .authorizationForScopes(scopes);
     return authorization?.authClient(scopes: scopes);
   }
 
   Future<auth.AuthClient> authorizeDrive() async {
     await initialize();
-    final user = _currentUser ?? await signIn();
-    var authorization = await user.authorizationClient.authorizationForScopes(scopes);
+    final user = currentUser ?? await signIn();
+    var authorization = await user.authorizationClient.authorizationForScopes(
+      scopes,
+    );
     authorization ??= await user.authorizationClient.authorizeScopes(scopes);
     return authorization.authClient(scopes: scopes);
   }
@@ -50,6 +56,6 @@ class GoogleDriveAuthService {
   Future<void> signOut() async {
     await initialize();
     await _coordinator.signIn.signOut();
-    _currentUser = null;
+    _coordinator.clearAccount();
   }
 }

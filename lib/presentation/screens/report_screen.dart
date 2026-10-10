@@ -1,7 +1,14 @@
+import '../../application/billing/play_billing_service.dart';
+import '../../application/billing/quota_service.dart';
+import '../../core/release/play_release_config.dart';
+import '../../core/formatting/rupiah.dart';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
+import 'package:file_picker/file_picker.dart';
+import '../widgets/spenva_brand.dart';
 
 import '../../application/reports/report_pdf_service.dart';
 import '../../application/reports/report_service.dart';
@@ -10,28 +17,31 @@ import '../../data/repositories/sqlite_category_repository.dart';
 import '../../data/repositories/sqlite_transaction_repository.dart';
 import '../../domain/entities/transaction_entity.dart';
 import '../../domain/reports/report_models.dart';
+import '../../domain/reports/daily_expenses.dart';
+import '../../domain/reports/selected_period.dart';
+import '../../domain/reports/report_insights.dart';
+import '../widgets/period_filter.dart';
 
 class ReportScreen extends StatefulWidget {
-  const ReportScreen({super.key, required this.userId});
+  const ReportScreen({super.key, required this.userId, this.savePdf, this.sharePdf, this.accountLinked = false});
   final String userId;
+  final bool accountLinked;
+  final Future<Uri?> Function(Uint8List bytes, String filename)? savePdf;
+  final Future<void> Function(Uint8List bytes, String filename)? sharePdf;
   @override
   State<ReportScreen> createState() => _ReportScreenState();
 }
 
-class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
+class _ReportScreenState extends State<ReportScreen> {
   late final FinChatDatabase _database;
   late final ReportService _reportService;
   late final ReportPdfService _reportPdfService;
-  DateTime _selectedDay = _day(DateTime.now());
-  DateTimeRange _selectedRange = _currentWeek(DateTime.now());
-  DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
-  Future<ReportSummary>? _reportFuture;
+  SelectedPeriod _period = SelectedPeriod.day(DateTime.now());
+  Future<({ReportSummary report, List<DailyExpense> points})>? _reportFuture;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this)..addListener(_refreshReport);
     _database = FinChatDatabase();
     _reportPdfService = ReportPdfService();
     _reportService = ReportService(
@@ -43,80 +53,104 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
 
   @override
   void dispose() {
-    _tabController.removeListener(_refreshReport);
-    _tabController.dispose();
     _database.close();
     super.dispose();
   }
 
   void _refreshReport() {
-    final future = switch (_tabController.index) {
-      0 => _reportService.forDay(userId: widget.userId, date: _selectedDay),
-      1 => _reportService.forRange(userId: widget.userId, start: _selectedRange.start, end: _selectedRange.end),
-      _ => _reportService.forMonth(userId: widget.userId, year: _selectedMonth.year, month: _selectedMonth.month),
-    };
-    if (mounted) setState(() => _reportFuture = future);
+    final future = _loadReport(_period);
+    if (mounted) {
+      setState(() {
+        _reportFuture = future;
+      });
+    }
+  }
+
+  Future<({ReportSummary report, List<DailyExpense> points})> _loadReport(SelectedPeriod period) async {
+    final report = await _reportService.forRange(userId: widget.userId, start: period.start!, end: period.end!);
+    double? previousDayExpense;
+    if (period.kind == PeriodKind.day) {
+      final day = period.start!;
+      final previous = DateTime(day.year, day.month, day.day - 1);
+      final prior = await _reportService.forRange(userId: widget.userId, start: previous, end: previous);
+      previousDayExpense = prior.expenseTotal;
+    }
+    return (report: report, points: expenseChartPoints(report, previousDayExpense: previousDayExpense));
   }
 
   bool _exporting = false;
+  Future<ReportSummary?> _previousForPremium(ReportSummary current) async {
+    if (!PlayReleaseConfig.isPlay) return null;
+    if (!widget.accountLinked || !await PlayBillingService.instance.hasFeature('advanced', backgroundOnly: true)) return null;
+    final days = current.endExclusive.difference(current.start).inDays;
+    return _reportService.forRange(userId: widget.userId, start: current.start.subtract(Duration(days: days)), end: current.start.subtract(const Duration(days: 1)));
+  }
 
   Future<void> _exportPdf(ReportSummary report) async {
     if (_exporting) return;
     setState(() => _exporting = true);
+    QuotaLease? lease;
     try {
-      final title = switch (_tabController.index) { 0 => 'Laporan Harian', 1 => 'Laporan Rentang', _ => 'Laporan Bulanan' };
+      final title = switch (_period.kind) { PeriodKind.day => 'Laporan Harian', PeriodKind.month => 'Laporan Bulanan', PeriodKind.year => 'Laporan Tahunan', _ => 'Laporan Rentang' };
+      final destination = await showDialog<bool>(context: context, builder: (context) => SimpleDialog(
+        title: const Text('Ekspor laporan PDF'), children: [
+          SimpleDialogOption(onPressed: () => Navigator.pop(context, true), child: const ListTile(leading: Icon(Icons.save_alt), title: Text('Simpan ke perangkat'), subtitle: Text('Pilih folder dan nama file PDF.'))),
+          SimpleDialogOption(onPressed: () => Navigator.pop(context, false), child: const ListTile(leading: Icon(Icons.share_outlined), title: Text('Bagikan PDF'))),
+        ],
+      ));
+      if (destination == null) return;
+      lease = await SubscriptionQuotaService().reserve('pdf', accountLinked: widget.accountLinked);
       final bytes = await _reportPdfService.generate(report: report, reportTitle: title);
       if (!mounted) return;
-      await Printing.sharePdf(bytes: bytes, filename: reportPdfFileName(title, report.start));
+      final filename = reportPdfFileName(title, report.start);
+      if (destination) {
+        final saved = widget.savePdf != null ? await widget.savePdf!(bytes, filename)
+            : await FilePicker.saveFile(fileName: filename, bytes: bytes, mimeType: 'application/pdf', dialogTitle: 'Simpan laporan Spenva');
+        if (saved != null) { await lease.finish(true); lease = null; }
+        if (saved != null && mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('PDF tersimpan di lokasi pilihan Anda.')));
+      } else {
+        if (widget.sharePdf != null) { await widget.sharePdf!(bytes, filename); }
+        else {
+          final shared = await Printing.sharePdf(bytes: bytes, filename: filename);
+          if (!shared) return;
+        }
+        await lease.finish(true); lease = null;
+      }
     } catch (error) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal membuat PDF: $error')));
     } finally {
+      await lease?.finish(false);
       if (mounted) setState(() => _exporting = false);
     }
-  }
-
-  Future<void> _pickDay() async {
-    final value = await showDatePicker(context: context, initialDate: _selectedDay, firstDate: DateTime(2000), lastDate: DateTime(2100));
-    if (value == null) return;
-    setState(() => _selectedDay = value);
-    _refreshReport();
-  }
-
-  Future<void> _pickRange() async {
-    final value = await showDateRangePicker(context: context, firstDate: DateTime(2000), lastDate: DateTime(2100), initialDateRange: _selectedRange);
-    if (value == null) return;
-    setState(() => _selectedRange = value);
-    _refreshReport();
-  }
-
-  Future<void> _pickMonth() async {
-    final value = await showDatePicker(context: context, initialDate: _selectedMonth, firstDate: DateTime(2000), lastDate: DateTime(2100), helpText: 'Pilih bulan dan tahun');
-    if (value == null) return;
-    setState(() => _selectedMonth = DateTime(value.year, value.month));
-    _refreshReport();
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
-          title: const Text('Laporan'),
-          bottom: TabBar(controller: _tabController, tabs: const [Tab(text: 'Hari'), Tab(text: 'Rentang'), Tab(text: 'Bulan')]),
+          title: const Row(children: [SizedBox(width: 34, height: 34, child: SpenvaLogo(markOnly: true)), SizedBox(width: 10), Expanded(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text('Laporan', style: TextStyle(fontWeight: FontWeight.bold))))]),
+          actions: [IconButton(tooltip: 'Ekspor PDF', onPressed: _exporting ? null : () async {
+            final future = _reportFuture;
+            if (future == null) return;
+            try { final data = await future; if (mounted) await _exportPdf(data.report); }
+            catch (_) { if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Laporan belum siap. Coba lagi.'))); }
+          }, icon: const Icon(Icons.download_outlined))],
         ),
         body: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: _PeriodSelector(tabIndex: _tabController.index, selectedDay: _selectedDay, selectedRange: _selectedRange, selectedMonth: _selectedMonth, onDay: _pickDay, onRange: _pickRange, onMonth: _pickMonth),
-            ),
+            PeriodFilter(period: _period, onChanged: (value) {
+              setState(() => _period = value);
+              _refreshReport();
+            }),
             Expanded(
-              child: FutureBuilder<ReportSummary>(
+              child: FutureBuilder<({ReportSummary report, List<DailyExpense> points})>(
                 future: _reportFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
                   if (snapshot.hasError) return _ErrorState(message: 'Gagal memuat laporan: ${snapshot.error}', onRetry: _refreshReport);
-                  final report = snapshot.data;
+                  final data = snapshot.data;
+                  final report = data?.report;
                   if (report == null) return const _ErrorState(message: 'Data laporan tidak tersedia.');
-                  return _ReportBody(report: report, onExport: () => _exportPdf(report));
+                  return _ReportBody(report: report, points: data!.points, comparison: _previousForPremium(report));
                 },
               ),
             ),
@@ -124,52 +158,39 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         ),
       );
 
-  static DateTime _day(DateTime value) => DateTime(value.year, value.month, value.day);
-  static DateTimeRange _currentWeek(DateTime value) {
-    final day = _day(value);
-    final start = day.subtract(Duration(days: day.weekday - DateTime.monday));
-    return DateTimeRange(start: start, end: start.add(const Duration(days: 6)));
-  }
-}
-
-class _PeriodSelector extends StatelessWidget {
-  const _PeriodSelector({required this.tabIndex, required this.selectedDay, required this.selectedRange, required this.selectedMonth, required this.onDay, required this.onRange, required this.onMonth});
-  final int tabIndex;
-  final DateTime selectedDay;
-  final DateTimeRange selectedRange;
-  final DateTime selectedMonth;
-  final VoidCallback onDay;
-  final VoidCallback onRange;
-  final VoidCallback onMonth;
-  @override
-  Widget build(BuildContext context) {
-    final label = switch (tabIndex) { 0 => _date(selectedDay), 1 => '${_date(selectedRange.start)} - ${_date(selectedRange.end)}', _ => '${_monthName(selectedMonth.month)} ${selectedMonth.year}' };
-    final action = switch (tabIndex) { 0 => onDay, 1 => onRange, _ => onMonth };
-    return Card(child: ListTile(leading: const Icon(Icons.calendar_month), title: Text(label), subtitle: const Text('Ketuk untuk mengubah periode'), trailing: FilledButton(onPressed: action, child: const Text('Pilih'))));
-  }
 }
 
 class _ReportBody extends StatelessWidget {
-  const _ReportBody({required this.report, required this.onExport});
+  const _ReportBody({required this.report, required this.points, this.comparison});
+  final Future<ReportSummary?>? comparison;
+  final List<DailyExpense> points;
   final ReportSummary report;
-  final VoidCallback onExport;
   @override
   Widget build(BuildContext context) {
     if (report.transactionCount == 0) {
-      return ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 24), children: [const _SummaryCard(report: null), const SizedBox(height: 12), const Card(child: Padding(padding: EdgeInsets.all(24), child: Column(children: [Icon(Icons.receipt_long_outlined, size: 44), SizedBox(height: 10), Text('Belum ada transaksi', style: TextStyle(fontWeight: FontWeight.bold)), SizedBox(height: 4), Text('Tidak ada transaksi pada periode yang dipilih.', textAlign: TextAlign.center)]))), const SizedBox(height: 12), OutlinedButton.icon(onPressed: onExport, icon: const Icon(Icons.picture_as_pdf), label: const Text('Bagikan PDF'))]);
+      return ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 24), children: [_SummaryCard(report: report), const SizedBox(height: 12), _DailyExpenseChart(report: report, points: points), const SizedBox(height: 12), const Card(child: Padding(padding: EdgeInsets.all(24), child: Column(children: [Icon(Icons.receipt_long_outlined, size: 44), SizedBox(height: 10), Text('Belum ada transaksi', style: TextStyle(fontWeight: FontWeight.bold)), SizedBox(height: 4), Text('Tidak ada transaksi pada periode yang dipilih.', textAlign: TextAlign.center)])))]);
     }
     return ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 24), children: [
       _SummaryCard(report: report),
       const SizedBox(height: 12),
-      _InsightCard(report: report),
+      _InsightCard(report: report, points: points),
       const SizedBox(height: 12),
       _CategoryChart(report: report),
       const SizedBox(height: 12),
-      _CountChart(report: report),
-      const SizedBox(height: 12),
-      _GroupList(report: report),
-      const SizedBox(height: 12),
-      FilledButton.icon(onPressed: onExport, icon: const Icon(Icons.picture_as_pdf), label: const Text('Bagikan PDF')),
+      _DailyExpenseChart(report: report, points: points),
+      if (comparison != null) FutureBuilder<ReportSummary?>(future: comparison, builder: (context, snapshot) {
+        final previous = snapshot.data;
+        if (previous == null) return const SizedBox.shrink();
+        final maximum = math.max(report.expenseTotal, previous.expenseTotal);
+        return Card(child: Padding(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Perbandingan periode', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          for (final entry in [('Sebelumnya', previous.expenseTotal), ('Dipilih', report.expenseTotal)]) ...[
+            Text('${entry.$1}: ${formatRupiah(entry.$2)}'),
+            LinearProgressIndicator(value: maximum == 0 ? 0 : entry.$2 / maximum), const SizedBox(height: 10),
+          ],
+          Text('Dibanding rentang sebelumnya dengan jumlah hari yang sama, pengeluaranmu ${report.expenseTotal >= previous.expenseTotal ? 'bertambah' : 'berkurang'} ${formatRupiah((report.expenseTotal - previous.expenseTotal).abs())}. Perbandingan hanya memakai transaksi yang tercatat.'),
+        ])));
+      }),
     ]);
   }
 }
@@ -180,69 +201,57 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final r = report;
-    return Card(child: Padding(padding: const EdgeInsets.all(14), child: Wrap(spacing: 10, runSpacing: 10, children: [
-      _Metric('Pemasukan', _money(r?.incomeTotal ?? 0), Icons.south_west, onTap: r == null ? null : () => _showTypeDetails(context, TransactionType.income, r.transactions)),
-      _Metric('Pengeluaran', _money(r?.expenseTotal ?? 0), Icons.north_east, onTap: r == null ? null : () => _showTypeDetails(context, TransactionType.expense, r.transactions)),
-      _Metric('Saldo', _money(r?.balance ?? 0), Icons.account_balance_wallet_outlined),
-      _Metric('Transaksi', '${r?.transactionCount ?? 0}', Icons.receipt_long_outlined),
-    ])));
+    final income = _Metric('Pemasukan', _money(r?.incomeTotal ?? 0), Icons.south_west, color: Colors.teal,
+      onTap: r == null ? null : () => _showTypeDetails(context, TransactionType.income, r.transactions));
+    final expense = _Metric('Pengeluaran', _money(r?.expenseTotal ?? 0), Icons.north_east, color: Colors.red,
+      onTap: r == null ? null : () => _showTypeDetails(context, TransactionType.expense, r.transactions));
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('Ringkasan periode', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold))),
+      income,
+      const SizedBox(height: 10),
+      expense,
+      const SizedBox(height: 12),
+      _Metric('Saldo', _money(r?.balance ?? 0), Icons.account_balance_wallet_outlined, color: spenvaPurple, balance: true),
+    ]);
   }
 }
 
 class _Metric extends StatelessWidget {
-  const _Metric(this.label, this.value, this.icon, {this.onTap});
+  const _Metric(this.label, this.value, this.icon, {this.onTap, required this.color, this.balance = false});
   final String label, value;
   final IconData icon;
+  final Color color;
+  final bool balance;
   final VoidCallback? onTap;
   @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 155,
-      child: Card(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Row(
-              children: [
-                Icon(icon, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(label, style: Theme.of(context).textTheme.labelMedium),
-                      Text(
-                        value,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ),
-                if (onTap != null) const Icon(Icons.chevron_right, size: 16),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Semantics(button: onTap != null, label: '$label $value', child: Card(
+    margin: EdgeInsets.zero, color: balance ? const Color(0xffeeebf8) : Colors.white,
+    child: InkWell(borderRadius: BorderRadius.circular(22), onTap: onTap, child: Padding(
+      padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(children: [CircleAvatar(radius: 18, backgroundColor: color.withValues(alpha: .1), child: Icon(icon, color: color, size: 22)),
+          const SizedBox(width: 8), Expanded(child: Text(label, style: const TextStyle(fontSize: 13, color: Color(0xff606077)))),
+          if (onTap != null) const Icon(Icons.chevron_right, size: 16, color: Color(0xff9494a5))]),
+        const SizedBox(height: 10),
+        Text(value, key: ValueKey('metric_$label'), style: TextStyle(fontSize: balance ? 22 : 19, fontWeight: FontWeight.bold), softWrap: true),
+      ]),
+    )),
+  ));
 }
 
 class _InsightCard extends StatelessWidget {
-  const _InsightCard({required this.report});
+  const _InsightCard({required this.report, required this.points});
   final ReportSummary report;
+  final List<DailyExpense> points;
   @override
-  Widget build(BuildContext context) {
-    final expenses = report.expenseCategories;
-    final top = expenses.isEmpty ? null : expenses.first;
-    final text = top == null ? 'Belum ada kategori pengeluaran untuk dianalisis.' : 'Kategori pengeluaran terbesar adalah ${top.categoryName} sebesar ${_money(top.totalAmount)} (${_percent(top.totalAmount, report.expenseTotal)}).';
-    return Card(child: ListTile(leading: const Icon(Icons.lightbulb_outline), title: const Text('Insight'), subtitle: Text(text)));
-  }
+  Widget build(BuildContext context) => Card(child: Padding(
+    padding: const EdgeInsets.all(14),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text('Cerita keuanganmu', style: TextStyle(fontWeight: FontWeight.bold)),
+      for (final insight in reportInsights(report, points))
+        ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.lightbulb_outline),
+          title: Text(insight.title), subtitle: Text(insight.text)),
+    ]),
+  ));
 }
 
 class _CategoryChart extends StatelessWidget {
@@ -250,7 +259,7 @@ class _CategoryChart extends StatelessWidget {
   final ReportSummary report;
   @override
   Widget build(BuildContext context) {
-    final items = report.expenseCategories.take(8).toList();
+    final items = report.expenseCategories;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -258,8 +267,6 @@ class _CategoryChart extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('Pengeluaran per kategori', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            const Text('Diagram lingkaran berdasarkan nominal; legenda menampilkan jumlah transaksi per kategori.'),
             const SizedBox(height: 12),
             if (items.isEmpty)
               const Text('Tidak ada data kategori.')
@@ -278,12 +285,14 @@ class _CategoryChart extends StatelessWidget {
                   contentPadding: EdgeInsets.zero,
                   leading: CircleAvatar(radius: 7, backgroundColor: _pieColor(entry.key)),
                   title: Text(item.categoryName),
-                  subtitle: Text('${item.transactionCount} transaksi • ${_percent(item.totalAmount, report.expenseTotal)}'),
-                  trailing: Text(_money(item.totalAmount)),
+                  isThreeLine: true,
+                  subtitle: Text('${item.transactionCount} transaksi • ${_percent(item.totalAmount, report.expenseTotal)}\n${_money(item.totalAmount)}'),
                   onTap: () => _showCategoryDetails(context, item, report.transactions),
                 );
               }),
             ],
+            const SizedBox(height: 12),
+            Text(categoryChartCaption(report), key: const ValueKey('category_chart_caption')),
           ],
         ),
       ),
@@ -318,29 +327,43 @@ Color _pieColor(int index) {
   return colors[index % colors.length];
 }
 
-class _CountChart extends StatelessWidget {
-  const _CountChart({required this.report});
+class _DailyExpenseChart extends StatelessWidget {
+  const _DailyExpenseChart({required this.report, required this.points});
+  final List<DailyExpense> points;
   final ReportSummary report;
+
   @override
   Widget build(BuildContext context) {
-    final max = report.incomeCount > report.expenseCount ? report.incomeCount : report.expenseCount;
-    return Card(child: Padding(padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('Jumlah transaksi', style: TextStyle(fontWeight: FontWeight.bold)), const SizedBox(height: 12), _CountBar(label: 'Pemasukan', count: report.incomeCount, max: max), const SizedBox(height: 10), _CountBar(label: 'Pengeluaran', count: report.expenseCount, max: max)])));
+    final maxAmount = points.fold<double>(0, (max, point) => math.max(max, point.amount));
+    return Card(child: Padding(padding: const EdgeInsets.all(14), child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Grafik pengeluaran harian', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 16),
+        SizedBox(height: MediaQuery.textScalerOf(context).scale(40) + 175, child: LayoutBuilder(builder: (context, constraints) {
+          final width = math.max(constraints.maxWidth, points.length * MediaQuery.textScalerOf(context).scale(100.0));
+          return SingleChildScrollView(scrollDirection: Axis.horizontal, child: SizedBox(width: width, child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: points.map((point) => Expanded(child: Tooltip(
+              message: '${_date(point.date)}: ${_money(point.amount)}',
+              child: Semantics(label: '${_date(point.date)}: ${_money(point.amount)}', child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(_money(point.amount), style: const TextStyle(fontSize: 10), textAlign: TextAlign.center),
+                  const SizedBox(height: 4),
+                  Container(width: 24, height: maxAmount == 0 ? 2 : math.max(2, point.amount / maxAmount * 150), decoration: BoxDecoration(color: spenvaPurple, borderRadius: BorderRadius.circular(4))),
+                  const SizedBox(height: 8),
+                  Text('${point.date.day}/${point.date.month}', style: const TextStyle(fontSize: 11)),
+                ],
+              )),
+            ))).toList(),
+          )));
+        })),
+        const SizedBox(height: 12),
+        Text(dailyChartCaption(report, points), key: const ValueKey('daily_chart_caption')),
+      ],
+    )));
   }
-}
-
-class _CountBar extends StatelessWidget {
-  const _CountBar({required this.label, required this.count, required this.max});
-  final String label;
-  final int count, max;
-  @override
-  Widget build(BuildContext context) => Row(children: [SizedBox(width: 90, child: Text(label)), Expanded(child: LinearProgressIndicator(value: max == 0 ? 0 : count / max)), const SizedBox(width: 8), Text('$count')]);
-}
-
-class _GroupList extends StatelessWidget {
-  const _GroupList({required this.report});
-  final ReportSummary report;
-  @override
-  Widget build(BuildContext context) => Card(child: Column(children: [const ListTile(title: Text('Detail transaksi', style: TextStyle(fontWeight: FontWeight.bold))), ...report.groups.take(30).map((group) => ListTile(leading: Icon(group.type == TransactionType.income ? Icons.arrow_downward : Icons.arrow_upward), title: Text(group.description), subtitle: Text('${group.categoryName} • ${group.transactionCount} transaksi'), trailing: Text(_money(group.totalAmount)), onTap: () => _showGroupDetails(context, group, report.transactions)))]));
 }
 
 void _showTypeDetails(BuildContext context, TransactionType type, List<TransactionEntity> transactions) {
@@ -366,53 +389,9 @@ void _showTransactionDetails(BuildContext context, String title, List<Transactio
           const Divider(),
           ...items.map((item) => ListTile(
                 title: Text(item.description),
-                subtitle: Text('${_date(item.transactionDate)} • ${item.categoryId}'),
-                trailing: Text(_money(item.amount)),
+                subtitle: Text('${_date(item.transactionDate)} • ${item.categoryId}\n${_money(item.amount)}'),
+                isThreeLine: true,
               )),
-        ],
-      ),
-    ),
-  );
-}
-
-void _showGroupDetails(
-  BuildContext context,
-  ReportTransactionGroup group,
-  List<TransactionEntity> transactions,
-) {
-  final normalizedGroupDescription = group.description
-      .trim()
-      .toLowerCase()
-      .replaceAll(RegExp(r'\s+'), ' ');
-  final items = transactions
-      .where(
-        (item) =>
-            item.type == group.type &&
-            item.categoryId == group.categoryId &&
-            item.description.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ') ==
-                normalizedGroupDescription,
-      )
-      .toList();
-
-  showModalBottomSheet<void>(
-    context: context,
-    showDragHandle: true,
-    builder: (context) => SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text(
-            group.description,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          Text('${group.categoryName} • ${_money(group.totalAmount)}'),
-          const Divider(),
-          ...items.map(
-            (item) => ListTile(
-              title: Text(_money(item.amount)),
-              subtitle: Text(_date(item.transactionDate)),
-            ),
-          ),
         ],
       ),
     ),
@@ -450,5 +429,4 @@ class _ErrorState extends StatelessWidget {
 
 String _percent(double value, double total) => total == 0 ? '0%' : '${(value / total * 100).toStringAsFixed(1)}%';
 String _date(DateTime value) => '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';
-String _money(double value) => 'Rp ${value.round().toString().replaceAllMapped(RegExp(r'(?=(\d{3})+(?!\d))'), (m) => '.')}';
-String _monthName(int month) => const ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][month - 1];
+String _money(double value) => formatRupiah(value);

@@ -1,11 +1,11 @@
 name: finchat
 description: "Offline-first personal finance assistant."
 publish_to: "none"
-version: "0.3.2+10"
+version: "0.3.5+20"
 
 environment:
-  sdk: ">=3.12.0 <4.0.0"
-  flutter: ">=3.44.0"
+  sdk: ">=3.13.0 <4.0.0"
+  flutter: ">=3.47.7"
 
 dependencies:
   flutter:
@@ -24,12 +24,16 @@ dependencies:
   flutter_secure_storage: ^11.2.0
   url_launcher: ^6.3.2
   http: ^1.6.0
+  crypto: ^3.0.7
+  in_app_purchase: ^3.3.1
+  in_app_purchase_android: ^0.5.3
   share_plus: ^13.3.0
   file_picker: ^13.1.0
   extension_google_sign_in_as_googleapis_auth: ^3.0.0
   google_sign_in: ^7.2.0
 
 dev_dependencies:
+  google_sign_in_platform_interface: ^3.1.0
   integration_test:
     sdk: flutter
   flutter_test:
@@ -39,3 +43,19 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/config/subscription_plans.json
+    - assets/brand/
+    - assets/legal/
+    - assets/fonts/LICENSE.txt
+    - assets/fonts/GoogleSans-OFL.txt
+  fonts:
+    - family: SpenvaSans
+      fonts:
+        - asset: assets/fonts/DejaVuSans.ttf
+        - asset: assets/fonts/DejaVuSans-Bold.ttf
+          weight: 700
+    - family: GoogleSans
+      fonts:
+        - asset: assets/fonts/GoogleSans-Medium.ttf
+          weight: 500

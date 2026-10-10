@@ -17,36 +17,52 @@ class TransactionIntelligenceService {
   Future<List<IntelligentTransaction>> process({
     required String userId,
     required String input,
+    bool allowAi = true,
   }) async {
-    final localResults = LocalTransactionParser().parse(input);
+    return processParsed(userId: userId, localResults: LocalTransactionParser().parse(input), originalInput: input, allowAi: allowAi);
+  }
+
+  /// Resolve an OCR batch once, preserving amounts and category corrections.
+  Future<List<IntelligentTransaction>> processParsed({
+    required String userId,
+    required List<ParsedTransaction> localResults,
+    String originalInput = '',
+    bool allowAi = false,
+  }) async {
     final results = <IntelligentTransaction>[];
+    List<String>? availableCategoryIds;
+    final mappings = !allowAi && localResults.isNotEmpty ? await categoryLearning.repository.getMappings(userId) : null;
 
     for (final local in localResults) {
       final learnedCategory = await categoryLearning.resolve(
         userId: userId,
         text: local.description,
-        fallbackCategoryId: local.categoryId,
+        fallbackCategoryId: null,
+        mappings: mappings,
       );
 
       final resolvedCategory = learnedCategory ?? local.categoryId;
-      final localIsConfident = local.confidence >= aiTriggerConfidence &&
-          resolvedCategory != 'lainnya';
+      final localIsConfident = learnedCategory != null || (local.confidence >= aiTriggerConfidence &&
+          resolvedCategory != 'lainnya');
 
-      if (localIsConfident) {
+      if (localIsConfident || !allowAi) {
         results.add(IntelligentTransaction.fromLocal(local, resolvedCategory));
         continue;
       }
 
+      availableCategoryIds ??= (await categoryLearning.repository.getCategories())
+          .map((category) => category.id).toList();
       final suggestion = await aiFallback.resolve(
         AiCategoryRequest(
           userId: userId,
-          originalText: input,
+          originalText: originalInput,
           description: local.description,
           type: local.type == ParsedTransactionType.income
               ? TransactionType.income
               : TransactionType.expense,
           amount: local.amount,
           localCategoryId: resolvedCategory,
+          availableCategoryIds: availableCategoryIds,
         ),
       );
 

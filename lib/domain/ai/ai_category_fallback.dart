@@ -8,6 +8,7 @@ class AiCategoryRequest {
     required this.type,
     required this.amount,
     required this.localCategoryId,
+    this.availableCategoryIds = const [],
   });
 
   final String userId;
@@ -16,6 +17,7 @@ class AiCategoryRequest {
   final TransactionType type;
   final double amount;
   final String localCategoryId;
+  final List<String> availableCategoryIds;
 }
 
 class AiCategorySuggestion {
@@ -44,10 +46,18 @@ class AiCategoryFallback {
   final double minimumConfidence;
 
   Future<AiCategorySuggestion?> resolve(AiCategoryRequest request) async {
-    final suggestion = await provider.suggestCategory(request);
+    AiCategorySuggestion? suggestion;
+    try {
+      suggestion = await provider.suggestCategory(request);
+    } catch (_) {
+      // A remote failure must leave local transaction capture available.
+      return null;
+    }
     if (suggestion == null) return null;
     if (suggestion.categoryId.trim().isEmpty) return null;
-    if (suggestion.confidence < minimumConfidence || suggestion.confidence > 1) {
+    if (!suggestion.confidence.isFinite ||
+        suggestion.confidence < minimumConfidence ||
+        suggestion.confidence > 1) {
       return null;
     }
     if (!await categoryExists(suggestion.categoryId)) return null;

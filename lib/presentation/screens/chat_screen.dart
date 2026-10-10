@@ -1,3 +1,6 @@
+import '../../application/billing/quota_service.dart';
+import '../../core/formatting/rupiah.dart';
+import '../widgets/spenva_brand.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
@@ -9,10 +12,16 @@ import 'package:image_picker/image_picker.dart';
 import '../../application/backup/automatic_backup_service.dart';
 import '../../application/ocr/receipt_ocr_service.dart';
 import '../../core/validation/transaction_validator.dart';
+import '../../core/errors/input_failure_message.dart';
 import '../../application/ocr/receipt_transaction_parser.dart';
 import '../../application/transactions/transaction_intelligence_service.dart';
 import '../../application/transactions/local_transaction_parser.dart';
-import '../../domain/parsing/money_amount_parser.dart';
+import '../../application/transactions/input_intent.dart';
+import '../../application/ai/financial_qa_service.dart';
+import '../../application/reports/report_service.dart';
+import '../../domain/reports/selected_period.dart';
+import '../../application/ai/question_period.dart';
+import '../../domain/parsing/spoken_money_normalizer.dart';
 import '../../data/local/finchat_database.dart';
 import '../../data/ocr/image_receipt_preprocessor.dart';
 import '../../data/ocr/mlkit_receipt_ocr_provider.dart';
@@ -26,21 +35,24 @@ import '../../domain/entities/transaction_entity.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/services/category_learning_service.dart';
 import '../../data/ai/openai_compatible_ai_provider.dart';
+import '../../application/billing/play_billing_service.dart';
+import '../../core/release/play_release_config.dart';
 import '../../main.dart';
 import 'receipt_review_screen.dart';
 import 'report_screen.dart';
 import 'settings_screen.dart';
-import 'financial_qa_screen.dart';
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key});
+  const ChatScreen({super.key, this.now});
+
+  final DateTime Function()? now;
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
-  final _inputController = TextEditingController();
+class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
+  final _inputController = _PlainComposerController();
   final ImagePicker _imagePicker = ImagePicker();
   late final FinChatDatabase _database;
   late final SqliteTransactionRepository _transactions;
@@ -51,13 +63,73 @@ class _ChatScreenState extends State<ChatScreen> {
   late final AutomaticBackupService _automaticBackup;
 
   List<TransactionEntity> _items = const [];
+  Map<String, String> _categoryNames = const {};
+  final _inputFocus = FocusNode();
+  final _chatScroll = ScrollController();
+  MlKitReceiptOcrProvider? _ocrProvider;
+  late DateTime _viewDay;
+  DateTime _now() => widget.now?.call() ?? DateTime.now();
+  Timer? _dayTimer;
+  Timer? _statusTimer;
+  String? _saveStatus;
+  int _selectedTab = 0;
+  final List<({int id, DateTime at, String question, String? answer})> _answers = [];
+  int _questionId = 0;
+  bool _backupRunning = false;
+  bool _backupPending = false;
+  bool _picking = false;
   bool _processing = false;
   bool _voiceConsumePending = false;
+  QuotaLease? _voiceLease;
+  final _quota = SubscriptionQuotaService();
   bool _initialLoadStarted = false;
+
+  String? _consentedAccount;
+  Future<bool> _consentToAi() async {
+    if (!mounted) return false;
+    final account = await PlayBillingService.instance.accountId();
+    if (!mounted) return false;
+    if (_consentedAccount == account) return true;
+    bool adult = false;
+    final allowed = await showDialog<bool>(context: context, builder: (context) => StatefulBuilder(builder: (context, update) => AlertDialog(
+      title: const Text('Izinkan AI cloud?'),
+      content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Text('AI edukasi hanya mengirim topik umum, tanpa catatan keuangan. Jika AI pribadi diaktifkan pada layanan yang sesuai, pertanyaan, ringkasan dan maksimal 25 cuplikan transaksi dikirim melalui Cloudflare ke Google Gemini. Hindari data sensitif yang tidak diperlukan. Persetujuan berlaku selama sesi ini; fungsi lokal tetap tersedia jika Anda menolak.'),
+        CheckboxListTile(value: adult, onChanged: (value) => update(() => adult = value ?? false), title: const Text('Saya berusia 18 tahun atau lebih dan menyetujui pemrosesan tersebut.')),
+      ])), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
+        FilledButton(onPressed: adult ? () => Navigator.pop(context, true) : null, child: const Text('Izinkan'))],
+    )));
+    if (allowed == true) _consentedAccount = account;
+    return allowed == true;
+  }
+  Future<void> _reportAnswer(String question, String answer) async {
+    final reason = TextEditingController();
+    bool include = false;
+    final send = await showDialog<bool>(context: context, builder: (context) => StatefulBuilder(builder: (context, update) => AlertDialog(
+      title: const Text('Laporkan jawaban'),
+      content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        TextField(controller: reason, maxLength: 500, maxLines: 3, decoration: const InputDecoration(labelText: 'Apa yang perlu diperbaiki?', helperText: 'Hindari informasi pribadi.')),
+        CheckboxListTile(value: include, onChanged: (value) => update(() => include = value ?? false), title: const Text('Sertakan pertanyaan dan jawaban untuk ditinjau')),
+        if (include) Text('$question\n\n$answer'),
+        const Text('Laporan dikirim ke pengelola layanan dan disimpan maksimal 30 hari.'),
+      ])), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
+        FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Kirim laporan'))],
+    )));
+    final text = reason.text.trim(); reason.dispose();
+    if (send != true || !mounted) return;
+    if (text.isEmpty) { _showSaved('Isi alasan laporan terlebih dahulu.'); return; }
+    try {
+      await PlayBillingService.instance.reportAnswer(reason: text, question: include ? question : null, answer: include ? answer : null);
+      if (mounted) _showSaved('Laporan diterima untuk ditinjau.');
+    } catch (_) { if (mounted) _showSaved('Laporan belum terkirim. Periksa koneksi atau ketersediaan layanan laporan.'); }
+  }
 
   @override
   void initState() {
     super.initState();
+    _viewDay = _now();
+    WidgetsBinding.instance.addObserver(this);
+    _scheduleDayRollover();
     _database = FinChatDatabase();
     _transactions = SqliteTransactionRepository(_database);
     _categories = SqliteCategoryRepository(_database);
@@ -65,7 +137,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _intelligence = TransactionIntelligenceService(
       categoryLearning: _learning,
       aiFallback: AiCategoryFallback(
-        provider: OpenAiCompatibleAiProvider(),
+        provider: OpenAiCompatibleAiProvider(requestAiConsent: _consentToAi),
         categoryExists: (id) => _categories.getById(id).then((value) => value != null),
       ),
     );
@@ -75,7 +147,12 @@ class _ChatScreenState extends State<ChatScreen> {
       onChanged: () {
         if (!mounted) return;
         setState(() {});
+        if (_voice.status == SpeechSessionStatus.error) {
+          final lease = _voiceLease; _voiceLease = null;
+          unawaited(lease?.finish(false) ?? Future<void>.value());
+        }
         if (_voice.status == SpeechSessionStatus.stopped &&
+            _voice.hasFinalResult &&
             _voice.transcript.trim().isNotEmpty &&
             !_voiceConsumePending) {
           _voiceConsumePending = true;
@@ -95,9 +172,42 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _dayTimer?.cancel();
+    _statusTimer?.cancel();
     _inputController.dispose();
+    _inputFocus.dispose();
+    _chatScroll.dispose();
+    unawaited(_ocrProvider?.close().catchError((Object _) {}) ?? Future<void>.value());
+    unawaited(_voiceLease?.finish(false) ?? Future<void>.value());
+    unawaited(_voice.cancel().catchError((Object _) {}));
     _database.close();
     super.dispose();
+  }
+
+  void _scheduleDayRollover() {
+    _dayTimer?.cancel();
+    final now = _now();
+    final midnight = DateTime(now.year, now.month, now.day + 1);
+    _dayTimer = Timer(midnight.difference(now), _checkDayRollover);
+  }
+
+  void _checkDayRollover() {
+    if (!mounted) return;
+    final now = _now();
+    if (_viewDay.year != now.year || _viewDay.month != now.month || _viewDay.day != now.day) {
+      setState(() {
+        _viewDay = now;
+        _answers.clear();
+      });
+      unawaited(_loadTransactions());
+    }
+    _scheduleDayRollover();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _checkDayRollover();
   }
 
   Future<void> _loadTransactions() async {
@@ -106,28 +216,76 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       await _database.ensureUser(userId: session.userId, email: session.email);
       final items = await _transactions.getByUser(session.userId);
-      if (mounted) setState(() => _items = items);
+      final categories = await _categories.getCategories();
+      if (mounted) setState(() { _items = items; _categoryNames = {for (final category in categories) category.id: category.name}; });
       unawaited(_runAutomaticBackupSilently());
     } catch (error) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal memuat transaksi: $error')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(inputFailureMessage(error, 'Transaksi belum berhasil dimuat. Coba buka kembali halaman Input.'))));
     }
   }
 
 
   Future<void> _runAutomaticBackupSilently() async {
+    if (_backupRunning) { _backupPending = true; return; }
+    _backupRunning = true;
     try {
-      await _automaticBackup.runIfEnabled();
+      do {
+        _backupPending = false;
+        final uploaded = await _automaticBackup.runIfEnabled();
+        if (uploaded && mounted) {
+          final session = SessionScope.of(context).session;
+          if (session != null) {
+            final items = await _transactions.getByUser(session.userId);
+            final categories = await _categories.getCategories();
+      if (mounted) setState(() { _items = items; _categoryNames = {for (final category in categories) category.id: category.name}; });
+          }
+        }
+      } while (_backupPending && mounted);
     } catch (_) {
-      // Automatic backup must never block transaction capture. The user can
-      // inspect/retry cloud backup from Settings > Backup & pemulihan.
-    }
+      // Drive failures do not interrupt local input. Pending rows keep one tick.
+    } finally { _backupRunning = false; }
   }
 
-  bool _looksLikeFinancialQuestion(String input) {
-    if (MoneyAmountParser.findAll(input).isNotEmpty) return false;
-    final normalized = input.toLowerCase().trim();
-    if (normalized.endsWith('?')) return true;
-    return RegExp(r'\b(berapa|total|pengeluaran|pemasukan|saldo|terbesar|terkecil|kategori|bulan ini|minggu ini|hari ini|laporan)\b').hasMatch(normalized);
+  bool _looksLikeFinancialQuestion(String input) => detectInputIntent(input) == InputIntent.question;
+
+  void _scrollToLatest() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _selectedTab == 0 && _chatScroll.hasClients) {
+        unawaited(_chatScroll.animateTo(0, duration: const Duration(milliseconds: 180), curve: Curves.easeOut));
+      }
+    });
+  }
+
+  Future<void> _askInChat(String input) async {
+    final session = SessionScope.of(context).session;
+    if (session == null || _processing) return;
+    final id = ++_questionId;
+    final at = _now();
+    setState(() {
+      _processing = true;
+      _answers.add((id: id, at: at, question: input, answer: null));
+    });
+    _scrollToLatest();
+    String answer;
+    try {
+      final period = questionPeriod(input, at);
+      final service = FinancialQaService(reports: ReportService(transactions: _transactions, categories: _categories), provider: OpenAiCompatibleAiProvider(requestAiConsent: _consentToAi));
+      final result = await service.ask(userId: session.userId, question: input,
+        start: period.start ?? DateTime(2000), end: period.end ?? DateTime(2100, 12, 31));
+      final explicitAll = RegExp(r'semua tanggal|seluruh riwayat|sepanjang waktu', caseSensitive: false).hasMatch(input);
+      answer = period.kind == PeriodKind.all && !explicitAll ? result : '${period.label}\n$result';
+    } on FormatException catch (error) {
+      answer = error.message;
+    } catch (_) {
+      answer = 'Pertanyaan belum berhasil diproses. Silakan coba lagi.';
+    }
+    if (!mounted) return;
+    setState(() {
+      final index = _answers.indexWhere((message) => message.id == id);
+      if (index >= 0) _answers[index] = (id: id, at: at, question: input, answer: answer);
+      _processing = false;
+    });
+    _scrollToLatest();
   }
 
   Future<void> _saveIntelligentResults({
@@ -140,12 +298,22 @@ class _ChatScreenState extends State<ChatScreen> {
     TransactionValidator.validateInput(input);
 
     await _database.ensureUser(userId: session.userId, email: session.email);
-    final results = await _intelligence.process(userId: session.userId, input: input);
+    var results = await _intelligence.process(userId: session.userId, input: input, allowAi: false);
+    if (source == InputSource.voice && PlayReleaseConfig.billingConfigured && results.any((item) => item.confidence < .85 || item.categoryId == 'lainnya')) {
+      // Only an ambiguous voice result may request a cloud category suggestion.
+      // A failed entitlement/provider check keeps the original local result.
+      try {
+        final state = await PlayBillingService.instance.quotaRequest('state');
+        if (state['personalAiEnabled'] == true) {
+          results = await _intelligence.process(userId: session.userId, input: input, allowAi: true);
+        }
+      } catch (_) { /* Local result remains usable. */ }
+    }
     if (results.isEmpty) {
       throw StateError('Transaksi belum dikenali.');
     }
 
-    final now = DateTime.now();
+    final now = _now();
     final transactions = <TransactionEntity>[];
     for (var index = 0; index < results.length; index++) {
       final item = results[index];
@@ -165,33 +333,37 @@ class _ChatScreenState extends State<ChatScreen> {
       ));
     }
     await _transactions.saveAll(transactions);
+    _trackCompletions(transactions, session.authProvider);
     await _loadTransactions();
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(successMessage.replaceFirst('{count}', '${results.length}'))));
+      _showSaved(successMessage.replaceFirst('{count}', '${results.length}'));
+      _scrollToLatest();
     }
   }
 
+  void _trackCompletions(List<TransactionEntity> transactions, String authProvider) {
+    if (!PlayReleaseConfig.billingConfigured || authProvider != 'google') return;
+    final local = transactions.where((item) => item.processedBy != ProcessedBy.aiFallback).length;
+    final cloud = transactions.length - local;
+    if (local > 0) unawaited(PlayBillingService.instance.quotaRequest('event', event: 'local_success', count: local, backgroundOnly: true).catchError((Object _) => <String, dynamic>{}));
+    if (cloud > 0) unawaited(PlayBillingService.instance.quotaRequest('event', event: 'cloud_success', count: cloud, backgroundOnly: true).catchError((Object _) => <String, dynamic>{}));
+  }
+
   Future<void> _consumeVoiceTranscript() async {
-    final input = _voice.transcript.trim();
+    final input = normalizeVoiceTransactions(_voice.transcript.trim());
     if (input.isEmpty || !mounted) {
+      await _voiceLease?.finish(false); _voiceLease = null;
       _voiceConsumePending = false;
       return;
     }
 
     final session = SessionScope.of(context).session;
     if (session != null && _looksLikeFinancialQuestion(input)) {
-      await _voice.cancel();
-      _voiceConsumePending = false;
-      if (!mounted) return;
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => FinancialQaScreen(
-            userId: session.userId,
-            initialQuestion: input,
-            autoAsk: true,
-          ),
-        ),
-      );
+      try {
+        await _voice.cancel();
+        if (mounted) await _askInChat(input);
+        await _voiceLease?.finish(true); _voiceLease = null;
+      } finally { _voiceConsumePending = false; }
       return;
     }
 
@@ -202,13 +374,15 @@ class _ChatScreenState extends State<ChatScreen> {
         source: InputSource.voice,
         successMessage: '{count} transaksi dari suara tersimpan.',
       );
+      await _voiceLease?.finish(true); _voiceLease = null;
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memproses suara: $error')),
+          SnackBar(content: Text(inputFailureMessage(error, 'Suara belum berhasil diproses. Coba ulangi dengan menyebutkan nominal transaksi.'))),
         );
       }
     } finally {
+      await _voiceLease?.finish(false); _voiceLease = null;
       await _voice.cancel();
       _voiceConsumePending = false;
       if (mounted) setState(() => _processing = false);
@@ -216,17 +390,22 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _toggleVoice() async {
-    if (_processing) return;
+    if (_processing || _picking || _voiceConsumePending) return;
     if (_voice.isListening) {
       await _voice.stopListening();
       return;
     }
 
+    final accountLinked = SessionScope.of(context).session?.authProvider == 'google';
     try {
+      await _voiceLease?.finish(false);
+      _voiceLease = await _quota.reserve('voice', accountLinked: accountLinked);
+      if (!mounted) { await _voiceLease?.finish(false); _voiceLease = null; return; }
       if (_voice.status != SpeechSessionStatus.ready &&
           _voice.status != SpeechSessionStatus.stopped) {
         final available = await _voice.initialize();
         if (!available) {
+          await _voiceLease?.finish(false); _voiceLease = null;
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Pengenalan suara tidak tersedia atau izin mikrofon belum diberikan.')),
@@ -237,13 +416,14 @@ class _ChatScreenState extends State<ChatScreen> {
       }
       await _voice.startListening(
         localeId: 'id_ID',
-        listenFor: const Duration(seconds: 30),
-        pauseFor: const Duration(seconds: 3),
+        listenFor: const Duration(seconds: 60),
+        pauseFor: const Duration(seconds: 5),
       );
     } catch (error) {
+      await _voiceLease?.finish(false); _voiceLease = null;
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memulai suara: $error')),
+          SnackBar(content: Text(inputFailureMessage(error, 'Mikrofon belum dapat digunakan. Periksa izin mikrofon dan coba lagi.'))),
         );
       }
     }
@@ -251,23 +431,16 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _processAndSave() async {
     final input = _inputController.text.trim();
-    if (input.isEmpty || _processing) return;
+    if (input.isEmpty || _processing || _picking || _voice.isListening) return;
 
     final session = SessionScope.of(context).session;
     if (session != null && _looksLikeFinancialQuestion(input)) {
       _inputController.clear();
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => FinancialQaScreen(
-            userId: session.userId,
-            initialQuestion: input,
-            autoAsk: true,
-          ),
-        ),
-      );
+      await _askInChat(input);
       return;
     }
 
+    _inputController.clear();
     setState(() => _processing = true);
     try {
       await _saveIntelligentResults(
@@ -275,12 +448,12 @@ class _ChatScreenState extends State<ChatScreen> {
         source: InputSource.text,
         successMessage: '{count} transaksi langsung tersimpan.',
       );
-      _inputController.clear();
     } catch (error) {
       if (!mounted) return;
+      if (_inputController.text.isEmpty) _inputController.text = input;
       final message = error is StateError && error.message == 'Transaksi belum dikenali.'
           ? 'Transaksi belum dikenali. Contoh: nasi 25rb dan bensin 50k.'
-          : 'Gagal menyimpan transaksi: $error';
+          : inputFailureMessage(error, 'Transaksi belum berhasil disimpan. Coba lagi.');
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) setState(() => _processing = false);
@@ -288,21 +461,30 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _scanReceipt(ImageSource source) async {
-    if (_processing) return;
+    if (_processing || _picking || _voice.isListening) return;
+    setState(() => _picking = true);
+    try {
     final picked = await _imagePicker.pickImage(
       source: source,
       imageQuality: 95,
-      maxWidth: 2400,
+      maxWidth: 1800,
     );
     if (picked == null) return;
     await _processReceiptBytes(
       bytes: await picked.readAsBytes(),
       source: source == ImageSource.camera ? InputSource.camera : InputSource.attachment,
     );
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(inputFailureMessage(error, 'Kamera/galeri belum dapat dibuka. Periksa izin aplikasi dan coba lagi.'))));
+    } finally {
+      if (mounted) setState(() => _picking = false);
+    }
   }
 
   Future<void> _scanReceiptFile() async {
-    if (_processing) return;
+    if (_processing || _picking || _voice.isListening) return;
+    setState(() => _picking = true);
+    try {
     final picked = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp'],
@@ -321,17 +503,25 @@ class _ChatScreenState extends State<ChatScreen> {
       throw StateError('File struk tidak dapat dibaca.');
     }
     await _processReceiptBytes(bytes: bytes, source: InputSource.attachment);
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(inputFailureMessage(error, 'Lampiran belum dapat dibuka. Coba pilih gambar JPG atau PNG lainnya.'))));
+    } finally {
+      if (mounted) setState(() => _picking = false);
+    }
   }
 
   Future<void> _processReceiptBytes({required Uint8List bytes, required InputSource source}) async {
+    if (!mounted) return;
     final session = SessionScope.of(context).session;
     if (session == null || _processing) return;
 
     setState(() => _processing = true);
-    MlKitReceiptOcrProvider? provider;
+    QuotaLease? lease;
     try {
+      lease = await _quota.reserve('ocr', accountLinked: SessionScope.of(context).session?.authProvider == 'google');
+      if (!mounted) return;
       await _database.ensureUser(userId: session.userId, email: session.email);
-      provider = MlKitReceiptOcrProvider();
+      final provider = _ocrProvider ??= MlKitReceiptOcrProvider();
       final ocr = ReceiptOcrService(
         preprocessor: const ImageReceiptPreprocessor(),
         provider: provider,
@@ -348,7 +538,9 @@ class _ChatScreenState extends State<ChatScreen> {
         return;
       }
 
-      final parsed = const ReceiptTransactionParser().parse(result.rawText);
+      await lease.finish(true); // one successfully read page, independent of item count
+      lease = null;
+      final parsed = const ReceiptTransactionParser().parse(result.rawText, lines: result.lines);
       if (parsed.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Belum ada item transaksi yang dapat dikenali dari struk.')));
@@ -356,23 +548,15 @@ class _ChatScreenState extends State<ChatScreen> {
         return;
       }
 
-      final reviewItems = <ReceiptReviewItem>[];
-      for (final item in parsed) {
-        final parserInput = '${item.description} ${_parserMoney(item.amount)}';
-        final intelligent = await _intelligence.process(userId: session.userId, input: parserInput);
-        final resolved = intelligent.isEmpty ? null : intelligent.first;
-        if (resolved == null) continue;
-        reviewItems.add(
-          ReceiptReviewItem(
-            description: resolved.description,
-            amount: resolved.amount,
-            type: resolved.type == ParsedTransactionType.income ? TransactionType.income : TransactionType.expense,
-            categoryId: resolved.categoryId,
-            processedBy: resolved.processedBy,
-            confidence: resolved.confidence,
-          ),
-        );
-      }
+      final intelligent = await _intelligence.processParsed(userId: session.userId, localResults: parsed);
+      final reviewItems = intelligent.map((resolved) => ReceiptReviewItem(
+        description: resolved.description,
+        amount: resolved.amount,
+        type: resolved.type == ParsedTransactionType.income ? TransactionType.income : TransactionType.expense,
+        categoryId: resolved.categoryId,
+        processedBy: resolved.processedBy,
+        confidence: resolved.confidence,
+      )).toList();
 
       if (reviewItems.isEmpty) throw StateError('Item struk tidak dapat diubah menjadi transaksi.');
       if (!mounted) return;
@@ -385,7 +569,7 @@ class _ChatScreenState extends State<ChatScreen> {
       );
       if (reviewed == null || reviewed.isEmpty) return;
 
-      final now = DateTime.now();
+      final now = _now();
       final transactions = <TransactionEntity>[];
       for (var index = 0; index < reviewed.length; index++) {
         final item = reviewed[index];
@@ -405,7 +589,7 @@ class _ChatScreenState extends State<ChatScreen> {
         ));
       }
       await _transactions.saveAll(transactions);
-
+      _trackCompletions(transactions, session.authProvider);
       for (var index = 0; index < reviewed.length && index < reviewItems.length; index++) {
         final original = reviewItems[index];
         final item = reviewed[index];
@@ -419,13 +603,14 @@ class _ChatScreenState extends State<ChatScreen> {
       }
       await _loadTransactions();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${reviewed.length} transaksi dari struk tersimpan.')));
+        _showSaved('${reviewed.length} transaksi dari struk tersimpan.');
+        _scrollToLatest();
       }
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal membaca struk: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(inputFailureMessage(error, 'Struk belum berhasil dibaca. Coba foto yang lebih jelas atau masukkan transaksi lewat teks.')), duration: const Duration(seconds: 4)));
     } finally {
-      await provider?.close();
+      await lease?.finish(false);
       if (mounted) setState(() => _processing = false);
     }
   }
@@ -476,7 +661,7 @@ class _ChatScreenState extends State<ChatScreen> {
       if (!mounted) return;
       final result = await showDialog<TransactionEntity>(
         context: context,
-        builder: (_) => _EditTransactionDialog(transaction: transaction, categories: categories),
+        builder: (_) => _EditTransactionDialog(transaction: transaction, categories: categories, repository: _categories),
       );
       if (result == null) return;
 
@@ -490,50 +675,116 @@ class _ChatScreenState extends State<ChatScreen> {
       }
       await _loadTransactions();
     } catch (error) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal mengubah transaksi: $error')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(inputFailureMessage(error, 'Transaksi belum berhasil diubah. Coba lagi.'))));
     }
   }
 
+  void _showSaved(String message) {
+    _statusTimer?.cancel();
+    if (!mounted) return;
+    setState(() => _saveStatus = message);
+    _statusTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _saveStatus = null);
+    });
+  }
+
   Future<void> _deleteTransaction(TransactionEntity transaction) async {
+    final confirmed = await showDialog<bool>(context: context, builder: (context) => AlertDialog(
+      title: const Text('Hapus transaksi?'),
+      content: Text('${transaction.description} • ${_money(transaction.amount)}\nTransaksi ini akan dihapus dari catatan Anda.'),
+      actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
+        FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Hapus'))],
+    ));
+    if (confirmed != true || !mounted) return;
     try {
       await _transactions.delete(transaction.id);
       await _loadTransactions();
     } catch (error) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal menghapus transaksi: $error')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(inputFailureMessage(error, 'Transaksi belum berhasil dihapus. Coba lagi.'))));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final session = SessionScope.of(context).session;
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('FinChat'),
+    final today = SelectedPeriod.day(_viewDay);
+    final visibleItems = _items.where((item) => today.contains(item.transactionDate)).toList();
+    final timeline = <({DateTime at, int order, TransactionEntity? transaction, int? answerIndex})>[
+      for (var i = 0; i < visibleItems.length; i++)
+        (at: visibleItems[i].createdAt, order: i, transaction: visibleItems[i], answerIndex: null),
+      for (var i = 0; i < _answers.length; i++)
+        (at: _answers[i].at, order: visibleItems.length + _answers[i].id, transaction: null, answerIndex: i),
+    ]..sort((a, b) {
+      final time = a.at.compareTo(b.at);
+      return time == 0 ? a.order.compareTo(b.order) : time;
+    });
+    return PopScope(
+      canPop: _selectedTab == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _selectedTab != 0) setState(() => _selectedTab = 0);
+      },
+      child: Scaffold(
+      appBar: _selectedTab == 0 ? AppBar(
+        title: const SizedBox(width: 145, height: 38, child: SpenvaLogo()),
+        bottom: MediaQuery.viewInsetsOf(context).bottom > 0 ? null : PreferredSize(
+          preferredSize: Size.fromHeight(MediaQuery.textScalerOf(context).scale(48) + 10),
+          child: SpenvaGreeting(displayName: session?.displayName)),
         actions: [
           IconButton(
-            onPressed: session == null ? null : () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ReportScreen(userId: session.userId))),
-            tooltip: 'Laporan',
-            icon: const Icon(Icons.analytics_outlined),
-          ),
-          IconButton(
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
-            tooltip: 'Pengaturan',
-            icon: const Icon(Icons.settings_outlined),
-          ),
-          IconButton(onPressed: SessionScope.of(context).logout, tooltip: 'Keluar', icon: const Icon(Icons.logout)),
+            onPressed: () async {
+              await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
+              if (mounted) await _loadTransactions();
+            },
+            tooltip: 'Pengaturan', icon: const Icon(Icons.settings_outlined)),
+          PopupMenuButton<String>(tooltip: 'Akun', onSelected: (value) { if (value == 'logout') logoutWithBilling(SessionScope.of(context)); },
+            itemBuilder: (_) => [const PopupMenuItem(value: 'logout', child: Text('Keluar'))],
+            icon: CircleAvatar(radius: 16, backgroundColor: const Color(0xffe7e2fa), child: Text(
+              session?.displayName?.trim().isNotEmpty == true ? session!.displayName!.trim().substring(0, 1).toUpperCase() : '',
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: spenvaPurple)))),
         ],
-      ),
-      body: SafeArea(
+      ) : null,
+      bottomNavigationBar: NavigationBar(selectedIndex: _selectedTab,
+        onDestinationSelected: (index) async {
+          if (_selectedTab == index) return;
+          if (_voice.isListening) await _voice.cancel();
+          if (!mounted) return;
+          setState(() => _selectedTab = index);
+          if (index == 0) await _loadTransactions();
+        },
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.chat_bubble_outline), label: 'Input', tooltip: 'Input'),
+          NavigationDestination(icon: Icon(Icons.analytics_outlined), label: 'Laporan', tooltip: 'Laporan'),
+        ]),
+      body: _selectedTab == 1 && session != null ? ReportScreen(userId: session.userId, accountLinked: session.authProvider == 'google') : SafeArea(
         child: Column(
           children: [
             Expanded(
-              child: _items.isEmpty
-                  ? _EmptyChat(email: session?.email ?? '')
+              child: visibleItems.isEmpty && _answers.isEmpty
+                  ? const _EmptyChat()
                   : ListView.builder(
+                      key: const PageStorageKey('chat_timeline'),
+                      controller: _chatScroll,
+                      reverse: true,
                       padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-                      itemCount: _items.length,
+                      itemCount: timeline.length,
                       itemBuilder: (context, index) {
-                        final transaction = _items[index];
+                        final entry = timeline[timeline.length - 1 - index];
+                        if (entry.answerIndex != null) {
+                          final message = _answers[entry.answerIndex!];
+                          return Column(key: ValueKey('question_${message.id}'), crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                            Align(alignment: Alignment.centerRight, child: Container(
+                              constraints: const BoxConstraints(maxWidth: 340),
+                              margin: const EdgeInsets.only(left: 40, bottom: 6), padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(color: Theme.of(context).colorScheme.primaryContainer, borderRadius: BorderRadius.circular(18)),
+                              child: Text(message.question),
+                            )),
+                            Align(alignment: Alignment.centerLeft, child: Card(
+                              margin: const EdgeInsets.only(right: 24, bottom: 14),
+                              child: Padding(padding: const EdgeInsets.all(14), child: message.answer == null ? const Text('Sedang menyiapkan jawaban…') : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [SelectableText(message.answer!), if (PlayReleaseConfig.isPlay) TextButton.icon(onPressed: () => _reportAnswer(message.question, message.answer!), icon: const Icon(Icons.flag_outlined, size: 16), label: const Text('Laporkan jawaban'))])),
+                            )),
+                          ]);
+                        }
+                        final transaction = entry.transaction!;
                         return Dismissible(
                           key: ValueKey(transaction.id),
                           direction: DismissDirection.horizontal,
@@ -563,35 +814,44 @@ class _ChatScreenState extends State<ChatScreen> {
                           },
                           child: _TransactionCard(
                             transaction: transaction,
-                            onEdit: () => _editTransaction(transaction),
-                            onDelete: () => _deleteTransaction(transaction),
+                            categoryName: _categoryNames[transaction.categoryId] ?? transaction.categoryId,
                           ),
                         );
                       },
                     ),
             ),
+            SizedBox(height: MediaQuery.textScalerOf(context).scale(16) + 12, child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Semantics(liveRegion: true, child: Text(
+                _voice.isListening || _voiceConsumePending
+                    ? (_voice.transcript.isEmpty ? 'Mendengarkan…' : _voice.transcript)
+                    : _saveStatus ?? (_processing || _picking ? 'Sedang memproses…' : ''),
+                maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12),
+              )),
+            )),
             _Composer(
               controller: _inputController,
-              busy: _processing,
+              focusNode: _inputFocus,
+              busy: _processing || _picking,
               listening: _voice.isListening,
               onSubmit: _processAndSave,
               onReceipt: _chooseReceiptSource,
               onVoice: _toggleVoice,
+              onCamera: () => _scanReceipt(ImageSource.camera),
             ),
           ],
         ),
       ),
-    );
+    ));
   }
 }
 
 enum _ReceiptSourceAction { camera, gallery, file }
 
 class _TransactionCard extends StatelessWidget {
-  const _TransactionCard({required this.transaction, required this.onEdit, required this.onDelete});
+  const _TransactionCard({required this.transaction, required this.categoryName});
+  final String categoryName;
   final TransactionEntity transaction;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -601,13 +861,14 @@ class _TransactionCard extends StatelessWidget {
       child: ListTile(
         leading: CircleAvatar(child: Icon(income ? Icons.arrow_downward : Icons.arrow_upward)),
         title: Text(transaction.description),
-        subtitle: Text('${_date(transaction.transactionDate)} • ${transaction.categoryId}'),
+        subtitle: Text('${_date(transaction.transactionDate)} • $categoryName'),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(_money(transaction.amount)),
-            IconButton(onPressed: onEdit, icon: const Icon(Icons.edit_outlined), tooltip: 'Edit'),
-            IconButton(onPressed: onDelete, icon: const Icon(Icons.delete_outline), tooltip: 'Hapus'),
+            const SizedBox(width: 8),
+            Tooltip(message: transaction.syncStatus == 'backed_up' ? 'Tersimpan di SQLite dan backup Google Drive' : 'Tersimpan di SQLite; belum dikonfirmasi ke Google Drive',
+              child: Icon(transaction.syncStatus == 'backed_up' ? Icons.done_all : Icons.check, color: transaction.syncStatus == 'backed_up' ? Colors.blue : Colors.green, size: 20)),
           ],
         ),
       ),
@@ -616,9 +877,10 @@ class _TransactionCard extends StatelessWidget {
 }
 
 class _EditTransactionDialog extends StatefulWidget {
-  const _EditTransactionDialog({required this.transaction, required this.categories});
+  const _EditTransactionDialog({required this.transaction, required this.categories, required this.repository});
   final TransactionEntity transaction;
   final List<CategoryEntity> categories;
+  final SqliteCategoryRepository repository;
 
   @override
   State<_EditTransactionDialog> createState() => _EditTransactionDialogState();
@@ -628,16 +890,20 @@ class _EditTransactionDialogState extends State<_EditTransactionDialog> {
   late final TextEditingController _description;
   late final TextEditingController _amount;
   late TransactionType _type;
-  late String _categoryId;
+  late final TextEditingController _categoryName;
+  bool _saving = false;
+  String? _categoryError;
   late DateTime _date;
 
   @override
   void initState() {
     super.initState();
+
     _description = TextEditingController(text: widget.transaction.description);
     _amount = TextEditingController(text: widget.transaction.amount.toStringAsFixed(0));
     _type = widget.transaction.type;
-    _categoryId = widget.transaction.categoryId;
+    final matching = widget.categories.where((c) => c.id == widget.transaction.categoryId);
+    _categoryName = TextEditingController(text: matching.isEmpty ? widget.transaction.categoryId : matching.first.name);
     _date = widget.transaction.transactionDate;
   }
 
@@ -645,6 +911,7 @@ class _EditTransactionDialogState extends State<_EditTransactionDialog> {
   void dispose() {
     _description.dispose();
     _amount.dispose();
+    _categoryName.dispose();
     super.dispose();
   }
 
@@ -654,9 +921,23 @@ class _EditTransactionDialogState extends State<_EditTransactionDialog> {
         '${date.year}';
   }
 
-  void _save() {
+  Future<void> _save() async {
+    if (_saving) return;
     final amount = double.tryParse(_amount.text.replaceAll('.', '').replaceAll(',', '.'));
     if (amount == null || amount <= 0 || _description.text.trim().isEmpty) return;
+    if (_categoryName.text.trim().isEmpty || _categoryName.text.trim().length > 50) {
+      setState(() => _categoryError = 'Ketik kategori sepanjang 1–50 karakter.');
+      return;
+    }
+    setState(() { _saving = true; _categoryError = null; });
+    late final CategoryEntity category;
+    try {
+      category = await widget.repository.ensureCategory(_categoryName.text, _type.name);
+    } catch (_) {
+      if (mounted) setState(() { _saving = false; _categoryError = 'Kategori belum berhasil disimpan. Coba lagi.'; });
+      return;
+    }
+    if (!mounted) return;
     final now = DateTime.now();
     Navigator.of(context).pop(TransactionEntity(
       id: widget.transaction.id,
@@ -664,7 +945,7 @@ class _EditTransactionDialogState extends State<_EditTransactionDialog> {
       type: _type,
       amount: amount,
       description: _description.text.trim(),
-      categoryId: _categoryId,
+      categoryId: category.id,
       transactionDate: _date,
       transactionTime: widget.transaction.transactionTime,
       inputSource: widget.transaction.inputSource,
@@ -696,11 +977,17 @@ class _EditTransactionDialogState extends State<_EditTransactionDialog> {
                 onChanged: (value) => setState(() => _type = value ?? _type),
               ),
               const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: widget.categories.any((c) => c.id == _categoryId) ? _categoryId : null,
-                decoration: const InputDecoration(labelText: 'Kategori'),
-                items: widget.categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
-                onChanged: (value) => setState(() => _categoryId = value ?? _categoryId),
+              TextField(
+                controller: _categoryName,
+                maxLength: 50,
+                decoration: InputDecoration(labelText: 'Kategori', errorText: _categoryError,
+                  helperText: 'Ketik kategori sendiri atau pilih kategori',
+                  suffixIcon: PopupMenuButton<CategoryEntity>(tooltip: 'Pilih kategori',
+                    icon: const Icon(Icons.arrow_drop_down),
+                    itemBuilder: (_) => widget.categories.where((c) => c.type == _type.name && !c.id.startsWith('legacy_')).map((c) => PopupMenuItem(value: c, child: Text(c.name))).toList(),
+                    onSelected: (category) => setState(() => _categoryName.text = category.name),
+                  ),
+                ),
               ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -716,90 +1003,63 @@ class _EditTransactionDialogState extends State<_EditTransactionDialog> {
         ),
         actions: [
           TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Batal')),
-          FilledButton(onPressed: _save, child: const Text('Simpan')),
+          FilledButton(onPressed: _saving ? null : _save, child: const Text('Simpan')),
         ],
       );
 }
 
 class _EmptyChat extends StatelessWidget {
-  const _EmptyChat({required this.email});
-  final String email;
+  const _EmptyChat();
 
   @override
-  Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.account_balance_wallet_outlined, size: 64),
-              const SizedBox(height: 16),
-              Text('Halo ${email.isEmpty ? '' : email}'),
-              const SizedBox(height: 8),
-              const Text(
-                'Ketik transaksi dengan bahasa sehari-hari. FinChat akan memisahkan beberapa transaksi dan langsung menyimpannya. Anda dapat edit atau hapus setelah tersimpan.',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              const Text('Contoh: Beli nasi 25rb dan bensin 50k'),
-            ],
-          ),
-        ),
-      );
+  Widget build(BuildContext context) => const SizedBox.expand();
+}
+
+// Keep the IME composing range for keyboard editing, but omit its underline.
+class _PlainComposerController extends TextEditingController {
+  @override
+  TextSpan buildTextSpan({required BuildContext context, TextStyle? style, required bool withComposing}) =>
+      super.buildTextSpan(context: context, style: style, withComposing: false);
 }
 
 class _Composer extends StatelessWidget {
-  const _Composer({required this.controller, required this.busy, required this.listening, required this.onSubmit, required this.onReceipt, required this.onVoice});
+  const _Composer({required this.controller, required this.focusNode, required this.busy, required this.listening, required this.onSubmit, required this.onReceipt, required this.onVoice, required this.onCamera});
   final TextEditingController controller;
+  final FocusNode focusNode;
   final bool busy;
   final bool listening;
-  final VoidCallback onSubmit;
-  final VoidCallback onReceipt;
-  final VoidCallback onVoice;
+  final VoidCallback onSubmit, onReceipt, onVoice, onCamera;
+
+  Future<void> _emoji(BuildContext context) async {
+    final emoji = await showModalBottomSheet<String>(context: context, builder: (context) => SafeArea(child: Wrap(children: [
+      for (final value in ['😊', '🍚', '☕', '🛒', '⛽', '💰', '🏠', '📚'])
+        TextButton(onPressed: () => Navigator.pop(context, value), child: Text(value, style: const TextStyle(fontSize: 28))),
+    ])));
+    if (emoji == null || !context.mounted) return;
+    final selection = controller.selection;
+    final start = selection.isValid ? selection.start : controller.text.length;
+    final end = selection.isValid ? selection.end : start;
+    controller.value = TextEditingValue(text: controller.text.replaceRange(start, end, emoji), selection: TextSelection.collapsed(offset: start + emoji.length));
+  }
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(
-              child: TextField(
-                controller: controller,
-                minLines: 1,
-                maxLines: 4,
-                textInputAction: TextInputAction.newline,
-                decoration: const InputDecoration(
-                  hintText: 'Contoh: makan 25rb dan bensin 50k',
-                  border: OutlineInputBorder(),
-                ),
-                onSubmitted: (_) => onSubmit(),
-              ),
-            ),
-            const SizedBox(width: 4),
-            IconButton.filled(
-              onPressed: busy ? null : onVoice,
-              icon: Icon(listening ? Icons.stop : Icons.mic_none),
-              tooltip: listening ? 'Hentikan suara' : 'Input suara',
-            ),
-            IconButton(
-              onPressed: busy || listening ? null : onReceipt,
-              icon: const Icon(Icons.attach_file),
-              tooltip: 'Tambah struk',
-            ),
-            IconButton.filled(
-              onPressed: busy ? null : onSubmit,
-              icon: busy
-                  ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.send),
-              tooltip: 'Proses transaksi',
-            ),
-          ],
-        ),
-      );
+  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.fromLTRB(8, 8, 8, 12), child: DecoratedBox(
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(32), boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)]),
+    child: ValueListenableBuilder<TextEditingValue>(valueListenable: controller, builder: (context, value, _) => Row(children: [
+      IconButton(onPressed: busy || listening ? null : () => _emoji(context), icon: const Icon(Icons.sentiment_satisfied_alt), tooltip: 'Emoji'),
+      Expanded(child: TextField(key: const ValueKey('chat_input'), controller: controller, focusNode: focusNode, readOnly: listening, autocorrect: false, enableSuggestions: false, spellCheckConfiguration: const SpellCheckConfiguration.disabled(), minLines: 1, maxLines: 1, textInputAction: TextInputAction.send,
+        onEditingComplete: () {},
+        decoration: const InputDecoration(hintText: 'Pesan', border: InputBorder.none, contentPadding: EdgeInsets.symmetric(vertical: 12)), onSubmitted: (_) => onSubmit())),
+      IconButton(onPressed: busy || listening ? null : onReceipt, icon: const Icon(Icons.attach_file), tooltip: 'Tambah struk'),
+      IconButton(onPressed: busy || listening ? null : onCamera, icon: const Icon(Icons.camera_alt_outlined), tooltip: 'Kamera'),
+      IconButton.filled(style: IconButton.styleFrom(backgroundColor: const Color(0xff1da1e8), foregroundColor: Colors.white),
+        onPressed: busy ? null : listening || value.text.trim().isEmpty ? onVoice : onSubmit,
+        icon: busy ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Icon(listening ? Icons.stop : value.text.trim().isEmpty ? Icons.mic : Icons.send),
+        tooltip: listening ? 'Hentikan suara' : value.text.trim().isEmpty ? 'Input suara' : 'Proses transaksi'),
+    ])),
+  ));
 }
 
 
-String _money(double value) => 'Rp ${value.toStringAsFixed(0).replaceAllMapped(RegExp(r'(?=(\d{3})+(?!\d))'), (m) => '.') }';
-String _parserMoney(double value) => 'Rp ${value.toStringAsFixed(0).replaceAllMapped(RegExp(r'(?=(\d{3})+(?!\d))'), (m) => '.') }';
+String _money(double value) => formatRupiah(value);
 String _date(DateTime value) => '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';

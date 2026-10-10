@@ -1,0 +1,154 @@
+name: Prepare Play Store AAB
+on:
+  push:
+    branches: [main, spenva-source-of-truth]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.7'
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check billing server and publication validator
+        run: |
+          python3 tooling/check_repository.py
+          python3 tooling/android/test_configure_android_ci.py
+          python3 tooling/play/generate_subscription.py --check
+          node --test server/play-billing/*.test.mjs
+          python3 tooling/play/test_check_bundle.py
+      - name: Verify application
+        run: |
+          flutter pub get --enforce-lockfile
+          flutter analyze
+          flutter test
+          flutter test --dart-define=FINCHAT_DISTRIBUTION=play test/play_release_test.dart test/subscription_quota_test.dart
+      - name: Capture actual app screens
+        run: |
+          flutter test --dart-define=CAPTURE_STORE_SCREENSHOTS=true test/play_store_screenshots_test.dart
+          pip install Pillow==11.3.0
+          python3 - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          images=list(Path('build/play/screenshots').glob('*.png'))
+          assert len(images)==4
+          for path in images:
+            image=Image.open(path).convert('RGB');assert image.size==(1080,1920);image.save(path)
+          print('Four opaque 1080x1920 screenshots validated.')
+          PY
+      - name: Upload app screenshot review pack
+        uses: actions/upload-artifact@v4
+        with:
+          name: spenva-store-screenshots-review
+          path: build/play/screenshots/
+          if-no-files-found: error
+      - name: Generate Android platform
+        run: |
+          if [ ! -f android/app/build.gradle ] && [ ! -f android/app/build.gradle.kts ]; then
+            flutter create --platforms=android --project-name finchat --org com.finchat --no-pub .
+          fi
+          git restore -- pubspec.lock
+          flutter pub get --enforce-lockfile
+          python3 tooling/android/configure_android_ci.py
+          python3 tooling/play/configure_play.py
+      - name: Require permanent release signing
+        env:
+          STORE_B64: ${{ secrets.FINCHAT_UPLOAD_KEYSTORE_BASE64 }}
+          KEY_ALIAS: ${{ secrets.FINCHAT_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.FINCHAT_KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.FINCHAT_STORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$STORE_B64" && test -n "$KEY_ALIAS" && test -n "$KEY_PASSWORD" && test -n "$STORE_PASSWORD"
+          printf '%s' "$STORE_B64" | base64 --decode > android/app/upload-keystore.jks
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          Path('android/key.properties').write_text('\n'.join(['storePassword='+os.environ['STORE_PASSWORD'],'keyPassword='+os.environ['KEY_PASSWORD'],'keyAlias='+os.environ['KEY_ALIAS'],'storeFile=upload-keystore.jks']))
+          PY
+          chmod 600 android/key.properties android/app/upload-keystore.jks
+      - name: Build isolated Play release
+        env:
+          FINCHAT_GOOGLE_SERVER_CLIENT_ID: ${{ secrets.FINCHAT_GOOGLE_SERVER_CLIENT_ID }}
+          SPENVA_PUBLISHER: ${{ vars.SPENVA_PUBLISHER }}
+          SPENVA_SUPPORT_EMAIL: ${{ vars.SPENVA_SUPPORT_EMAIL }}
+          SPENVA_PRIVACY_URL: ${{ vars.SPENVA_PRIVACY_URL }}
+          SPENVA_DELETION_URL: ${{ vars.SPENVA_DELETION_URL }}
+          SPENVA_BILLING_ENDPOINT: ${{ vars.SPENVA_BILLING_ENDPOINT }}
+        run: |
+          python3 tooling/play/write_profile.py
+          flutter build appbundle --release --dart-define-from-file=build/play/defines.json
+      - name: Verify signed AAB and 16KB support
+        env:
+          KEY_ALIAS: ${{ secrets.FINCHAT_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.FINCHAT_KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.FINCHAT_STORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 -o /tmp/bundletool.jar https://github.com/google/bundletool/releases/download/1.18.2/bundletool-all-1.18.2.jar
+          AAB=build/app/outputs/bundle/release/app-release.aab
+          jarsigner -verify "$AAB" > build/play/jarsigner.txt
+          grep -q 'jar verified.' build/play/jarsigner.txt
+          java -jar /tmp/bundletool.jar dump manifest --bundle="$AAB" > build/play/manifest.xml
+          java -jar /tmp/bundletool.jar dump config --bundle="$AAB" > build/play/bundle-config.txt
+          python3 tooling/play/check_bundle.py --bundle="$AAB" --manifest=build/play/manifest.xml --config=build/play/bundle-config.txt --profile=build/play/publication-profile.json --output=build/play/validation.json
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          for name in ['STORE_PASSWORD','KEY_PASSWORD']:
+            path=Path('/tmp/'+name.lower()+'.txt');path.write_text(os.environ[name]+'\n');path.chmod(0o600)
+          PY
+          java -jar /tmp/bundletool.jar build-apks --bundle="$AAB" --output=build/play/validation.apks --mode=universal --ks=android/app/upload-keystore.jks --ks-key-alias="$KEY_ALIAS" --ks-pass=file:/tmp/store_password.txt --key-pass=file:/tmp/key_password.txt
+          rm /tmp/store_password.txt /tmp/key_password.txt
+          unzip -p build/play/validation.apks universal.apk > build/play/validation.apk
+          ZIPALIGN=$(find "$ANDROID_HOME/build-tools" -name zipalign | sort -V | tail -1)
+          "$ZIPALIGN" -c -P 16 -v 4 build/play/validation.apk > build/play/zipalign.txt
+          sha256sum "$AAB" > build/play/aab-sha256.txt
+          keytool -printcert -jarfile "$AAB" > build/play/signing-certificate.txt
+          rm build/play/validation.apks
+      - name: Upload preparation package
+        uses: actions/upload-artifact@v4
+        with:
+          name: spenva-playstore-preparation
+          path: |
+            build/app/outputs/bundle/release/app-release.aab
+            build/play/*
+            docs/playstore/
+            pubspec.lock
+          if-no-files-found: error
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.7'
+          cache: true
+      - name: Prepare Linux integration host
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libsecret-1-dev libjsoncpp-dev liblzma-dev libstdc++-12-dev xvfb
+          flutter config --enable-linux-desktop
+          flutter create --platforms=linux --project-name finchat --org com.finchat --no-pub .
+          # Runner generation can rewrite the SDK seed lockfile even with --no-pub.
+          git restore -- pubspec.lock
+          flutter pub get --enforce-lockfile
+      - name: Run all available integration tests
+        run: xvfb-run -a flutter test integration_test --device-id=linux

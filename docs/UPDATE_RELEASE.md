@@ -1,54 +1,27 @@
-# Update & Release Guide
+# Sinkronisasi, build dan release
 
-## Release source
+**Versi sumber: 0.3.5+20**
 
-FinChat uses GitHub Releases as the canonical public release source for the update checker.
+## Sumber dan versi
 
-Repository: `rama160/Finchat`
+Gunakan **main** untuk clone/ZIP/build harian. UPDATE_GITHUB.bat menargetkan main, stash perubahan lokal saat pull/rebase, memulihkan stash, stage add/update/delete dan push normal. Konflik menghentikan push. Tidak memakai manifest sebagai deletion whitelist; hanya daftar eksplisit instruksi fase usang boleh dibersihkan. Unduh paket utuh agar file tracked tidak dianggap hilang.
 
-The application asks GitHub for the latest published release. Draft and prerelease versions are not used by the latest-release endpoint.
+Edit versi hanya pubspec, selalu major.minor.patch+build Android yang meningkat. Jalankan `python3 tooling/sync_metadata.py`; AppConstants dan default release tag mengikuti. Tag release termasuk build (`v0.3.5+20`) agar APK revisi tidak menimpa tag patch lama. UpdateProvider membaca semver dan build; tag historis tanpa build hanya dapat menunjukkan upgrade semver.
 
-## App version
+## Workflow yang dipertahankan
 
-Keep these values aligned:
-- `pubspec.yaml` → `version: major.minor.patch+build`
-- `lib/core/constants/app_constants.dart` → `appVersion`
-- GitHub Release tag → `vmajor.minor.patch`
+| Workflow | Tujuan |
+|---|---|
+| Flutter Test | Source consistency, pub get, analyze, test; upload lockfile |
+| Build Android APK | Push main/manual; konfigurasi Android, signing, APK pilot |
+| FinChat Audit Validation | APK pilot pada branch audit/integrasi |
+| Prepare Play Store AAB | Suite server/tooling/Play, screenshot, native Linux, signed AAB/16KB |
+| FinChat Release | Manual publish GitHub release; permanent signing; tag harus cocok pubspec |
 
-The build number is local to the Flutter package; update comparison currently uses `major.minor.patch`.
+Flutter3.47.7 dipin agar SDK tidak berubah diam-diam. Lockfile aplikasi dipulihkan dari Git setelah `flutter create --no-pub`, lalu `flutter pub get --enforce-lockfile` dijalankan; pembuatan runner tidak boleh mengganti dependensi aplikasi. Struktur langkah build dan secret signing dipertahankan. APK pilot menggunakan Gateway lama; AAB Play memakai define distribusi Play dan endpoint tersendiri. Build Play bukan publikasi Console otomatis.
 
-## Release workflow
+## Pemeriksaan
 
-GitHub Actions:
-1. checkout;
-2. install Flutter stable;
-3. `flutter pub get`;
-4. `flutter analyze`;
-5. `flutter test`;
-6. create Android platform if missing;
-7. apply Android security/speech configuration;
-8. `flutter build apk --release`;
-9. publish APK to GitHub Release.
+`python3 tooling/check_repository.py`; `python3 tooling/android/test_configure_android_ci.py`; `python3 tooling/play/test_check_bundle.py`; `node --test server/play-billing/*.test.mjs`; Flutter analyze/test; profile Play; integration Linux; build APK/AAB dan validator manifest/signing/16KB. Source inventory adalah daftar git tracked, diperbarui setelah file dihapus/ditambah. Jangan memasukkan generated platform, cache atau keystore sebagai source.
 
-## In-app update behavior
-
-Settings → Periksa pembaruan:
-- no newer release → show current version;
-- newer release → show release version and open the GitHub release page;
-- network/API failure → show an error without changing local data.
-
-The checker does not silently install an APK.
-
-## Data safety
-
-Application updates must never delete the SQLite database. If a future release changes the schema, increment `FinChatDatabaseSchema.version` and add an explicit non-destructive `onUpgrade` migration.
-
-Before a production release that changes schema:
-- test upgrade from the previous release database;
-- test backup before upgrade;
-- test restore after upgrade;
-- test rollback/recovery procedure where applicable.
-
-## Current limitation
-
-Direct in-app APK installation is intentionally deferred. Distribution strategy (GitHub APK, Play Store, or managed enterprise distribution) must be chosen before implementing installation-specific code.
+Pemasangan update memakai app ID dan signing key lama. Jangan uninstall untuk menguji kompatibilitas update data. Publikasi manual tetap memerlukan persyaratan pada [LAUNCH](playstore/LAUNCH.md); unduhan dan SHA build pada [VALIDATION](playstore/VALIDATION.md).

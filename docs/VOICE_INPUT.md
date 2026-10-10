@@ -1,37 +1,15 @@
-# Phase 6 — Voice Input
+# Input suara
 
-## Scope
+**Versi sumber: 0.3.5+20**
 
-Voice input converts a short spoken transaction into text. The recognized text is not a transaction by itself. It must enter the existing transaction pipeline:
+SpeechToTextProvider mengadaptasi speech_to_text ke kontrak SpeechRecognitionProvider. VoiceInputService mengelola initialize/listen/stop/cancel, generation callback dan transcript buffer. TranscriptBuffer mempertahankan partial/final/cumulative/segmented text tanpa mengulang transaksi.
 
-Voice → speech-to-text → text → normalize → local parser → category engine → validation → AI fallback → review → repository → SQLite.
+Normalisasi kata nominal dan angka voice berada pada satu file `lib/domain/parsing/spoken_money_normalizer.dart`; fungsi normalizeSpokenMoney dan normalizeVoiceTransactions dipakai sesuai input. Parser nominal umum tetap MoneyAmountParser. Voice tidak menulis SQLite sendiri.
 
-The speech layer must not write to SQLite and must not bypass the existing parser or validation layers.
+Halaman Input meminta locale id_ID, listen60 detik dan pause5 detik; platform dapat menghentikan lebih cepat. Stop menunggu final500ms, final settle400ms. Cancel/empty/error tidak menyimpan transaksi; teks valid masuk batch lokal. Pertanyaan dari ucapan mengikuti QA dengan periode ucapan.
 
-## Provider
+Manifest membutuhkan RECORD_AUDIO dan query android.speech.RecognitionService; kamera/mikrofon bukan syarat instalasi. Bluetooth permissions dipertahankan untuk speech service. Pengenal suara perangkat dapat memakai jaringan: jangan menjanjikan seluruh voice offline.
 
-The first platform adapter uses `speech_to_text`. The domain/application layers depend only on the local `SpeechRecognitionProvider` contract, so the provider can be replaced later without changing transaction logic.
+Pilot tidak menggunakan quota server. Play reserve Voice sebelum sesi, settle sukses sekali setelah pemrosesan; gagal/cancel mengembalikan reservation sesuai ledger. Jika backend belum aktif, Voice Play belum tersedia tetapi teks tetap berjalan.
 
-The package is intended for short intermittent speech, which matches transaction-entry commands rather than continuous dictation. See the package documentation for platform support and current limitations.
-
-## Indonesian locale
-
-The application may request `id_ID` when starting a voice session. The final recognition language must still depend on the speech locales installed on the device.
-
-## Android permissions
-
-The Android application needs microphone access and the speech recognition service query required by modern Android targets. The CI Android build generates the platform folder when it is missing; the build workflow therefore patches the generated manifest with the required permissions and recognition-service query.
-
-## Session rules
-
-- initialize once per application/provider instance;
-- show listening state to the user;
-- accept partial text for preview;
-- use final text as the transaction-input candidate;
-- allow stop and cancel;
-- speech errors do not create transactions;
-- empty recognition results do not create transactions.
-
-## CI boundary
-
-Unit tests use a fake speech provider. GitHub Actions does not need a microphone or emulator to verify the domain/application behavior. Real microphone recognition remains a device-level verification step.
+Uji fake callback/multi transaksi tersedia dalam suite. Tes mikrofon fisik, locale terpasang, denied permission, segmented speech dan keyboard/IME tetap acceptance perangkat.

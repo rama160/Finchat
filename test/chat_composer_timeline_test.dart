@@ -1,0 +1,97 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:finchat/application/session/session_manager.dart';
+import 'package:finchat/data/repositories/in_memory_session_repository.dart';
+import 'package:finchat/data/local/finchat_database.dart';
+import 'package:finchat/main.dart';
+import 'package:finchat/presentation/screens/chat_screen.dart';
+import 'package:finchat/presentation/widgets/period_filter.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(() async {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfiNoIsolate;
+    final directory = await Directory.systemTemp.createTemp('finchat_composer_');
+    await databaseFactoryFfiNoIsolate.setDatabasesPath(directory.path);
+  });
+  testWidgets('sending holds keyboard/input position and interleaves new transactions with Q&A', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(360, 780));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final manager = SessionManager(InMemorySessionRepository());
+    await manager.initialize();
+    await manager.login(email: 'composer@finchat.local');
+    await tester.runAsync(() => FinChatDatabase().ensureUser(userId: 'composer@finchat.local'));
+    var now = DateTime(2026, 10, 5, 10);
+    await tester.pumpWidget(SessionScope(sessionManager: manager, child: MaterialApp(builder: (context, child) => MediaQuery(data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(1.6)), child: child!), home: ChatScreen(now: () => now))));
+    await tester.pumpAndSettle();
+    expect(find.byType(PeriodFilter), findsNothing);
+    expect(find.textContaining('Halo '), findsNothing);
+    expect(find.textContaining('Ketik transaksi'), findsNothing);
+    final input = find.byKey(const ValueKey('chat_input'));
+    await tester.showKeyboard(input);
+    tester.view.viewInsets = const FakeViewPadding(bottom: 220);
+    addTearDown(tester.view.resetViewInsets);
+    final controller = tester.widget<TextField>(input).controller!;
+    controller.value = const TextEditingValue(text: 'nhgf', composing: TextRange(start: 0, end: 4));
+    final span = controller.buildTextSpan(context: tester.element(input), style: const TextStyle(), withComposing: true);
+    expect(span.children, isNull);
+    expect(controller.value.composing, const TextRange(start: 0, end: 4));
+    await tester.enterText(input, 'nasi 10 ribu');
+    await tester.pump();
+    final rect = tester.getRect(input);
+    await tester.testTextInput.receiveAction(TextInputAction.send);
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(input).focusNode!.hasFocus, isTrue);
+    expect(tester.testTextInput.isVisible, isTrue);
+    expect(tester.getRect(input), rect);
+    await tester.pump(const Duration(seconds: 4));
+    expect(tester.getRect(input), rect);
+    now = now.add(const Duration(seconds: 1));
+    await tester.enterText(input, 'berapa total pengeluaran?');
+    await tester.pump();
+    await tester.testTextInput.receiveAction(TextInputAction.send);
+    await tester.pumpAndSettle();
+    expect(tester.getRect(input), rect);
+    expect(find.textContaining('Semua tanggal'), findsNothing);
+    expect(tester.widget<TextField>(input).focusNode!.hasFocus, isTrue);
+    now = now.add(const Duration(seconds: 1));
+    await tester.enterText(input, 'bensin 20 ribu');
+    await tester.pump();
+    await tester.tap(find.byTooltip('Proses transaksi'));
+    // A following draft must not be cleared when the previous save completes.
+    await tester.enterText(input, 'draft berikutnya');
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(input).controller!.text, 'draft berikutnya');
+    expect(tester.getRect(input), rect);
+    tester.view.resetViewInsets();
+    await tester.pumpAndSettle();
+    // Keyboard stability is checked on the small viewport above. Expand only
+    // for simultaneous coordinate comparisons of all lazy-list chat entries.
+    await tester.binding.setSurfaceSize(const Size(800, 1400));
+    await tester.pumpAndSettle();
+    final nasi = tester.getTopLeft(find.text('nasi')).dy;
+    final question = tester.getTopLeft(find.text('berapa total pengeluaran?')).dy;
+    final bensin = tester.getTopLeft(find.text('bensin')).dy;
+    expect(nasi, lessThan(question));
+    expect(question, lessThan(bensin));
+    await tester.binding.setSurfaceSize(const Size(360, 780));
+    await tester.pumpAndSettle();
+    now = now.add(const Duration(seconds: 1));
+    await tester.enterText(input, 'gaji 5000000');
+    await tester.testTextInput.receiveAction(TextInputAction.send);
+    await tester.pumpAndSettle();
+    final db = await FinChatDatabase().database;
+    final rows = await db.query('transactions', where: 'user_id = ?', whereArgs: ['composer@finchat.local']);
+    expect(rows, hasLength(3));
+    final salary = rows.singleWhere((row) => row['description'] == 'gaji');
+    expect(salary['type'], 'income');
+    expect(salary['amount'], 5000000);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    await db.close();
+    manager.dispose();
+  });
+}
