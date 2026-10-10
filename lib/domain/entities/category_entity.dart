@@ -16,15 +16,16 @@ class CategoryEntity {
   final DateTime? updatedAt;
 }
 
-/// Shared catalog for database seeding, missing legacy categories and UI labels.
-const systemCategoryDefaults = <String, (String, String)>{
-  'gaji': ('Gaji dan upah', 'income'),
-  'bonus': ('Bonus dan pendapatan lain', 'income'),
-  'makanan': ('Makanan dan minuman', 'expense'),
-  'belanja_dapur': ('Kebutuhan rumah tangga', 'expense'),
-  'transportasi': ('Transportasi', 'expense'),
-  'tagihan': ('Tagihan', 'expense'),
-  'kesehatan': ('Kesehatan', 'expense'),
-  'hiburan': ('Hiburan', 'expense'),
-  'lainnya': ('Lainnya', 'expense'),
+/// One catalog: persisted legacy name, public display label and transaction type.
+/// Keep stored names compatible while the UI uses the established richer labels.
+const systemCategoryDefaults = <String, (String, String, String)>{
+  'gaji': ('Gaji', 'Gaji dan upah', 'income'),
+  'bonus': ('Bonus', 'Bonus dan pendapatan lain', 'income'),
+  'makanan': ('Makanan', 'Makanan dan minuman', 'expense'),
+  'belanja_dapur': ('Belanja Dapur', 'Kebutuhan rumah tangga', 'expense'),
+  'transportasi': ('Transportasi', 'Transportasi', 'expense'),
+  'tagihan': ('Tagihan', 'Tagihan', 'expense'),
+  'kesehatan': ('Kesehatan', 'Kesehatan', 'expense'),
+  'hiburan': ('Hiburan', 'Hiburan', 'expense'),
+  'lainnya': ('Lainnya', 'Lainnya', 'expense'),
 };

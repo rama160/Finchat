@@ -126,7 +126,7 @@ class FinChatDatabaseSchema {
       await db.insert('categories', {
         'id': entry.key,
         'name': entry.value.$1,
-        'type': entry.value.$2,
+        'type': entry.value.$3,
         'is_system': 1,
         'created_at': now,
         'updated_at': now,

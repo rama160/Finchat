@@ -5,6 +5,7 @@ import 'package:finchat/data/repositories/sqlite_category_repository.dart';
 import 'package:finchat/data/repositories/sqlite_transaction_repository.dart';
 import 'package:finchat/data/update/github_release_update_provider.dart';
 import 'package:finchat/domain/entities/transaction_entity.dart';
+import 'package:finchat/domain/entities/category_entity.dart';
 
 void main() {
   sqfliteFfiInit();
@@ -56,11 +57,11 @@ void main() {
           where: 'id = ?',
           whereArgs: ['makanan'],
         )).single['name'],
-        before!.name,
+        systemCategoryDefaults['makanan']!.$1,
       );
       await db.delete('categories', where: 'id = ?', whereArgs: ['makanan']);
       final after = await repository.getById('makanan');
-      expect(after!.name, before.name);
+      expect(after!.name, before!.name);
       expect(after.type, before.type);
     },
   );

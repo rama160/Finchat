@@ -33,7 +33,7 @@ class SqliteCategoryRepository implements CategoryRepository {
       batch.insert('categories', {
         'id': entry.key,
         'name': entry.value.$1,
-        'type': entry.value.$2,
+        'type': entry.value.$3,
         'is_system': 1,
         'created_at': now,
         'updated_at': now,
@@ -44,7 +44,7 @@ class SqliteCategoryRepository implements CategoryRepository {
 
   String _displayName(Map<String, Object?> row) {
     final id = row['id']! as String;
-    if (_defaults.containsKey(id)) return _defaults[id]!.$1;
+    if (_defaults.containsKey(id)) return _defaults[id]!.$2;
     if (id.startsWith('legacy_')) {
       final name = (row['name']! as String).toLowerCase();
       if (RegExp(r'makan|minum|kopi|nasi|bakso').hasMatch(name)) { return 'Makanan dan minuman'; }
