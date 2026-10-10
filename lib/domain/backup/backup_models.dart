@@ -348,6 +348,32 @@ class BackupSnapshot {
         }
       }
     }
+    final mappingKeys = <String>{};
+    for (final row in tables['category_mappings']!) {
+      final confidence = row['confidence'] as num;
+      final keyword = row['normalized_keyword'] as String;
+      final key = jsonEncode([row['user_id'], keyword]);
+      if (keyword.trim().isEmpty ||
+          !mappingKeys.add(key) ||
+          confidence < 0 ||
+          confidence > 1 ||
+          (row['usage_count'] as int) < 1) {
+        throw const FormatException(
+          'Pembelajaran kategori backup tidak valid atau duplikat.',
+        );
+      }
+    }
+    for (final row in tables['category_history']!) {
+      if (!identities['categories']!.contains(row['new_category_id']) ||
+          (row['previous_category_id'] != null &&
+              !identities['categories']!.contains(
+                row['previous_category_id'],
+              ))) {
+        throw const FormatException(
+          'Referensi riwayat kategori backup tidak valid.',
+        );
+      }
+    }
     for (final table in [
       'transactions',
       'category_mappings',

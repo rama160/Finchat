@@ -47,7 +47,15 @@ void main() {
       'Kopi café ☕',
     );
   });
-  for (final scenario in ['duplicate', 'enum', 'reference', 'timestamp']) {
+  for (final scenario in [
+    'duplicate',
+    'enum',
+    'reference',
+    'timestamp',
+    'mapping_duplicate',
+    'mapping_confidence',
+    'history_reference',
+  ]) {
     test('rejects $scenario before replacing original data', () async {
       final snapshot = BackupSnapshot.decode(await service.exportJson());
       final rows = snapshot.tables['transactions']!;
@@ -60,6 +68,35 @@ void main() {
           rows.single['category_id'] = 'missing';
         case 'timestamp':
           rows.single['transaction_date'] = 'broken';
+        case 'mapping_duplicate':
+        case 'mapping_confidence':
+          final mapping = <String, Object?>{
+            'id': 'm1',
+            'user_id': 'u',
+            'normalized_keyword': 'kopi',
+            'category_id': 'makanan',
+            'source': 'user_correction',
+            'confidence': scenario == 'mapping_confidence' ? 2 : 1,
+            'usage_count': 1,
+            'last_used_at': 1,
+            'created_at': 1,
+            'updated_at': 1,
+          };
+          snapshot.tables['category_mappings']!.add(mapping);
+          if (scenario == 'mapping_duplicate') {
+            snapshot.tables['category_mappings']!.add({...mapping, 'id': 'm2'});
+          }
+        case 'history_reference':
+          snapshot.tables['category_history']!.add({
+            'id': 'h',
+            'user_id': 'u',
+            'transaction_id': 't',
+            'keyword': 'kopi',
+            'previous_category_id': null,
+            'new_category_id': 'missing',
+            'source': 'user_correction',
+            'created_at': 1,
+          });
       }
       await expectLater(
         service.restoreSnapshot(snapshot),

@@ -132,6 +132,7 @@ lib/presentation/screens/splash_screen.dart
 lib/presentation/screens/subscription_screen.dart
 lib/presentation/widgets/period_filter.dart
 lib/presentation/widgets/spenva_brand.dart
+pubspec.lock
 pubspec.yaml
 server/play-billing/README.md
 server/play-billing/meter.mjs

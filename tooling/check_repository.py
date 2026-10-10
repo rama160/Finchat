@@ -37,6 +37,7 @@ def check():
             if name not in {'CHANGELOG.md', 'docs/history/README.md'}:
                 assert f'**Versi sumber: {version()}**' in text, f'Documentation version not aligned: {name}'
         if path.suffix == '.json': json.loads(path.read_text())
+    assert 'pubspec.lock' in files, 'Resolved application dependencies must be tracked'
     yaml = (ROOT / 'pubspec.yaml').read_text()
     for asset in re.findall(r'^\s*- (assets/[^\s]+)', yaml, re.M) + re.findall(r'asset: (assets/[^\s]+)', yaml):
         assert (ROOT / asset).exists(), f'Missing bundled asset: {asset}'

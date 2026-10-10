@@ -1,3 +1,5 @@
+# Changelog Spenva
+
 ## 0.3.5+20 — 10 Oktober 2026
 
 - Selaraskan main/default GitHub/ZIP dengan source yang diuji; BAT kembali menargetkan main.
@@ -6,6 +8,7 @@
 - Edit transaksi memakai UPDATE agar riwayat FK dari backup tetap ada; Drive account mengikuti coordinator setelah logout; tutup update HTTP client dan batasi timeout.
 - Tulis ulang dokumentasi current; pindahkan instruksi fase/audit lama ke indeks immutable Git history; generated tabel paket dan draft privacy memakai sumber yang sama.
 - Pin Flutter SDK teruji, simpan dependency lock teruji, tambah guard inventory/import/link/metadata dan regresi update/history/auth.
+- Backup menolak duplikat mapping, confidence/usage tidak valid serta referensi kategori history sebelum delete.
 - Base workflow/build/signing/application ID/database schema/pricing/kuota tetap; tidak ada deploy, payment activation atau paid infrastructure.
 
 # 0.3.4+19 — Canonical source audit (2026-10-09 UTC)

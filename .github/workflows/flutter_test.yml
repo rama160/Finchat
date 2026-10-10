@@ -26,7 +26,7 @@ jobs:
       - name: Check source consistency
         run: python3 tooling/check_repository.py
       - name: Get dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
       - name: Analyze
         run: flutter analyze
       - name: Test
