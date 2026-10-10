@@ -62,6 +62,8 @@ jobs:
           if [ ! -f android/app/build.gradle ] && [ ! -f android/app/build.gradle.kts ]; then
             flutter create --platforms=android --project-name finchat --org com.finchat --no-pub .
           fi
+          git restore -- pubspec.lock
+          flutter pub get --enforce-lockfile
           python3 tooling/android/configure_android_ci.py
           python3 tooling/play/configure_play.py
       - name: Require permanent release signing
@@ -145,6 +147,8 @@ jobs:
           sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libsecret-1-dev libjsoncpp-dev liblzma-dev libstdc++-12-dev xvfb
           flutter config --enable-linux-desktop
           flutter create --platforms=linux --project-name finchat --org com.finchat --no-pub .
+          # Runner generation can rewrite the SDK seed lockfile even with --no-pub.
+          git restore -- pubspec.lock
           flutter pub get --enforce-lockfile
       - name: Run all available integration tests
         run: xvfb-run -a flutter test integration_test --device-id=linux
