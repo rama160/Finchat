@@ -14,19 +14,26 @@ class GitHubReleaseUpdateProvider implements UpdateProvider {
   final String repository;
   final HttpClient _client;
 
+  void close() => _client.close();
+
   @override
   Future<AppUpdate?> checkForUpdate({required String currentVersion}) async {
     final uri = Uri.https(
       'api.github.com',
       '/repos/$owner/$repository/releases/latest',
     );
-    final request = await _client.getUrl(uri);
+    final request = await _client
+        .getUrl(uri)
+        .timeout(const Duration(seconds: 15));
     request.headers
       ..set(HttpHeaders.acceptHeader, 'application/vnd.github+json')
       ..set(HttpHeaders.userAgentHeader, 'FinChat-App');
 
-    final response = await request.close();
-    final body = await utf8.decoder.bind(response).join();
+    final response = await request.close().timeout(const Duration(seconds: 15));
+    final body = await utf8.decoder
+        .bind(response)
+        .join()
+        .timeout(const Duration(seconds: 15));
     if (response.statusCode != HttpStatus.ok) {
       throw HttpException(
         'GitHub release check failed: HTTP ${response.statusCode}',
@@ -46,8 +53,7 @@ class GitHubReleaseUpdateProvider implements UpdateProvider {
     }
 
     final remoteVersion = _normalizeVersion(tag);
-    final localVersion = _normalizeVersion(currentVersion);
-    if (_compareVersions(remoteVersion, localVersion) <= 0) return null;
+    if (!isNewerVersion(remoteVersion, currentVersion)) return null;
 
     Uri? apkUrl;
     final assets = decoded['assets'];
@@ -69,22 +75,29 @@ class GitHubReleaseUpdateProvider implements UpdateProvider {
     );
   }
 
+  static bool isNewerVersion(String remote, String current) =>
+      _compareVersions(_normalizeVersion(remote), _normalizeVersion(current)) >
+      0;
+
   static String _normalizeVersion(String value) {
     final trimmed = value.trim().replaceFirst(RegExp(r'^[vV]'), '');
-    final match = RegExp(r'^(\d+)\.(\d+)\.(\d+)').firstMatch(trimmed);
+    final match = RegExp(r'^(\d+)\.(\d+)\.(\d+)(?:\+(\d+))?$')
+        .firstMatch(trimmed);
     if (match == null) {
       throw FormatException('Unsupported app version: $value');
     }
-    return '${match.group(1)}.${match.group(2)}.${match.group(3)}';
+    return '${match.group(1)}.${match.group(2)}.${match.group(3)}${match.group(4) == null ? '' : '+${match.group(4)}'}';
   }
 
   static int _compareVersions(String left, String right) {
-    final a = left.split('.').map(int.parse).toList();
-    final b = right.split('.').map(int.parse).toList();
+    final a = left.split(RegExp(r'[.+]')).map(int.parse).toList();
+    final b = right.split(RegExp(r'[.+]')).map(int.parse).toList();
     for (var i = 0; i < 3; i++) {
       final result = a[i].compareTo(b[i]);
       if (result != 0) return result;
     }
+    // A historical tag without a build cannot prove a newer build of the same version.
+    if (a.length == 4 && b.length == 4) return a[3].compareTo(b[3]);
     return 0;
   }
 }

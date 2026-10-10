@@ -1,17 +1,72 @@
 String normalizeSpokenMoney(String input) {
-  const units = {'nol': 0, 'satu': 1, 'dua': 2, 'tiga': 3, 'empat': 4, 'lima': 5, 'enam': 6, 'tujuh': 7, 'delapan': 8, 'sembilan': 9, 'sepuluh': 10, 'sebelas': 11, 'seratus': 100};
-  final pattern = RegExp(r'\b((?:(?:nol|satu|dua|tiga|empat|lima|enam|tujuh|delapan|sembilan|sepuluh|sebelas|seratus|belas|puluh|ratus)\s+)+)(ribu|juta|miliar|rupiah)\b', caseSensitive: false);
+  const units = {
+    'nol': 0,
+    'satu': 1,
+    'dua': 2,
+    'tiga': 3,
+    'empat': 4,
+    'lima': 5,
+    'enam': 6,
+    'tujuh': 7,
+    'delapan': 8,
+    'sembilan': 9,
+    'sepuluh': 10,
+    'sebelas': 11,
+    'seratus': 100,
+  };
+  final pattern = RegExp(
+    r'\b((?:(?:nol|satu|dua|tiga|empat|lima|enam|tujuh|delapan|sembilan|sepuluh|sebelas|seratus|belas|puluh|ratus)\s+)+)(ribu|juta|miliar|rupiah)\b',
+    caseSensitive: false,
+  );
   return input.replaceAllMapped(pattern, (match) {
     var total = 0;
     var current = 0;
     for (final word in match[1]!.trim().toLowerCase().split(RegExp(r'\s+'))) {
-      if (word == 'belas') { current += 10; }
-      else if (word == 'puluh') { current *= 10; }
-      else if (word == 'ratus') { total += current * 100; current = 0; }
-      else if (word == 'seratus') { total += 100; }
-      else { current += units[word] ?? 0; }
+      if (word == 'belas') {
+        current += 10;
+      } else if (word == 'puluh') {
+        current *= 10;
+      } else if (word == 'ratus') {
+        total += current * 100;
+        current = 0;
+      } else if (word == 'seratus') {
+        total += 100;
+      } else {
+        current += units[word] ?? 0;
+      }
     }
     final value = total + current;
-    return match[2]!.toLowerCase() == 'rupiah' ? 'Rp $value' : '$value ${match[2]}';
+    return match[2]!.toLowerCase() == 'rupiah'
+        ? 'Rp $value'
+        : '$value ${match[2]}';
+  });
+}
+
+/// Speech engines sometimes return ungrouped prices, e.g. "bensin 50000".
+/// This conversion is restricted to voice input, leaving the text parser intact.
+String normalizeVoiceTransactions(String transcript) {
+  final text = normalizeSpokenMoney(
+    transcript.replaceAll(
+      RegExp(r'\b(rebu|rebo)\b', caseSensitive: false),
+      'ribu',
+    ),
+  );
+  return text.replaceAllMapped(RegExp(r'(?<![\w.,/:-])\d{4,}(?![\w.,/:-])'), (
+    m,
+  ) {
+    final prefix = text.substring(0, m.start);
+    final suffix = text.substring(m.end);
+    if (RegExp(r'\brp\s*$', caseSensitive: false).hasMatch(prefix) ||
+        RegExp(
+          r'\b(?:tahun|tanggal|nomor|no)\s*$',
+          caseSensitive: false,
+        ).hasMatch(prefix) ||
+        RegExp(
+          r'^\s*(?:rb|ribu|k|jt|juta|miliar|milyar|rupiah)\b',
+          caseSensitive: false,
+        ).hasMatch(suffix)) {
+      return m[0]!;
+    }
+    return 'Rp ${m[0]}';
   });
 }

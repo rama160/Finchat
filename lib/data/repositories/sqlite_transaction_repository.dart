@@ -36,7 +36,12 @@ class SqliteTransactionRepository implements TransactionRepository {
   @override
   Future<TransactionEntity?> getById(String id) async {
     final db = await database.database;
-    final rows = await db.query('transactions', where: 'id = ?', whereArgs: [id], limit: 1);
+    final rows = await db.query(
+      'transactions',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
     if (rows.isEmpty) return null;
     return _fromRow(rows.first);
   }
@@ -58,7 +63,10 @@ class SqliteTransactionRepository implements TransactionRepository {
   }
 
   @override
-  Future<List<TransactionEntity>> getByCategory({required String userId, required String categoryId}) async {
+  Future<List<TransactionEntity>> getByCategory({
+    required String userId,
+    required String categoryId,
+  }) async {
     final db = await database.database;
     final rows = await db.query(
       'transactions',
@@ -73,7 +81,21 @@ class SqliteTransactionRepository implements TransactionRepository {
   Future<void> save(TransactionEntity transaction) async {
     TransactionValidator.validate(transaction);
     final db = await database.database;
-    await db.insert('transactions', _toRow(transaction), conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.transaction((txn) async {
+      final changed = await txn.update(
+        'transactions',
+        _toRow(transaction),
+        where: 'id = ?',
+        whereArgs: [transaction.id],
+      );
+      if (changed == 0) {
+        await txn.insert(
+          'transactions',
+          _toRow(transaction),
+          conflictAlgorithm: ConflictAlgorithm.abort,
+        );
+      }
+    });
   }
 
   @override
@@ -84,12 +106,20 @@ class SqliteTransactionRepository implements TransactionRepository {
     }
     final ids = <String>{};
     for (final transaction in transactions) {
-      if (!ids.add(transaction.id)) throw StateError('ID transaksi duplikat dalam satu operasi penyimpanan.');
+      if (!ids.add(transaction.id)) {
+        throw StateError(
+          'ID transaksi duplikat dalam satu operasi penyimpanan.',
+        );
+      }
     }
     final db = await database.database;
     await db.transaction((txn) async {
       for (final transaction in transactions) {
-        await txn.insert('transactions', _toRow(transaction), conflictAlgorithm: ConflictAlgorithm.abort);
+        await txn.insert(
+          'transactions',
+          _toRow(transaction),
+          conflictAlgorithm: ConflictAlgorithm.abort,
+        );
       }
     });
   }
@@ -99,7 +129,8 @@ class SqliteTransactionRepository implements TransactionRepository {
 
   @override
   Future<void> delete(String id) async {
-    if (id.trim().isEmpty) throw ArgumentError.value(id, 'id', 'must not be empty');
+    if (id.trim().isEmpty)
+      throw ArgumentError.value(id, 'id', 'must not be empty');
     final db = await database.database;
     await db.update(
       'transactions',
@@ -114,41 +145,45 @@ class SqliteTransactionRepository implements TransactionRepository {
   }
 
   Map<String, Object?> _toRow(TransactionEntity value) => {
-        'id': value.id,
-        'user_id': value.userId,
-        'type': value.type.name,
-        'amount': value.amount,
-        'description': value.description,
-        'category_id': value.categoryId,
-        'transaction_date': _day(value.transactionDate),
-        'transaction_time': value.transactionTime?.millisecondsSinceEpoch,
-        'input_source': value.inputSource.name,
-        'processed_by': value.processedBy.name,
-        'confidence': value.confidence,
-        'created_at': value.createdAt.millisecondsSinceEpoch,
-        'updated_at': value.updatedAt.millisecondsSinceEpoch,
-        'deleted_at': value.deletedAt?.millisecondsSinceEpoch,
-        'sync_status': value.syncStatus,
-      };
+    'id': value.id,
+    'user_id': value.userId,
+    'type': value.type.name,
+    'amount': value.amount,
+    'description': value.description,
+    'category_id': value.categoryId,
+    'transaction_date': _day(value.transactionDate),
+    'transaction_time': value.transactionTime?.millisecondsSinceEpoch,
+    'input_source': value.inputSource.name,
+    'processed_by': value.processedBy.name,
+    'confidence': value.confidence,
+    'created_at': value.createdAt.millisecondsSinceEpoch,
+    'updated_at': value.updatedAt.millisecondsSinceEpoch,
+    'deleted_at': value.deletedAt?.millisecondsSinceEpoch,
+    'sync_status': value.syncStatus,
+  };
 
   TransactionEntity _fromRow(Map<String, Object?> row) => TransactionEntity(
-        id: row['id']! as String,
-        userId: row['user_id']! as String,
-        type: TransactionType.values.byName(row['type']! as String),
-        amount: (row['amount']! as num).toDouble(),
-        description: row['description']! as String,
-        categoryId: row['category_id']! as String,
-        transactionDate: DateTime.fromMillisecondsSinceEpoch(row['transaction_date']! as int),
-        transactionTime: _date(row['transaction_time']),
-        inputSource: InputSource.values.byName(row['input_source']! as String),
-        processedBy: ProcessedBy.values.byName(row['processed_by']! as String),
-        confidence: (row['confidence']! as num).toDouble(),
-        createdAt: DateTime.fromMillisecondsSinceEpoch(row['created_at']! as int),
-        updatedAt: DateTime.fromMillisecondsSinceEpoch(row['updated_at']! as int),
-        deletedAt: _date(row['deleted_at']),
-        syncStatus: row['sync_status']! as String,
-      );
+    id: row['id']! as String,
+    userId: row['user_id']! as String,
+    type: TransactionType.values.byName(row['type']! as String),
+    amount: (row['amount']! as num).toDouble(),
+    description: row['description']! as String,
+    categoryId: row['category_id']! as String,
+    transactionDate: DateTime.fromMillisecondsSinceEpoch(
+      row['transaction_date']! as int,
+    ),
+    transactionTime: _date(row['transaction_time']),
+    inputSource: InputSource.values.byName(row['input_source']! as String),
+    processedBy: ProcessedBy.values.byName(row['processed_by']! as String),
+    confidence: (row['confidence']! as num).toDouble(),
+    createdAt: DateTime.fromMillisecondsSinceEpoch(row['created_at']! as int),
+    updatedAt: DateTime.fromMillisecondsSinceEpoch(row['updated_at']! as int),
+    deletedAt: _date(row['deleted_at']),
+    syncStatus: row['sync_status']! as String,
+  );
 
-  DateTime? _date(Object? value) => value == null ? null : DateTime.fromMillisecondsSinceEpoch(value as int);
-  int _day(DateTime value) => DateTime(value.year, value.month, value.day).millisecondsSinceEpoch;
+  DateTime? _date(Object? value) =>
+      value == null ? null : DateTime.fromMillisecondsSinceEpoch(value as int);
+  int _day(DateTime value) =>
+      DateTime(value.year, value.month, value.day).millisecondsSinceEpoch;
 }

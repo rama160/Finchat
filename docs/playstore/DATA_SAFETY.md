@@ -1,6 +1,7 @@
-> Current source status: **0.3.4+19**, 9 October 2026 UTC. See [../SPENVA_CANONICAL_SOURCE.md](../SPENVA_CANONICAL_SOURCE.md) and the current detailed audit. Older version/build statements below are historical evidence and do not verify this patch.
+# Data Safety dan akses reviewer
 
-# Data safety and review access — preparation matrix
+
+**Versi sumber: 0.3.5+20**
 
 This is an implementation-informed draft, not a completed Console declaration. The publisher must reconcile it with current Google SDK disclosures, backend hosting/logging, voice recognizer providers and actual release configuration. Data sent off-device can be collected even if ephemeral. Do not tick “no data collected” simply because the primary database is local.
 
@@ -24,7 +25,7 @@ Account deletion: in-app Privasi dan data, external public deletion page with su
 
 Metered features on Play require a Google account and server connection, including Free Voice/Scan/PDF. Fixed-topic unpaid education does not forward raw questions/history; personal financial AI stays disabled by default. Successful local batches and fallback/error counters are pseudonymous operational events, without transaction content.
 
-Free: open app → Gunakan mode offline → Mulai (no email required), enter “gaji5 juta” then “nasi10 ribu dan bakso5 ribu”, ask total, open Laporan, choose period. PDF requires quota verification/account; Free has one successful export per month. No paid feature needed for these tasks. Use actual spaces in inputs as displayed by examples.
+Free: open app → Gunakan mode offline → Mulai (no email required), enter “gaji 5 juta” then “nasi 10 ribu dan bakso 5 ribu”, ask total, open Laporan, choose period. PDF requires quota verification/account; Free has one successful export per month. No paid feature needed for these tasks. Use actual spaces in inputs as displayed by examples.
 
 Cloud features: provide precise Google reviewer access/OAuth test-user setup and license-test accounts through **Console restricted review instructions**, not repository/password logs. Reviewer must have access to AI once enabled without real charge. Explain restore and flag-answer path. Do not give a shared personal Google password; resolve Google's app-access requirements via permitted review/test setup. If OAuth app still test-only, publish/verify OAuth and its requested scopes or add permitted reviewers before submitting.
 

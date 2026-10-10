@@ -8,6 +8,12 @@ for p in data['plans']:
     lines.append('  PlanOffer(SubscriptionTier.'+p['tier']+', '+val(p['products'].get('monthly'))+', '+str(p['monthly'])+', '+str(p['ai'])+', '+val('Teks dan transaksi lokal tanpa batas.')+', yearlyProductId: '+val(p['products'].get('yearly'))+', yearlyRupiah: '+str(p['yearly'])+', voiceRequests: '+str(p['voice'])+', ocrRequests: '+str(p['ocr'])+', pdfRequests: '+val(p['pdf'])+', advanced: '+val(p['advanced'])+', automaticBackup: '+val(p['automaticBackup'])+', priority: '+val(p['priority'])+', name: '+val(p['name'])+', aiLevel: '+val(p['aiLevel'])+', badge: '+val(p['badge'])+'),')
 lines.append('];')
 outputs={'lib/application/billing/generated_plans.dart':'\n'.join(lines)+'\n','server/play-billing/plans.generated.mjs':'// GENERATED; edit assets/config/subscription_plans.json only.\nexport const catalog = '+json.dumps(data['plans'],indent=2)+';\n'}
+money=lambda n: 'Rp '+f'{n:,}'.replace(',', '.')
+rows=['# Paket Spenva', '', '**Versi sumber: '+__import__('re').search(r'^version:\s*["\']?([^"\'\s]+)', (root/'pubspec.yaml').read_text(), __import__('re').M).group(1)+'**', '', '<!-- GENERATED from assets/config/subscription_plans.json; do not edit manually. -->', '', '| Paket | Bulanan | Tahunan | Voice | Scan | AI | PDF/bulan | Automatic backup |', '|---|---:|---:|---:|---:|---:|---|---|']
+for p in data['plans']:
+    rows.append('| '+p['name']+' | '+money(p['monthly'])+' | '+(money(p['yearly']) if p['yearly'] else '—')+' | '+str(p['voice'])+' | '+str(p['ocr'])+' | '+str(p['ai'])+' | '+('Tanpa batas' if p['pdf'] is None else str(p['pdf']))+' | '+('Ya' if p['automaticBackup'] else 'Tidak')+' |')
+rows += ['', 'Harga ini konfigurasi katalog; harga transaksi mengikuti Google Play. Kuota Voice/Scan/AI bulanan terpisah, annual tetap refill bulanan. Teks/transaksi/learning/laporan dasar tanpa batas. Produk dan provider belum diaktifkan hanya karena katalog tersedia.', '', 'Produk monthly/yearly, aturan ledger dan batas aktivasi: [SUBSCRIPTION](SUBSCRIPTION.md).']
+outputs['docs/playstore/PLANS.md']='\n'.join(rows)+'\n'
 for name,text in outputs.items():
     path=root/name
     if '--check' in sys.argv:

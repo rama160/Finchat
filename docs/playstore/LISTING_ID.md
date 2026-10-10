@@ -1,55 +1,23 @@
-> Current source status: **0.3.4+19**, 9 October 2026 UTC. See [../SPENVA_CANONICAL_SOURCE.md](../SPENVA_CANONICAL_SOURCE.md) and the current detailed audit. Older version/build statements below are historical evidence and do not verify this patch.
+# Materi listing Bahasa Indonesia
 
-> Paket final dan batas Voice/Scan/AI/PDF: lihat SUBSCRIPTION.md. Jangan mengiklankan Voice/Scan/PDF gratis tanpa batas atau personalAIunpaid.
+**Versi sumber: 0.3.5+20**
 
-# Materi listing Bahasa Indonesia — Spenva
-
-Status: draf untuk ditinjau pemilik. Jangan menyatakan AI aktif sebelum katalog dan backend produksi berhasil diuji.
+Status draf. Tinjau kemampuan build Play yang benar-benar aktif sebelum menempel ke Console; saat endpoint kuota belum dikonfigurasi, jangan menjanjikan Voice/Scan/PDF/AI sudah tersedia.
 
 Nama: **Spenva**
 
-Deskripsi singkat (72 karakter):
-Catat keuangan lewat chat, suara, dan struk. Lihat laporan dan simpan PDF.
+Deskripsi singkat: Catat keuangan lewat chat, suara, dan struk. Lihat laporan dan simpan PDF.
 
-Deskripsi lengkap:
+Deskripsi lengkap draf:
 
-Keuangan rapi, mulai dari cerita.
+Spenva membantu mencatat pemasukan dan pengeluaran lewat bahasa sehari-hari. Tulis “gaji 5 juta, nasi 10 ribu dan bakso 5 ribu” untuk mencatat beberapa transaksi. Periksa hasilnya, lalu geser transaksi untuk mengedit atau menghapus dengan konfirmasi.
 
-Spenva membantu mencatat pemasukan dan pengeluaran dengan bahasa sehari-hari. Tulis “gaji 5 juta, nasi goreng 10 ribu dan bakso 5 ribu” untuk mencatat beberapa transaksi sekaligus. Periksa hasilnya, lalu geser transaksi untuk mengedit atau menghapusnya dengan konfirmasi.
+Catatan disimpan di perangkat. Pilih tanggal/rentang/bulan/tahun pada laporan; lihat saldo, kategori dan pola pengeluaran. Tanya total dan cari transaksi berdasarkan deskripsi langsung dari catatan lokal. Logo dan font tetap tersedia offline. Mulai tanpa akun atau gunakan Google; backup Drive bersifat pilihan.
 
-• Catat lewat teks atau pengenal suara perangkat.
-• Baca foto struk dari kamera atau lampiran, lalu periksa item sebelum menyimpan.
-• Lihat pemasukan, pengeluaran dan saldo sesuai periode.
-• Pilih tanggal, rentang tanggal, bulan atau tahun dari kalender laporan.
-• Pahami pengeluaran harian, kategori dan insight berdasarkan catatanmu.
-• Simpan laporan PDF di perangkat atau bagikan.
-• Mulai dalam mode lokal tanpa akun; masuk Google untuk backup Drive opsional.
-• Tanyakan total, cari transaksi dan buat rangkuman yang didukung langsung dari catatan lokal.
+Pengenal suara mengikuti layanan perangkat dan dapat membutuhkan internet. Kamera/lampiran dibaca OCR lokal, dengan review sebelum menyimpan. Voice, Scan, PDF dan AI versi Play mengikuti kuota akun/paket dan memerlukan verifikasi server. Paket Free/Plus/Pro/Max dan harga bulanan/tahunan ditampilkan di aplikasi serta Google Play; lihat [PLANS](PLANS.md). Jangan memasarkan personal AI sebelum provider/consent/backend diaktifkan.
 
-Fungsi pencatatan, laporan, OCR dan PDF tersedia dalam paket Free. Pengenal suara mengikuti ketersediaan layanan perangkat dan mungkin membutuhkan internet. Hasil suara dan struk perlu diperiksa.
+Google Play mengelola pembelian dan perpanjangan otomatis; paket tahunan tetap memperoleh kuota bulanan. Pembatalan dilakukan melalui Google Play dan berlaku sampai masa aktif selesai. Menghapus akun/aplikasi tidak membatalkan langganan. Aplikasi bukan bank, pinjaman, investasi atau layanan transfer.
 
-Paket Plus, Pro dan Max menambahkan kuota Voice dan Scan yang lebih besar, grafik perbandingan, PDF lengkap dan backup otomatis. Batas bulanan Voice/Scan/AI: Free 10/5/5; Plus 100/100/50; Pro 500/500/200; Max 1.500/1.500/500. Paket tahunan mendapat pembaruan kuota bulanan. AI cloud hanya tersedia setelah layanan diaktifkan dan persetujuan diberikan; AI pribadi tidak memakai API unpaid. Harga final dan perpanjangan otomatis ditampilkan Google Play sebelum konfirmasi. Langganan dapat dibatalkan melalui Google Play; akses tetap berlaku sampai periode yang dibayar berakhir.
+## Aset dan review
 
-Spenva merupakan alat pencatatan keuangan pribadi, bukan bank, pemberi pinjaman, atau layanan investasi. Saran bukan pengganti nasihat profesional. Data yang belum dicatat tidak bisa disimpulkan oleh aplikasi.
-
-Kontak dukungan dan kebijakan privasi: lengkapi dari publication-profile.json sebelum publikasi.
-
-## Upload listing
-
-Kategori yang disarankan: Finance, pencatatan anggaran pribadi. Jangan memilih deklarasi pinjaman, trading atau transfer uang yang tidak disediakan. Isi deklarasi fitur keuangan sesuai fungsi sebenarnya dan pilihan yang muncul di Console.
-
-Icon: store-icon.png, 512 × 512, PNG tanpa transparansi.
-Feature graphic: feature-graphic.png, 1024 × 500, tanpa klaim peringkat, promosi harga atau badge Google Play.
-Screenshot: empat hasil capture widget aplikasi sebenarnya dengan tema runtime dan data demo pada artefak CI, masing-masing1080×1920 RGB tanpa alpha. Tinjau kembali terhadap perangkat Android sebelum mengunggah; jangan memakai foto pengujian pengguna yang mengandung email/data keuangan pribadi. Minimal dua screenshot telepon. Tidak ada gambar mockup seluruh layar yang diterapkan sebagai halaman aplikasi.
-
-Release notes:
-Versi pertama Spenva untuk Google Play: pencatatan lokal lewat chat, suara dan foto struk; laporan periode dan PDF; backup Drive pilihan; kontrol privasi dan penghapusan data; fondasi paket AI melalui Google Play.
-
-
-Alt text aset (≤140 karakter):
-- Store icon: Logo Spenva berupa gelembung percakapan ungu dengan aksen biru.
-- Feature graphic: Spenva, pencatatan keuangan melalui chat, suara, foto struk dan laporan.
-- 01-sign-in: Halaman awal Spenva dengan pilihan masuk Google atau menggunakan mode lokal tanpa akun.
-- 02-chat: Catatan gaji, nasi goreng dan bensin dalam percakapan Spenva; input pesan, lampiran, kamera dan suara.
-- 03-report: Ringkasan pemasukan, pengeluaran dan saldo pada laporan harian, dengan contoh data demo.
-- 04-calendar: Pemilihan rentang1–3 Oktober pada kalender laporan, dengan pemilih bulan dan tahun.
+store-icon.png512×512 dan feature-graphic.png1024×500 adalah aset listing. Screenshot empat layar1080×1920 berasal dari capture runtime CI, bukan mockup sebagai aplikasi. Gunakan yang cocok dengan SHA/versi final pada VALIDATION; review terhadap HP, jangan tampilkan email/transaksi pribadi. Contact/privacy/deletion mengikuti profile publikasi, tidak diisi rekaan. Klaim harga/kuota tidak disalin manual ke deskripsi agar tetap merujuk katalog final.

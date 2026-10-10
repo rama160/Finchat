@@ -21,7 +21,7 @@ import '../../application/ai/financial_qa_service.dart';
 import '../../application/reports/report_service.dart';
 import '../../domain/reports/selected_period.dart';
 import '../../application/ai/question_period.dart';
-import '../../domain/parsing/voice_transaction_normalizer.dart';
+import '../../domain/parsing/spoken_money_normalizer.dart';
 import '../../data/local/finchat_database.dart';
 import '../../data/ocr/image_receipt_preprocessor.dart';
 import '../../data/ocr/mlkit_receipt_ocr_provider.dart';

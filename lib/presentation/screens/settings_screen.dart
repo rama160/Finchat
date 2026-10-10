@@ -21,24 +21,32 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   late final UpdateService _updateService;
+  late final GitHubReleaseUpdateProvider _updateProvider;
   Future<AppUpdate?>? _updateCheck;
 
   @override
   void initState() {
     super.initState();
-    _updateService = UpdateService(
-      GitHubReleaseUpdateProvider(owner: 'rama160', repository: 'Finchat'),
+    _updateProvider = GitHubReleaseUpdateProvider(
+      owner: 'rama160',
+      repository: 'Finchat',
     );
+    _updateService = UpdateService(_updateProvider);
   }
 
   void _checkForUpdate() {
     setState(() {
-      _updateCheck = _updateService.check(currentVersion: AppConstants.appVersion);
+      _updateCheck = _updateService.check(
+        currentVersion: AppConstants.appVersion,
+      );
     });
   }
 
   Future<void> _openUpdate(AppUpdate update) async {
-    final opened = await launchUrl(update.releaseUrl, mode: LaunchMode.externalApplication);
+    final opened = await launchUrl(
+      update.releaseUrl,
+      mode: LaunchMode.externalApplication,
+    );
     if (!opened && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Tidak dapat membuka halaman release.')),
@@ -48,6 +56,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   void dispose() {
+    _updateProvider.close();
     super.dispose();
   }
 
@@ -71,9 +80,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               subtitle: Text(session.email),
             ),
             ListTile(
-              leading: Icon(session.authProvider == 'google' ? Icons.account_circle : Icons.person_outline),
+              leading: Icon(
+                session.authProvider == 'google'
+                    ? Icons.account_circle
+                    : Icons.person_outline,
+              ),
               title: const Text('Metode masuk'),
-              subtitle: Text(session.authProvider == 'google' ? 'Google' : 'Email lokal'),
+              subtitle: Text(
+                session.authProvider == 'google' ? 'Google' : 'Email lokal',
+              ),
             ),
           ],
           if (session != null) ...[
@@ -81,23 +96,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: ListTile(
                 leading: Icon(Icons.cloud_done_outlined),
                 title: Text('AI melalui Cloudflare Gateway'),
-                subtitle: Text(PlayReleaseConfig.isPlay ? 'Free menggunakan fungsi lokal. AI cloud memerlukan paket Google Play aktif dan persetujuan Anda.' : 'AI menggunakan Gateway terpusat. Gemini API key disimpan di server dan tidak perlu dimasukkan ke aplikasi.'),
+                subtitle: Text(
+                  PlayReleaseConfig.isPlay
+                      ? 'Free menggunakan fungsi lokal. AI cloud memerlukan paket Google Play aktif dan persetujuan Anda.'
+                      : 'AI menggunakan Gateway terpusat. Gemini API key disimpan di server dan tidak perlu dimasukkan ke aplikasi.',
+                ),
               ),
             ),
           ],
           const Divider(),
-          Card(child: ListTile(leading: const Icon(Icons.workspace_premium_outlined), title: const Text('Paket Spenva'),
-            subtitle: const Text('Free, Plus, Pro dan Max.'), trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionScreen())))),
-          ListTile(leading: const Icon(Icons.privacy_tip_outlined), title: const Text('Privasi dan data'), trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyScreen()))),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.workspace_premium_outlined),
+              title: const Text('Paket Spenva'),
+              subtitle: const Text('Free, Plus, Pro dan Max.'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SubscriptionScreen()),
+              ),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.privacy_tip_outlined),
+            title: const Text('Privasi dan data'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PrivacyScreen()),
+            ),
+          ),
           if (session != null)
             ListTile(
               leading: const Icon(Icons.backup_outlined),
               title: const Text('Backup & pemulihan'),
               subtitle: const Text('Backup lokal dan Google Drive.'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => BackupScreen(userId: session.userId, email: session.email))),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => BackupScreen(
+                    userId: session.userId,
+                    email: session.email,
+                  ),
+                ),
+              ),
             ),
           ListTile(
             leading: const Icon(Icons.system_update_outlined),
@@ -107,9 +149,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.update),
             title: const Text('Periksa pembaruan'),
-            subtitle: Text(PlayReleaseConfig.isPlay ? 'Buka pembaruan di Google Play.' : 'Memeriksa GitHub Releases Spenva.'),
+            subtitle: Text(
+              PlayReleaseConfig.isPlay
+                  ? 'Buka pembaruan di Google Play.'
+                  : 'Memeriksa GitHub Releases Spenva.',
+            ),
             trailing: const Icon(Icons.chevron_right),
-            onTap: PlayReleaseConfig.isPlay ? () => launchUrl(PlayReleaseConfig.storeUrl, mode: LaunchMode.externalApplication) : _checkForUpdate,
+            onTap: PlayReleaseConfig.isPlay
+                ? () => launchUrl(
+                    PlayReleaseConfig.storeUrl,
+                    mode: LaunchMode.externalApplication,
+                  )
+                : _checkForUpdate,
           ),
           if (session != null)
             ListTile(
@@ -152,7 +203,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: ListTile(
                     leading: const Icon(Icons.new_releases_outlined),
                     title: Text('Versi ${update.version} tersedia'),
-                    subtitle: const Text('Buka halaman release untuk mengunduh APK.'),
+                    subtitle: const Text(
+                      'Buka halaman release untuk mengunduh APK.',
+                    ),
                     trailing: const Icon(Icons.open_in_new),
                     onTap: () => _openUpdate(update),
                   ),

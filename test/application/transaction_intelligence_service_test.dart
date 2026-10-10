@@ -8,7 +8,7 @@ import 'package:finchat/domain/repositories/category_repository.dart';
 import 'package:finchat/domain/services/category_learning_service.dart';
 import 'package:finchat/application/ocr/receipt_transaction_parser.dart';
 import 'package:finchat/application/transactions/local_transaction_parser.dart';
-import 'package:finchat/domain/parsing/voice_transaction_normalizer.dart';
+import 'package:finchat/domain/parsing/spoken_money_normalizer.dart';
 
 class FakeCategoryRepository implements CategoryRepository {
   FakeCategoryRepository({this.mapping});

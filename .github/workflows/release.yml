@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag, e.g. v0.3.4'
+        description: 'Release tag, e.g. v0.3.5+20'
         required: true
-        default: 'v0.3.4'
+        default: 'v0.3.5+20'
 
 jobs:
   release:
@@ -18,7 +18,10 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: '3.47.7'
           cache: true
+      - name: Check source consistency
+        run: python3 tooling/check_repository.py
       - name: Get dependencies
         run: flutter pub get
       - name: Analyze
@@ -92,7 +95,7 @@ jobs:
           print(re.search(r'^version:\s*["\']([^"\']+)["\']', text, re.M).group(1))
           PY
           )
-          EXPECTED="v${VERSION%%+*}"
+          EXPECTED="v${VERSION}"
           if [ "${{ inputs.tag }}" != "$EXPECTED" ]; then
             echo "Tag ${{ inputs.tag }} tidak cocok dengan versi pubspec $VERSION (expected $EXPECTED)."
             exit 1

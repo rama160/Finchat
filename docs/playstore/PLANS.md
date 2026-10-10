@@ -1,11 +1,16 @@
-> Current source status: **0.3.4+19**, 9 October 2026 UTC. See [../SPENVA_CANONICAL_SOURCE.md](../SPENVA_CANONICAL_SOURCE.md) and the current detailed audit. Older version/build statements below are historical evidence and do not verify this patch.
+# Paket Spenva
 
-# Paket final
+**Versi sumber: 0.3.5+20**
 
-Lihat [SUBSCRIPTION.md](SUBSCRIPTION.md) untuk matriks harga bulanan/tahunan, fitur dan ketentuan kuota. Konfigurasi: assets/config/subscription_plans.json.
+<!-- GENERATED from assets/config/subscription_plans.json; do not edit manually. -->
 
-Harga adalah keputusan baseline pengguna, bukan bukti willingness-to-pay. Pro menonjol; Max nyata sebagai heavyuser/anchor. KuotaVoice/Scanlokal tidak memicu inferenceGemini. Cloudflarefree bukan unlimited; verifikasiPlay/DO/storage/egress/support tetap perlu dipantau.
+| Paket | Bulanan | Tahunan | Voice | Scan | AI | PDF/bulan | Automatic backup |
+|---|---:|---:|---:|---:|---:|---|---|
+| Free | Rp 0 | — | 10 | 5 | 5 | 1 | Tidak |
+| Plus | Rp 15.000 | Rp 149.000 | 100 | 100 | 50 | Tanpa batas | Ya |
+| Pro | Rp 39.000 | Rp 349.000 | 500 | 500 | 200 | Tanpa batas | Ya |
+| Max | Rp 89.000 | Rp 799.000 | 1500 | 1500 | 500 | Tanpa batas | Ya |
 
-Tidak ada pembayaran/paidinfrastructure yang aktif otomatis. Gemini unpaid hanya opsi edukasi fixedprompt; personalAI tetaplokal sampaiproviderappropriate dikonfigurasi eksplisit. Bila personalAI billed dipilih, asumsi stres modelFlashLite4096input/768output, Rp20000/USD, inference perjawabanRp14,336 (bukan kursaktual/totaloperasional). MaksimuminferencePlus50=Rp716,80; Pro200=Rp2867,20; Max500=Rp7168/bulan. Sebelumhosting/pajak/refund/support, sisa darihargabulanan setelahasumsifee15% masingmasingRp12033,20/Rp30282,80/Rp68482. Fee/kurs/hargaregional wajib ditinjau sebelumaktivasi. Tidak menjanjikan laba atau cloudgratis selamanya.
+Harga ini konfigurasi katalog; harga transaksi mengikuti Google Play. Kuota Voice/Scan/AI bulanan terpisah, annual tetap refill bulanan. Teks/transaksi/learning/laporan dasar tanpa batas. Produk dan provider belum diaktifkan hanya karena katalog tersedia.
 
-Peralihanpaid harus keputusanpemilik, disarankan recurringrevenue>=5×estimasicloudbulanan; tidakadaautoswitch. Validasi pembeliannyata/renewbulan2, jangan menganggap pembelian sandbox sebagai permintaannyata.
+Produk monthly/yearly, aturan ledger dan batas aktivasi: [SUBSCRIPTION](SUBSCRIPTION.md).

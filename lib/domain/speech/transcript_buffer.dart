@@ -1,5 +1,5 @@
 import '../parsing/money_amount_parser.dart';
-import '../parsing/voice_transaction_normalizer.dart';
+import '../parsing/spoken_money_normalizer.dart';
 
 /// Android may return cumulative hypotheses or only the latest phrase.
 /// Keep completed phrases; replace revisions of the current phrase.

@@ -1,7 +1,7 @@
 name: Prepare Play Store AAB
 on:
   push:
-    branches: [spenva-source-of-truth]
+    branches: [main, spenva-source-of-truth]
   pull_request:
     branches: [main, develop]
   workflow_dispatch:
@@ -20,6 +20,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: '3.47.7'
           cache: true
       - uses: actions/setup-node@v4
         with:
@@ -126,6 +127,7 @@ jobs:
             build/app/outputs/bundle/release/app-release.aab
             build/play/*
             docs/playstore/
+            pubspec.lock
           if-no-files-found: error
   integration:
     runs-on: ubuntu-latest
@@ -135,6 +137,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: '3.47.7'
           cache: true
       - name: Prepare Linux integration host
         run: |

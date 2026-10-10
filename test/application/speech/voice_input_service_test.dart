@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:finchat/application/speech/voice_input_service.dart';
 import 'package:finchat/domain/speech/speech_recognition.dart';
 import 'package:finchat/application/transactions/local_transaction_parser.dart';
-import 'package:finchat/domain/parsing/voice_transaction_normalizer.dart';
+import 'package:finchat/domain/parsing/spoken_money_normalizer.dart';
 
 class FakeSpeechProvider implements SpeechRecognitionProvider {
   int listenCalls = 0;

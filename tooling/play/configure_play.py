@@ -16,13 +16,17 @@ ET.register_namespace('tools','http://schemas.android.com/tools')
 tree=ET.parse(path); manifest=tree.getroot(); a='{http://schemas.android.com/apk/res/android}';t='{http://schemas.android.com/tools}'
 application=manifest.find('application');application.set(a+'usesCleartextTraffic','false')
 for feature in ['android.hardware.camera','android.hardware.camera.autofocus','android.hardware.microphone']:
-    ET.SubElement(manifest,'uses-feature',{a+'name':feature,a+'required':'false'})
+    item=next((x for x in manifest.findall('uses-feature') if x.get(a+'name')==feature),None)
+    if item is None:item=ET.SubElement(manifest,'uses-feature',{a+'name':feature})
+    item.set(a+'required','false')
 # Native photo picker and Storage Access Framework do not require broad storage.
 for permission in ['READ_MEDIA_IMAGES','READ_MEDIA_VIDEO','READ_EXTERNAL_STORAGE','WRITE_EXTERNAL_STORAGE','MANAGE_EXTERNAL_STORAGE','REQUEST_INSTALL_PACKAGES','ACCESS_FINE_LOCATION','ACCESS_COARSE_LOCATION']:
     name='android.permission.'+permission
     for item in list(manifest.findall('uses-permission')):
         if item.get(a+'name')==name: manifest.remove(item)
     ET.SubElement(manifest,'uses-permission',{a+'name':name,t+'node':'remove'})
+for item in list(manifest.findall('uses-permission')):
+    if item.get(a+'name')=='com.google.android.gms.permission.AD_ID':manifest.remove(item)
 ET.SubElement(manifest,'uses-permission',{a+'name':'com.google.android.gms.permission.AD_ID',t+'node':'remove'})
 tree.write(path,encoding='unicode',xml_declaration=True)
 print('Play target API 36, minimum API 24, optional camera/mic, no broad storage or advertising permission.')

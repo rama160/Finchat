@@ -1,280 +1,259 @@
-# Detailed repository audit — Spenva 0.3.4+19
+# Audit setiap file — penyelarasan source
 
-Audit date: 9 October 2026 UTC / 10 October Asia/Makassar. Repository `rama160/Finchat`. Canonical baseline `da61888d8151ee5bff52cea2a4cff846da8d5aa1` on `spenva-source-of-truth`. Old main `91252bdd...` is not the current product. This audit compares current source, tests, configuration, CI history, assets and documentation. It does not assert real-device or real-payment acceptance.
+**Versi sumber: 0.3.5+20**
 
-## Findings and fixes
+Audit ulang 10 Oktober 2026. Baseline main `91252bddf4a4eadaa99dafe095f72c2e04a4bab1` masih0.3.2+10; staging audit sebelumnya `452d85c49e4177558e46cc243b6fef121e919aa2` adalah0.3.4+19. Ini sebab versi yang terlihat pengguna berbeda. Penyelesaian wajib memasukkan tree teruji ke main dan membaca ulang remote pubspec, bukan cukup mengubah branch lain.
 
-| Finding | Consequence | Resolution / evidence |
+## Gap dan keputusan
+
+| Gap | Perbaikan | Bukti yang wajib |
 |---|---|---|
-| Main still old while PR4 contains canonical Spenva | Building wrong source drops branding, quota/privacy and input fixes | Patch based on canonical; entry points reconciled and uploader targets canonical branch |
-| Last canonical CI: 133 passed, 1 failed, 2 skipped | Full preparation stopped before AAB | External-payment test now verifies no external checkout, matching canonical Play-only rule |
-| JSON UTF-8 decoded as code points | Accents/non-Latin/emoji corrupted on local restore | `BackupService.restoreBytes` uses utf8.decode; same helper used by file picker; roundtrip regression |
-| Snapshot tables read separately | Concurrent edits can create inconsistent cross-table backup | All six table reads inside one database transaction; cloud acknowledgement remains version-specific |
-| Restore accepted duplicates, bad enum/type/reference data | Replace can silently lose rows or make later readers throw | Validate before any delete; identity/enum/column scalar/reference checks; insert-abort and existing rollback |
-| Router configuration recreated on build; identical root page keys | Duplicate listeners/navigation lifetime drift and nested screens surviving logout | Stateful app retains/disposes router; root keys distinguish account and login; navigation/logout regression |
-| Kotlin properties before plugins block | Generated Gradle source violates plugins block ordering | Imports retained; executable property initialization after plugins; repeated-config regression |
-| Manifest already has queries | Speech service query silently omitted; voice availability varies by build | Merge recognition action into existing XML query; keep PROCESS_TEXT and avoid duplicates |
-| Cleanup deletes every tracked file absent from stale manifest | Valid new source/assets/config may be erased | Explicit obsolete phase-instruction list; inventory is validation only; no resetting unknown branch |
-| Clean tree exits before pushing local commits | Retry after failed push can leave source unsynchronized | BAT clean path still reaches push; no force push |
-| AAB checker hardcoded version code 18 | Next valid release rejected or version drift missed | Compare actual manifest name/code against pubspec; APK/Settings metadata also checked in CI |
-| Play build omits Google client ID override | Play OAuth may use different audience than configured pilot | Propagate existing secret into Play defines; no credentials exposed or changed |
-| Drive automatic auth client left open | Repeated backups retain transport resources | Close each automatic client in finally; silent authorization and gate preserved |
-| Several documents assert incompatible current phases | Historical results confused with final acceptance | One current handoff/canonical/audit/status; prior claims explicitly marked history |
-| Duplicate source pointer and generated Python cache | Noise and misleading second source | Redundant `docs/SOURCE_OF_TRUTH.md` removed; old handoff archived; caches ignored |
+| Main/default ZIP tertinggal | Integrasikan source final ke main; BAT main | Remote main/pubspec/AppConstants/tree sama |
+| Versi AppConstants/tag ditulis terpisah | sync_metadata dari pubspec; tag termasuk build | Generator --check + APK/AAB manifest |
+| Updater mengabaikan +build | Compare semver lalu build; historical tag kompatibel | source_alignment_test |
+| Kategori default ganda/berbeda nama | Shared systemCategoryDefaults untuk seed/repair/display | Regresi initial vs repaired category |
+| Normalisasi voice tersebar | Satu file untuk normalizeSpokenMoney/normalizeVoiceTransactions | Semua voice/parser/timeline tests |
+| QA lama/external-payment stub/error hierarchy dead | Hapus3 file tanpa import/route/test | Import graph + full analyze/tests |
+| Edit transaksi memakai replace-delete | UPDATE/insert transaction tanpa delete row | Restored FK history regression |
+| Drive punya cache account sendiri | Baca shared coordinator | Logout/stale-account regression |
+| Update HTTP client tidak ditutup/timeout | close pada dispose dan bounded waits | Analyze/update regression |
+| Dokumen aktif mengulang fase/status lama | Rewrite current; satu indeks arsip immutable Git | Link/header/source checks |
+| Paket/privasi punya salinan manual | Generated PLANS + privacy preview | Exact generated-content check |
+| SDK/dependency resolve berubah antarbuild | Pin SDK teruji; commit lockfile resolved | CI exact-source + lock |
+| Overlay Play menggandakan feature manifest | Update existing feature, removal idempotent | Overlay check + signed bundle validation |
 
-## Existing behavior preserved
+Tidak ada file byte-identical. Banyak file dengan nama fitur sama adalah entity/interface, service bisnis dan adapter platform; fungsi dan dependensinya berbeda. Tidak disatukan agar kontrak yang berjalan tetap stabil. Dart/server catalog generated diperlukan karena runtime berbeda; otoritas tetap satu JSON. SVG/PNG bukan duplikasi: source vector dan aset runtime mempunyai fungsi berbeda. Audit/test filenames mempunyai skenario berbeda, bukan file sampah.
 
-| Area | Current implementation | Boundary |
+Instruksi fase/audit lama yang mengulang current manual dikeluarkan dari tree aktif; isi lengkap tetap tersedia melalui [indeks arsip](history/README.md). Cache, keystore dan generated platform tidak boleh tracked. File tak dikenal tidak dihapus oleh whitelist.
+
+## Metode dan batas
+
+Seluruh file tracked dibaca sebagai bytes. Text diperiksa encoding, conflict markers, metadata, import/link, source ownership, version drift dan jalur pemakaian. Entity/contracts/service/adapters diperiksa bersama caller/tests; bukan klaim tiap baris teruji. Tabel berikut memberi per-file declaration/consumer/evidence/keputusan, ukuran untuk assets, dan test scenarios. SHA pendek adalah fingerprint isi saat audit, bukan tanda bukti tes runtime. Laporan ini sendiri dan inventory mempunyai isi yang berubah saat update dan tidak diberi hash rekursif.
+
+Local46 backend tests,3 Android template tests,5 bundle tests dan Play overlay idempotence lulus. Format Dart parse dijalankan; Flutter analyze/unit/Play/native/build berjalan pada GitHub CI. Hasil final dan SHA harus dibaca di [VALIDATION](playstore/VALIDATION.md), bukan disimpulkan dari hash/inventaris. Physical Android, live Gateway, OAuth/Drive serta billing tetap uji eksternal;9 publikasi blockers di [LAUNCH](playstore/LAUNCH.md).
+
+## Audit file sumber, konfigurasi dan dokumentasi
+
+| File | Deklarasi/isi | Review, pemakaian dan evidence |
 |---|---|---|
-| Identity | Spenva branding, internal finchat package; com.finchat.finchat | Same signing key and Play App Signing OAuth remain necessary |
-| Storage | finchat.db, schema 1; shared application handle | No destructive schema migration; restore remains explicit whole-database replacement |
-| Capture | Local parser/mappings first; text/voice batches atomic; receipt review | Real speech/OCR quality and permissions require Android |
-| Navigation/UI | Current composer, smart date filters, swipe editing/deletion, bundled logo/fonts | Existing physical-device UX preserved; logout lifecycle hardened |
-| Reports | Correct periods/totals/pie/daily chart, PDF save/share | No new charts, pricing, quotas or appearance introduced |
-| AI | Local factual answers first; pilot Gateway unchanged; Play path fails closed | Deployed availability cannot be proven by mocks or health check |
-| Drive | One-time interactive authorization; background path silent | Snapshot acknowledgement/deletion serialization retained |
-| Subscription | Free/Plus/Pro/Max; monthly/yearly catalog generation; account-persistent quotas | No server deployment, billing activation or provider spending authorized by this patch |
-| Privacy | Explicit local/Drive/server deletion contracts and consent | Real public contact/URLs, Data Safety and lifecycle verification still gates |
 
-## Verification and exact acceptance
+| `.gitattributes` | 7 baris, 122 bytes | Identity/config/source reference diperiksa; dipertahankan sesuai caller/asset/contract. Fingerprint 1a0fb068c91b. |
+| `.github/workflows/build_android.yml` | 99 baris, 4226 bytes | SDK teruji dipin; urutan build/signing dipertahankan; metadata guard. CI run wajib hijau. Fingerprint 0460d2b03047. |
+| `.github/workflows/finchat_audit_validation.yml` | 99 baris, 4307 bytes | SDK teruji dipin; urutan build/signing dipertahankan; metadata guard. CI run wajib hijau. Fingerprint 0df2f94819b2. |
+| `.github/workflows/flutter_test.yml` | 39 baris, 1027 bytes | SDK teruji dipin; urutan build/signing dipertahankan; metadata guard. CI run wajib hijau. Fingerprint 976e80cf55bf. |
+| `.github/workflows/play_store.yml` | 150 baris, 7168 bytes | SDK teruji dipin; urutan build/signing dipertahankan; metadata guard. CI run wajib hijau. Fingerprint b55a54b213d6. |
+| `.github/workflows/release.yml` | 112 baris, 4583 bytes | SDK teruji dipin; urutan build/signing dipertahankan; metadata guard. CI run wajib hijau. Fingerprint ea4c944a5719. |
+| `.gitignore` | Dart / Flutter | Identity/config/source reference diperiksa; dipertahankan sesuai caller/asset/contract. Fingerprint bd9736825f6c. |
+| `Ai start here.md` | AI START HERE — Spenva / FinChat | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint 90fe99b7775d. |
+| `CHANGELOG.md` | 0.3.4+19 — Canonical source audit (2026-10-09 UTC) | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint 75ba1b2ead56. |
+| `README.md` | Spenva — pencatat keuangan pribadi | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint 7eece49689bd. |
+| `UPDATE_GITHUB.bat` | 104 baris, 3530 bytes | Target main; stage add/update/delete, rebase/stash conflict stop, retry push; bukan deletion whitelist. Identity/config/source reference diperiksa; dipertahankan sesuai caller/asset/contract. Fingerprint 426f9c7eb727. |
+| `analysis_options.yaml` | 5 baris, 84 bytes | Identity/config/source reference diperiksa; dipertahankan sesuai caller/asset/contract. Fingerprint 46bff9d71ca0. |
+| `assets/brand/GOOGLE_ASSET_SOURCE.txt` | 7 baris, 657 bytes | Identity/config/source reference diperiksa; dipertahankan sesuai caller/asset/contract. Fingerprint 8440c417ddc8. |
+| `assets/brand/android_foreground.png` | PNG 432×432, 2256 bytes | Signature/dimension valid; bundled/listing asset dipertahankan sesuai peran. Fingerprint 26f981ef16b6. |
+| `assets/brand/android_foreground.svg` | 1 baris, 14151 bytes | Identity/config/source reference diperiksa; dipertahankan sesuai caller/asset/contract. Fingerprint 17c73fb1c272. |
+| `assets/brand/android_icon.png` | PNG 512×512, 8832 bytes | Signature/dimension valid; bundled/listing asset dipertahankan sesuai peran. Fingerprint 1a3f15be3af5. |
+| `assets/brand/android_icon.svg` | 1 baris, 14204 bytes | Identity/config/source reference diperiksa; dipertahankan sesuai caller/asset/contract. Fingerprint 10aa79d8a1f3. |
+| `assets/brand/google-g.png` | PNG 200×204, 33661 bytes | Signature/dimension valid; bundled/listing asset dipertahankan sesuai peran. Fingerprint d1ce9c2af0b1. |
+| `assets/brand/header.png` | PNG 1008×255, 9417 bytes | Signature/dimension valid; bundled/listing asset dipertahankan sesuai peran. Fingerprint a931b0bef8c7. |
+| `assets/brand/header.svg` | 1 baris, 75184 bytes | Identity/config/source reference diperiksa; dipertahankan sesuai caller/asset/contract. Fingerprint c6e6f9ab8e2f. |
+| `assets/brand/mark.png` | PNG 548×510, 6846 bytes | Signature/dimension valid; bundled/listing asset dipertahankan sesuai peran. Fingerprint 7284a804e9e4. |
+| `assets/brand/mark.svg` | 1 baris, 25159 bytes | Identity/config/source reference diperiksa; dipertahankan sesuai caller/asset/contract. Fingerprint 93239f0aab52. |
+| `assets/brand/sign_in.png` | PNG 690×455, 9491 bytes | Signature/dimension valid; bundled/listing asset dipertahankan sesuai peran. Fingerprint 6b8f0b85de4e. |
+| `assets/brand/sign_in.svg` | 1 baris, 75217 bytes | Identity/config/source reference diperiksa; dipertahankan sesuai caller/asset/contract. Fingerprint 934611e66f1a. |
+| `assets/config/subscription_plans.json` | 82 baris, 1726 bytes | Satu sumber Free/Plus/Pro/Max, produk, harga, kuota dan badge; angka tidak diubah. Identity/config/source reference diperiksa; dipertahankan sesuai caller/asset/contract. Fingerprint a87590a6860b. |
+| `assets/fonts/DejaVuSans-Bold.ttf` | TTF 72916 bytes | Bundled font terkait pubspec; lisensi disimpan; subset font bukan generated junk. Fingerprint 8c52d9f1067a. |
+| `assets/fonts/DejaVuSans.ttf` | TTF 83816 bytes | Bundled font terkait pubspec; lisensi disimpan; subset font bukan generated junk. Fingerprint 60bcf1fc7899. |
+| `assets/fonts/GoogleSans-Medium.ttf` | TTF 48304 bytes | Bundled font terkait pubspec; lisensi disimpan; subset font bukan generated junk. Fingerprint 5e028eed47e3. |
+| `assets/fonts/GoogleSans-OFL.txt` | 93 baris, 4488 bytes | Identity/config/source reference diperiksa; dipertahankan sesuai caller/asset/contract. Fingerprint 2b75ef20f13d. |
+| `assets/fonts/LICENSE.txt` | 78 baris, 3859 bytes | Identity/config/source reference diperiksa; dipertahankan sesuai caller/asset/contract. Fingerprint 63d3ba759d12. |
+| `assets/legal/privacy_id.txt` | 30 baris, 5332 bytes | Satu policy content; hapus version preamble ganda; preview HTML generated mengikuti teks yang sama. Identity/config/source reference diperiksa; dipertahankan sesuai caller/asset/contract. Fingerprint c5393741b064. |
+| `docs/AI_CONTRACT.md` | Kontrak AI dan jawaban lokal | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint d99b23bcb3a4. |
+| `docs/ARCHITECTURE.md` | Arsitektur implementasi | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint b196ff1dcc7c. |
+| `docs/FULL_REPOSITORY_AUDIT.md` | Audit per file | Current header/link/source consistency; tidak menjadi salinan status fase lama. |
+| `docs/GOOGLE_ACCOUNT_AND_DRIVE_SETUP.md` | Google login dan Drive | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint 5ea2aceaaabd. |
+| `docs/PRD.md` | Spesifikasi produk Spenva | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint 30a51736881a. |
+| `docs/SPENVA_CANONICAL_SOURCE.md` | Status dan keputusan canonical | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint 32d64dacbca8. |
+| `docs/UPDATE_RELEASE.md` | Sinkronisasi, build dan release | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint f74eebcd73a4. |
+| `docs/VOICE_INPUT.md` | Input suara | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint 6a9f3052ea2d. |
+| `docs/history/README.md` | Riwayat dokumentasi | Arsip link SHA immutable, bukan panduan aktif. Fingerprint 05a18f96a784. |
+| `docs/playstore/DATA_SAFETY.md` | Data Safety dan akses reviewer | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint 2c1b8336130e. |
+| `docs/playstore/LAUNCH.md` | Persiapan publikasi Play | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint 7049cc3286fe. |
+| `docs/playstore/LISTING_ID.md` | Materi listing Bahasa Indonesia | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint 32e06e67c18c. |
+| `docs/playstore/PLANS.md` | Paket Spenva | Tabel generated dari JSON + versi pubspec; harga live ditentukan Google ProductDetails. Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint 9a12f46d83c2. |
+| `docs/playstore/SUBSCRIPTION.md` | Langganan dan kuota | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint d5f865855de7. |
+| `docs/playstore/VALIDATION.md` | Validasi runtime dan build saat ini | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint 30bcf0f98de7. |
+| `docs/playstore/feature-graphic.png` | PNG 1024×500, 34787 bytes | Signature/dimension valid; bundled/listing asset dipertahankan sesuai peran. Fingerprint 69673fb7bb32. |
+| `docs/playstore/publication-profile.json` | 19 baris, 544 bytes | 9 blocker masih false/kosong; nilai bukan error yang boleh direkayasa menjadi true. Identity/config/source reference diperiksa; dipertahankan sesuai caller/asset/contract. Fingerprint d77e07c1d1de. |
+| `docs/playstore/store-icon.png` | PNG 512×512, 6336 bytes | Signature/dimension valid; bundled/listing asset dipertahankan sesuai peran. Fingerprint 41109ffe26d6. |
+| `docs/privacy/index.html` | 1 baris, 5888 bytes | Preview generated dari privacy asset; tetap diberi label draf karena contact/URL belum tersedia. Identity/config/source reference diperiksa; dipertahankan sesuai caller/asset/contract. Fingerprint b3a1f968b11a. |
+| `lib/application/ai/ai_secure_config_service.dart` | AiSecureStore, FlutterAiSecureStore, AiSecureConfigService | Consumer langsung 3; tes langsung: openai_compatible_ai_provider_test.dart, openai_phase12_hardening_test.dart Fingerprint 522fdbc846e5. |
+| `lib/application/ai/financial_qa_service.dart` | FinancialQaService | Consumer langsung 2; tes langsung: financial_qa_service_test.dart Fingerprint b2cb03e6f77e. |
+| `lib/application/ai/question_period.dart` | questionPeriod | Consumer langsung 2; tes langsung: question_period_test.dart Fingerprint 8917b7f8286c. |
+| `lib/application/auth/google_auth_service.dart` | GoogleAuthGateway, GoogleAuthService | Consumer langsung 3; tes langsung: session_manager_google_test.dart Fingerprint 879a3ac01038. |
+| `lib/application/auth/google_id_token_session.dart` | GoogleIdTokenSession | Consumer langsung 2; tes langsung: google_id_token_session_test.dart Fingerprint 93a75b0e65a5. |
+| `lib/application/auth/google_sign_in_coordinator.dart` | GoogleSignInCoordinator | Consumer langsung 6; tes langsung: drive_silent_auth_test.dart Fingerprint aad473f15251. |
+| `lib/application/backup/automatic_backup_service.dart` | AutomaticBackupService | Consent silent + close transport finally + configured quota gate; failure tidak menghentikan capture. Consumer langsung 2; tes langsung: automatic_backup_service_test.dart Fingerprint 589528ddac8e. |
+| `lib/application/backup/backup_preference_service.dart` | BackupPreferenceService | Consumer langsung 4; tes langsung: backup_preference_service_test.dart Fingerprint 7bb38d7b77be. |
+| `lib/application/backup/backup_service.dart` | BackupService | Snapshot6 tabel satu transaction; validate-before-delete, UTF-8/legacy restore, row-version acknowledgement; DataOperationGate retained. Consumer langsung 5; tes langsung: backup_audit_regression_test.dart, backup_service_test.dart, cloud_acknowledgement_test.dart Fingerprint bc08d1a55a55. |
+| `lib/application/backup/google_drive_auth_service.dart` | GoogleDriveAuthService | Akun shared coordinator; local stale cache dihapus; silent authorization tanpa prompt; scope appdata tetap. Consumer langsung 4; tes langsung: drive_silent_auth_test.dart Fingerprint 93ad3515e052. |
+| `lib/application/billing/generated_plans.dart` | Generated values / model helpers | Output katalog JSON untuk Dart; --check exact-content, bukan duplikasi manual. Consumer langsung 1; cakupan melalui feature/full suite; plugin/live IO membutuhkan acceptance terpisah Fingerprint 43c13981c4b9. |
+| `lib/application/billing/monetization_config.dart` | MonetizationConfig | Consumer langsung 2; tes langsung: billing_subscription_models_test.dart Fingerprint 2522353ea3ee. |
+| `lib/application/billing/plan_catalog.dart` | PlanOffer, VerifiedEntitlement | Consumer langsung 6; tes langsung: play_release_test.dart, subscription_quota_test.dart Fingerprint 4987a6fae7f4. |
+| `lib/application/billing/play_billing_service.dart` | PlayBillingService, logoutWithBilling | Consumer langsung 12; tes langsung: subscription_quota_test.dart Fingerprint 283c7d3b66f1. |
+| `lib/application/billing/quota_service.dart` | QuotaLease, SubscriptionQuotaService | Consumer langsung 3; tes langsung: subscription_quota_test.dart Fingerprint bf2ee612b6a9. |
+| `lib/application/billing/subscription_service.dart` | SubscriptionService | Consumer langsung 1; tes langsung: billing_subscription_models_test.dart Fingerprint 7298c7d6f27f. |
+| `lib/application/ocr/receipt_ocr_service.dart` | ReceiptOcrService | Consumer langsung 2; tes langsung: receipt_ocr_service_test.dart Fingerprint c2e9cf1e5efd. |
+| `lib/application/ocr/receipt_transaction_parser.dart` | ReceiptTransactionParser | Consumer langsung 3; tes langsung: receipt_transaction_parser_test.dart, transaction_intelligence_service_test.dart Fingerprint 8ce47d3df9d6. |
+| `lib/application/privacy/account_data_service.dart` | AccountDataService | Consumer langsung 2; tes langsung: play_release_test.dart Fingerprint 266af0aabb10. |
+| `lib/application/privacy/data_operation_gate.dart` | DataOperationGate | Consumer langsung 3; tes langsung: play_release_test.dart Fingerprint 88fd00d961e1. |
+| `lib/application/privacy/drive_data_deletion.dart` | DriveDataDeletion | Consumer langsung 2; tes langsung: play_release_test.dart Fingerprint 554f7b6fa863. |
+| `lib/application/reports/report_pdf_service.dart` | ReportPdfService, reportPdfFileName | Consumer langsung 2; tes langsung: report_pdf_service_test.dart Fingerprint 1c4e99ae6b86. |
+| `lib/application/reports/report_service.dart` | ReportService, _MutableGroup, _MutableCategory | Consumer langsung 5; tes langsung: financial_qa_service_test.dart, report_service_test.dart Fingerprint a752a1d00281. |
+| `lib/application/session/session_manager.dart` | SessionManager | Consumer langsung 13; tes langsung: phase_11_end_to_end_test.dart, session_manager_google_test.dart, session_manager_test.dart, chat_composer_timeline_test.dart, daily_input_reset_test.dart, navigation_back_test.dart, play_store_screenshots_test.dart, spenva_device_regression_test.dart, subscription_quota_test.dart, widget_test.dart Fingerprint 54c79327ccd8. |
+| `lib/application/speech/voice_input_service.dart` | VoiceInputService | Consumer langsung 2; tes langsung: voice_input_service_test.dart Fingerprint 9d7d8d2150f3. |
+| `lib/application/transactions/input_intent.dart` | InputIntent | Consumer langsung 3; tes langsung: input_intent_test.dart, spoken_money_test.dart Fingerprint c2e8245c42d6. |
+| `lib/application/transactions/local_transaction_parser.dart` | ParsedTransaction, ParsedTransactionType, LocalTransactionParser | Consumer langsung 9; tes langsung: voice_input_service_test.dart, transaction_intelligence_service_test.dart, local_transaction_parser_test.dart, spoken_money_test.dart, spenva_device_regression_test.dart Fingerprint 1b99c7133da5. |
+| `lib/application/transactions/transaction_intelligence_service.dart` | TransactionIntelligenceService, IntelligentTransaction | Consumer langsung 3; tes langsung: transaction_entry_flow_test.dart, transaction_intelligence_service_test.dart Fingerprint 02645c02c757. |
+| `lib/application/update/update_service.dart` | UpdateService | Consumer langsung 2; tes langsung: update_service_test.dart Fingerprint c45dacf938a5. |
+| `lib/core/constants/app_constants.dart` | AppConstants | Output generated dari pubspec; appVersion tidak diedit manual. Consumer langsung 1; cakupan melalui feature/full suite; plugin/live IO membutuhkan acceptance terpisah Fingerprint b8df5ebd2810. |
+| `lib/core/errors/input_failure_message.dart` | UserFacingException, inputFailureMessage | Consumer langsung 5; tes langsung: input_failure_message_test.dart, subscription_quota_test.dart Fingerprint eae83424dbc7. |
+| `lib/core/formatting/rupiah.dart` | formatRupiah, normalizeRupiahText | Consumer langsung 8; tes langsung: spenva_device_regression_test.dart Fingerprint 1879a51b6373. |
+| `lib/core/release/play_release_config.dart` | PlayReleaseConfig | Consumer langsung 12; tes langsung: play_release_test.dart, subscription_quota_test.dart Fingerprint 7071d97eccb1. |
+| `lib/core/validation/transaction_validator.dart` | TransactionValidator | Consumer langsung 3; tes langsung: transaction_validator_test.dart Fingerprint b0b689eaf869. |
+| `lib/data/ai/openai_compatible_ai_provider.dart` | OpenAiCompatibleAiProvider | Consumer langsung 5; tes langsung: gateway_contract_test.dart, openai_compatible_ai_provider_test.dart, openai_phase12_hardening_test.dart, play_release_test.dart Fingerprint afe859d94411. |
+| `lib/data/backup/google_drive_backup_provider.dart` | GoogleDriveBackupProvider | Consumer langsung 3; cakupan melalui feature/full suite; plugin/live IO membutuhkan acceptance terpisah Fingerprint e3c385a23093. |
+| `lib/data/local/database_schema.dart` | FinChatDatabaseSchema | Schema1/FK/index tetap; seed memakai katalog shared, tidak ada migrasi/destructive recreate. Consumer langsung 1; cakupan melalui feature/full suite; plugin/live IO membutuhkan acceptance terpisah Fingerprint 41c7805e4f02. |
+| `lib/data/local/finchat_database.dart` | FinChatDatabase | Consumer langsung 28; tes langsung: phase_11_end_to_end_test.dart, automatic_backup_service_test.dart, backup_audit_regression_test.dart, backup_preference_service_test.dart, backup_service_test.dart, cloud_acknowledgement_test.dart, financial_qa_service_test.dart, report_service_test.dart, transaction_entry_flow_test.dart, chat_composer_timeline_test.dart, daily_input_reset_test.dart, source_alignment_test.dart, sqlite_transaction_repository_phase12_test.dart, data_database_test.dart, navigation_back_test.dart, play_release_test.dart, play_store_screenshots_test.dart, spenva_device_regression_test.dart Fingerprint 470e2f6afea9. |
+| `lib/data/ocr/image_receipt_preprocessor.dart` | ImageReceiptPreprocessor | Consumer langsung 3; tes langsung: receipt_ocr_service_test.dart, receipt_image_preprocessor_test.dart Fingerprint 5af3bf612130. |
+| `lib/data/ocr/mlkit_receipt_ocr_provider.dart` | MlKitReceiptOcrProvider | Consumer langsung 1; cakupan melalui feature/full suite; plugin/live IO membutuhkan acceptance terpisah Fingerprint 5f69d1ca007c. |
+| `lib/data/repositories/in_memory_session_repository.dart` | InMemorySessionRepository | Consumer langsung 9; tes langsung: phase_11_end_to_end_test.dart, session_manager_google_test.dart, session_manager_test.dart, chat_composer_timeline_test.dart, daily_input_reset_test.dart, navigation_back_test.dart, play_store_screenshots_test.dart, spenva_device_regression_test.dart, widget_test.dart Fingerprint 53df1e8364e4. |
+| `lib/data/repositories/sqlite_category_repository.dart` | SqliteCategoryRepository | Repair defaults + custom category/learning; nama seed dan display berasal map sama; tidak replace kategori lama. Consumer langsung 7; tes langsung: financial_qa_service_test.dart, report_service_test.dart, transaction_entry_flow_test.dart, source_alignment_test.dart, data_database_test.dart Fingerprint 7b06546ba317. |
+| `lib/data/repositories/sqlite_transaction_repository.dart` | SqliteTransactionRepository | Save/edit UPDATE dalam transaction, insert jika baru; mencegah replace-delete merusak restored history. saveAll abort/atomic; delete tetap soft. Consumer langsung 8; tes langsung: financial_qa_service_test.dart, report_service_test.dart, transaction_entry_flow_test.dart, source_alignment_test.dart, sqlite_transaction_repository_phase12_test.dart, data_database_test.dart Fingerprint fd61556a3f16. |
+| `lib/data/session/secure_session_repository.dart` | SecureSessionRepository | Consumer langsung 1; cakupan melalui feature/full suite; plugin/live IO membutuhkan acceptance terpisah Fingerprint 79d6724781ee. |
+| `lib/data/speech/speech_to_text_provider.dart` | SpeechToTextProvider | Consumer langsung 1; cakupan melalui feature/full suite; plugin/live IO membutuhkan acceptance terpisah Fingerprint c3bc5854e314. |
+| `lib/data/update/github_release_update_provider.dart` | GitHubReleaseUpdateProvider | Semver+build comparison, historical tag tanpa build tidak mengarang upgrade; HTTP timeout dan close explicit. Consumer langsung 2; tes langsung: source_alignment_test.dart Fingerprint 3ada1c25c179. |
+| `lib/domain/ai/ai_category_fallback.dart` | AiCategoryRequest, AiCategorySuggestion, AiCategoryProvider, AiCategoryFallback | Consumer langsung 10; tes langsung: transaction_entry_flow_test.dart, transaction_intelligence_service_test.dart, gateway_contract_test.dart, openai_compatible_ai_provider_test.dart, openai_phase12_hardening_test.dart, ai_category_fallback_test.dart, play_release_test.dart Fingerprint feae44da67d3. |
+| `lib/domain/ai/financial_ai_provider.dart` | FinancialAiRequest, FinancialAiProvider, FinancialAiAvailability | Consumer langsung 4; tes langsung: financial_qa_service_test.dart, gateway_contract_test.dart Fingerprint d88ea247a1f3. |
+| `lib/domain/auth/google_auth_result.dart` | GoogleAuthResult | Consumer langsung 2; tes langsung: session_manager_google_test.dart Fingerprint 0852a11ba8c2. |
+| `lib/domain/backup/backup_models.dart` | BackupSnapshot, CloudBackupProvider | Decode schema/legacy + strict identities/types/enum/references; format1. Backup regression suite. Consumer langsung 9; tes langsung: backup_audit_regression_test.dart, backup_service_test.dart, backup_snapshot_validation_test.dart, cloud_acknowledgement_test.dart, backup_models_test.dart, play_release_test.dart Fingerprint e95a5a4553ce. |
+| `lib/domain/billing/subscription_models.dart` | SubscriptionTier, PaymentMethod, SubscriptionPlan | Consumer langsung 8; tes langsung: billing_subscription_models_test.dart, subscription_quota_test.dart Fingerprint 90fb176d378e. |
+| `lib/domain/entities/category_entity.dart` | CategoryEntity | Satu map kategori default beserta entity; digunakan schema seed dan missing-category repair. Consumer langsung 6; tes langsung: transaction_intelligence_service_test.dart Fingerprint 740d528d459a. |
+| `lib/domain/entities/category_mapping.dart` | CategoryMapping | Consumer langsung 4; tes langsung: transaction_intelligence_service_test.dart Fingerprint 0cfc31553b32. |
+| `lib/domain/entities/session.dart` | Session | Consumer langsung 4; cakupan melalui feature/full suite; plugin/live IO membutuhkan acceptance terpisah Fingerprint c01d9551b054. |
+| `lib/domain/entities/transaction_entity.dart` | TransactionType, InputSource, ProcessedBy, TransactionEntity | Consumer langsung 32; tes langsung: financial_qa_service_test.dart, report_pdf_service_test.dart, report_service_test.dart, transaction_entry_flow_test.dart, transaction_intelligence_service_test.dart, transaction_validator_test.dart, gateway_contract_test.dart, openai_compatible_ai_provider_test.dart, openai_phase12_hardening_test.dart, source_alignment_test.dart, sqlite_transaction_repository_phase12_test.dart, data_database_test.dart, ai_category_fallback_test.dart, daily_expenses_test.dart, report_insights_test.dart, play_release_test.dart Fingerprint ede710b8dcaf. |
+| `lib/domain/ocr/receipt_image_preprocessor.dart` | ReceiptImagePreprocessConfig, ReceiptImagePreprocessor | Consumer langsung 3; tes langsung: receipt_image_preprocessor_test.dart Fingerprint 10a423c3273a. |
+| `lib/domain/ocr/receipt_ocr.dart` | ReceiptOcrResult, ReceiptOcrProvider, ReceiptOcrLine, receiptReadingRows | Consumer langsung 5; tes langsung: receipt_ocr_service_test.dart, receipt_transaction_parser_test.dart Fingerprint 5adce12bd1f6. |
+| `lib/domain/parsing/money_amount_parser.dart` | MoneyAmountParser, MoneyMatch | Consumer langsung 5; tes langsung: money_amount_parser_test.dart Fingerprint 1ff28a43dbb7. |
+| `lib/domain/parsing/spoken_money_normalizer.dart` | normalizeSpokenMoney, normalizeVoiceTransactions | Kedua fungsi normalisasi money/voice disatukan; nominal text umum tetap diproses parser terpisah. Consumer langsung 6; tes langsung: voice_input_service_test.dart, transaction_intelligence_service_test.dart, spenva_device_regression_test.dart Fingerprint d03123f791d8. |
+| `lib/domain/reports/daily_expenses.dart` | DailyExpense, dailyExpenses, expenseChartPoints | Consumer langsung 4; tes langsung: daily_expenses_test.dart, report_insights_test.dart Fingerprint b8a209bbaae5. |
+| `lib/domain/reports/report_insights.dart` | ReportInsight, reportMoney, _date, _percent, expenseComparison, categoryChartCaption, dailyChartCaption, reportInsights | Consumer langsung 2; tes langsung: report_insights_test.dart Fingerprint 84be5fff4d81. |
+| `lib/domain/reports/report_models.dart` | ReportTransactionGroup, ReportCategorySummary, ReportSummary | Consumer langsung 9; tes langsung: report_pdf_service_test.dart, daily_expenses_test.dart, report_insights_test.dart Fingerprint aa496876b767. |
+| `lib/domain/reports/selected_period.dart` | PeriodKind, SelectedPeriod | Consumer langsung 8; tes langsung: question_period_test.dart, selected_period_test.dart, period_calendar_test.dart Fingerprint d33bbe005194. |
+| `lib/domain/repositories/category_repository.dart` | CategoryRepository | Consumer langsung 4; tes langsung: transaction_intelligence_service_test.dart Fingerprint 946d18a02557. |
+| `lib/domain/repositories/session_repository.dart` | SessionRepository | Consumer langsung 3; cakupan melalui feature/full suite; plugin/live IO membutuhkan acceptance terpisah Fingerprint 292e487c4929. |
+| `lib/domain/repositories/transaction_repository.dart` | TransactionRepository | Consumer langsung 2; cakupan melalui feature/full suite; plugin/live IO membutuhkan acceptance terpisah Fingerprint e8bc25542412. |
+| `lib/domain/services/category_learning_service.dart` | CategoryLearningService | Consumer langsung 6; tes langsung: transaction_entry_flow_test.dart, transaction_intelligence_service_test.dart, data_database_test.dart Fingerprint 7c44c32c270b. |
+| `lib/domain/speech/speech_recognition.dart` | SpeechSessionStatus, SpeechRecognitionResult, SpeechRecognitionError, SpeechRecognitionProvider | Consumer langsung 5; tes langsung: voice_input_service_test.dart, speech_recognition_test.dart Fingerprint 21678fc474b7. |
+| `lib/domain/speech/transcript_buffer.dart` | TranscriptBuffer | Consumer langsung 2; tes langsung: spenva_device_regression_test.dart Fingerprint b88af3c37b75. |
+| `lib/domain/update/app_update.dart` | AppUpdate, UpdateProvider | Consumer langsung 4; tes langsung: update_service_test.dart Fingerprint 1a46059a6adf. |
+| `lib/main.dart` | FinChatApp, _FinChatAppState, SessionScope, main | App/router lifetime, session initialization, branding offline; tidak ada perubahan login/session mapping. Consumer langsung 12; tes langsung: phase_11_end_to_end_test.dart, chat_composer_timeline_test.dart, daily_input_reset_test.dart, navigation_back_test.dart, play_store_screenshots_test.dart, spenva_device_regression_test.dart, widget_test.dart Fingerprint 1e969a1999d1. |
+| `lib/presentation/navigation/app_router.dart` | AppRouter, _Parser, _Delegate | Navigator key/system back, account-keyed root pages, dispose listener/provider; logout route test. Consumer langsung 1; cakupan melalui feature/full suite; plugin/live IO membutuhkan acceptance terpisah Fingerprint 7be506630aa8. |
+| `lib/presentation/screens/backup_screen.dart` | BackupScreen, _BackupScreenState | Consumer langsung 1; cakupan melalui feature/full suite; plugin/live IO membutuhkan acceptance terpisah Fingerprint 88efd0dbc4a6. |
+| `lib/presentation/screens/chat_screen.dart` | ChatScreen, _ChatScreenState, _ReceiptSourceAction, _TransactionCard, _EditTransactionDialog, _EditTransactionDialogState, _EmptyChat, _PlainComposerController, _Composer, _money, _date | QA terintegrasi, intent/text/voice/OCR/review/save/learning; normalizer import diselaraskan; composer/timeline tidak didesain ulang. Native permission/IME gate. Consumer langsung 4; tes langsung: chat_composer_timeline_test.dart, daily_input_reset_test.dart, play_store_screenshots_test.dart Fingerprint 66619123eb07. |
+| `lib/presentation/screens/login_screen.dart` | LoginScreen, _LoginScreenState | Consumer langsung 3; tes langsung: play_store_screenshots_test.dart, spenva_device_regression_test.dart Fingerprint ab0fc4c62f55. |
+| `lib/presentation/screens/privacy_screen.dart` | PrivacyScreen, _PrivacyScreenState | Consumer langsung 3; cakupan melalui feature/full suite; plugin/live IO membutuhkan acceptance terpisah Fingerprint 903e7195b3f5. |
+| `lib/presentation/screens/receipt_review_screen.dart` | ReceiptReviewItem, ReceiptReviewScreen, _ReceiptReviewScreenState, _money | Consumer langsung 1; cakupan melalui feature/full suite; plugin/live IO membutuhkan acceptance terpisah Fingerprint 6a853545fe68. |
+| `lib/presentation/screens/report_screen.dart` | ReportScreen, _ReportScreenState, _ReportBody, _SummaryCard, _Metric, _InsightCard, _CategoryChart, _ExpensePiePainter, _DailyExpenseChart, _ErrorState, _percent, _date, _money | Consumer langsung 2; tes langsung: spenva_device_regression_test.dart Fingerprint 0f7ae496b0f5. |
+| `lib/presentation/screens/settings_screen.dart` | SettingsScreen, _SettingsScreenState | Versi generated; update provider ditutup pada dispose; menu login/backup/billing/privasi tetap. Consumer langsung 1; cakupan melalui feature/full suite; plugin/live IO membutuhkan acceptance terpisah Fingerprint 07a450d4d534. |
+| `lib/presentation/screens/splash_screen.dart` | SplashScreen | Consumer langsung 1; cakupan melalui feature/full suite; plugin/live IO membutuhkan acceptance terpisah Fingerprint 072eda4bbcc3. |
+| `lib/presentation/screens/subscription_screen.dart` | SubscriptionScreen, _SubscriptionScreenState | Consumer langsung 1; cakupan melalui feature/full suite; plugin/live IO membutuhkan acceptance terpisah Fingerprint 079487aa316e. |
+| `lib/presentation/widgets/period_filter.dart` | PeriodFilter, PeriodCalendarDialog, _PeriodCalendarDialogState | Consumer langsung 4; tes langsung: chat_composer_timeline_test.dart, period_calendar_test.dart, play_store_screenshots_test.dart Fingerprint 1792c0b0ab08. |
+| `lib/presentation/widgets/spenva_brand.dart` | SpenvaLogo, SpenvaGreeting, _SpenvaGreetingState, SpenvaDecoration, greetingFor | Consumer langsung 7; tes langsung: play_store_screenshots_test.dart, spenva_device_regression_test.dart Fingerprint 492c97d49d4b. |
+| `pubspec.yaml` | 61 baris, 1399 bytes | Otoritas versi 0.3.5+20, SDK/dependency/font/asset. Main harus dibandingkan ulang sesudah merge; lock teruji menyusul dari CI. Identity/config/source reference diperiksa; dipertahankan sesuai caller/asset/contract. Fingerprint 16071067e7b4. |
+| `server/play-billing/README.md` | Spenva subscription dan quota server | Current header/link/source consistency; tidak menjadi salinan status fase lama. Fingerprint 8d756379767a. |
+| `server/play-billing/meter.mjs` | 62 baris, 4767 bytes | Atomic per-account reservations, monthly/yearly boundaries, idempotent settlement, retained usage; ledger di luar backup. Backend suite. Identity/config/source reference diperiksa; dipertahankan sesuai caller/asset/contract. Fingerprint 4baefb8e558f. |
+| `server/play-billing/package.json` | 1 baris, 121 bytes | Identity/config/source reference diperiksa; dipertahankan sesuai caller/asset/contract. Fingerprint f464ec675354. |
+| `server/play-billing/plans.generated.mjs` | 80 baris, 1626 bytes | Output katalog JSON untuk server JS; enam produk dan kuota sama dengan Dart. Identity/config/source reference diperiksa; dipertahankan sesuai caller/asset/contract. Fingerprint 9734078c6e95. |
+| `server/play-billing/worker.mjs` | 233 baris, 19793 bytes | JWT RS256/audience/expiry/account binding, purchase verification/ack, prompt bounds, consent boundary/feedback/deletion/admin; 46 suite simulasi backend. Tidak membuktikan deployment. Identity/config/source reference diperiksa; dipertahankan sesuai caller/asset/contract. Fingerprint 3ae10bfbea1b. |
+| `server/play-billing/wrangler.jsonc` | 14 baris, 546 bytes | Foundation undeployed; feedback KV placeholder sengaja belum tersedia; tidak mengaktifkan paid AI. Identity/config/source reference diperiksa; dipertahankan sesuai caller/asset/contract. Fingerprint fb6de35a6793. |
+| `tooling/android/configure_android_ci.py` | 200 baris, 9801 bytes | Tool build/generator/validator berbeda tanggung jawab; Python checks/CI. Fingerprint 607d88f4a73b. |
+| `tooling/android/proguard-rules.pro` | FinChat uses ML Kit Latin text recognition for Indonesian receipt OCR. | Tool build/generator/validator berbeda tanggung jawab; Python checks/CI. Fingerprint 30071ee4dd5b. |
+| `tooling/check_repository.py` | 45 baris, 2875 bytes | Tool build/generator/validator berbeda tanggung jawab; Python checks/CI. Fingerprint 166d87242d09. |
+| `tooling/play/check_bundle.py` | 61 baris, 4523 bytes | Tool build/generator/validator berbeda tanggung jawab; Python checks/CI. Fingerprint 71b22e0b928f. |
+| `tooling/play/configure_play.py` | Native photo picker and Storage Access Framework do not require broad storage. | Tool build/generator/validator berbeda tanggung jawab; Python checks/CI. Fingerprint 53dec426fba6. |
+| `tooling/play/generate_subscription.py` | 21 baris, 2762 bytes | Tool build/generator/validator berbeda tanggung jawab; Python checks/CI. Fingerprint df582e50b6cf. |
+| `tooling/play/render_legal.py` | 28 baris, 3860 bytes | Tool build/generator/validator berbeda tanggung jawab; Python checks/CI. Fingerprint a5f5168c2598. |
+| `tooling/play/write_profile.py` | 12 baris, 816 bytes | Tool build/generator/validator berbeda tanggung jawab; Python checks/CI. Fingerprint 495cdad9704d. |
+| `tooling/repository_manifest.txt` | 204 baris, 7981 bytes | Tool build/generator/validator berbeda tanggung jawab; Python checks/CI. |
+| `tooling/sync_metadata.py` | 41 baris, 2870 bytes | Tool build/generator/validator berbeda tanggung jawab; Python checks/CI. Fingerprint 58391a055e61. |
 
-Local checks: backend 46 tests, Android generated-template 3 tests, publication validator 5 tests and generated-plan consistency passed. Standalone Dart formatter parsed changed Dart files. CI regression coverage adds UTF-8 restore, invalid duplicate/enum/reference/timestamp snapshots, provider exception safety and logout from nested routes. Historical +18 Play CI success is not reused as proof: the actual canonical head failed one stale payment-contract test. Final source `2f8d47e642c835197ffd9786f0013d12a7f79d5d` passed clean analyze, 141 normal tests (2 skipped), 11 Play-profile tests (1 skipped), 1 native Linux integration, 4 screenshot captures, permanent-key release APK and signed AAB/16KB checks. Exact run/artifact links are in [playstore/VALIDATION.md](playstore/VALIDATION.md). Subsequent documentation-only commits preserve the tested runtime/workflows. PR4 remains unmerged.
+## Audit setiap file pengujian
 
-Local Flutter execution was blocked by automatic review because initialization attempted metadata-service network access. No local Flutter analyze/test/APK success is claimed. Remote CI is the independent validation route.
+| File | Skenario yang diverifikasi | Batas / keputusan |
+|---|---|---|
+| `integration_test/phase_11_end_to_end_test.dart` | authenticated shell preserves offline multi-transaction entry, reports and navigation | Native Linux offline flow; tidak menggantikan plugin Android/device. |
+| `server/play-billing/meter.test.mjs` | source has 6 paid products and exact final quota/price matrix; camera and attach use shared scan count, cancellation/failure refunds once; one successful local voice uses no AI; cloud voice uses both balances; atomic concurrent reservations do not exceed free voice cap; logout/reinstall/restore reopen same server ledger without reset; yearly plans refill monthly, end-of-month anchor and leap day remain correct; month resets only at boundary; upgrades/downngrades retain usage; Free PDF one per month, paid PDF unlimited, basic usage retained on upgrade; invalid resource and duplicate pending operation cannot increase count; all monthly/yearly verified products preserve cancel/grace state until expiry; Free-to-paid upgrade does not refill again at the old calendar boundary; abandoned unlimited PDF operations expire without locking next reservations; completion counters measure transactions in mixed batches and reject invalid event counts | Node upstream/RSA/storage simulations; bukan real Play/Gemini/payment. |
+| `server/play-billing/worker.test.mjs` | allows paid access until expiry: ; denies ; rejects wrong account, product, base plan, expired entitlement; four-tier catalog has explicit AI limits; server acknowledges only matching verified purchase; forged/expired/wrong audience identity denied before Publisher request; Play AI fails closed when billed provider is not configured; expired subscription falls back to free AI allowance; quota enforces cap, refunds failures and retains separate billing cycles; AI bounded model/output and refund on upstream error; feedback is stored, requires real backend, deletion preserves other users; malformed or oversized input token counts prevent generation and refund quota; signed Free quota ignores forged client plan and denies reserving server AI directly; verified server purchase survives reinstall without a device purchase token; unpaid education sends fixed general topic only and refuses raw messages before provider call; priority capacity reserves paid slots and releases them after completion; AI fallback attempts/errors/timeouts are monitored separately from refunded credits; active purchase past paid expiry returns Free state without extra premium access; admin usage reports persisted plan/period and counters without tokens or reservations; malformed client reservation is denied before touching the quota ledger; retention alarm removes account association and ledger exactly at the advertised boundary; stale device token cannot downgrade the newer server purchase or reset paid usage; Google no-longer-retained expired token returns Free quota rather than blocking the app; stale token from another signed-out account leaves Free available but cannot grant paid access | Node upstream/RSA/storage simulations; bukan real Play/Gemini/payment. |
+| `test/application/automatic_backup_service_test.dart` | does not contact Drive when automatic backup preference is disabled | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/application/backup_audit_regression_test.dart` | UTF-8 bytes restore names, accents and emoji intact; rejects $scenario before replacing original data; transactional snapshot validates after a regular export | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/application/backup_preference_service_test.dart` | automatic backup preference persists in app_settings | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/application/backup_service_test.dart` | exports all FinChat tables into a versioned backup; backup JSON can be decoded without losing table rows; restore replaces local data from a backup snapshot; restores the original FinChat backup format and maps it to the current user; cloud backup requires an explicitly configured provider; cloud provider can upload and restore a snapshot | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/application/backup_snapshot_validation_test.dart` | rejects incomplete backups; rejects unsupported backup columns; rejects incomplete table rows; rejects invalid transaction confidence | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/application/cloud_acknowledgement_test.dart` | only acknowledges successful uploaded versions; failed or changed rows stay local | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/application/drive_silent_auth_test.dart` | Drive auth drops the account after shared coordinator logout; reopened app uses no-prompt Drive authorization and skips unavailable consent | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/application/financial_qa_service_test.dart` | answers common finance question locally before AI fallback | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/application/google_id_token_session_test.dart` | background token lookup never starts authentication and rejects stale tokens; logged-in valid token does not attempt lightweight authentication; expired token restores once and never sends expired or malformed token; logout clears token and ignores late authentication restoration; concurrent AI requests share authentication restoration | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/application/input_intent_test.dart` | money in questions must never become database transactions; retains local multi transaction input and income | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/application/ocr/receipt_ocr_service_test.dart` | preprocesses bytes, sends a temporary file to OCR, and cleans it up | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/application/ocr/receipt_transaction_parser_test.dart` | Mahkota separate names/prices exclude payment and total rows; noisy OCR quantity tokens and unit prices retain product names; separate OCR blocks are reordered into rows before associating prices; plain receipt prices do not turn unit sizes into prices; extracts multiple receipt line items and ignores totals; uses the last amount on a quantity line as the transaction amount; returns empty for text without money amounts | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/application/question_period_test.dart` | questions set their own date scope without a chat filter; full-month question ranges normalize; invalid dates cannot silently select all data | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/application/report_pdf_service_test.dart` | generates a valid PDF document with report content; generates a PDF for an empty report; builds a safe deterministic PDF filename | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/application/report_service_test.dart` | groups transactions with the same detail and exposes transaction count; keeps same description separate when type or category differs; range report includes both boundary dates; monthly report handles year boundary | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/application/session_manager_google_test.dart` | Google sign-in creates a Google session without changing the local user key format; Google logout clears the local session even when Google sign-out succeeds | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/application/session_manager_test.dart` | login creates an authenticated session | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/application/speech/voice_input_service_test.dart` | segmented final callbacks settle once and keep both transactions; a final voice result preserves all transactions after the early partial callback; Android stopped status cannot submit partial nasi before final amount; notifies UI and keeps Indonesian locale through the provider; initializes and captures final transcript; stops an active session; late final result after cancel cannot repopulate an old transcript; cancel clears transcript | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/application/transaction_entry_flow_test.dart` | parses multiple transactions, saves them, and preserves category correction | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/application/transaction_intelligence_service_test.dart` | explicit user learning wins over cloud fallback even for low confidence and other category; one spoken multi transaction input remains local with numeric and word prices; receipt batch preserves product names/amounts and reads mappings once; production capture never waits for AI even for unknown multi items; uses AI only when local category is unresolved; does not call AI for a confidently locally categorized transaction | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/application/transactions/local_transaction_parser_test.dart` | parses one expense with 25 rb; parses one expense with 25 ribu; parses one expense with 25k; parses multiple transactions from one text; parses income using million shorthand | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/chat_composer_timeline_test.dart` | sending holds keyboard/input position and interleaves new transactions with Q&A | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/core/input_failure_message_test.dart` | quota guidance remains visible while unrelated technical errors stay hidden; native stack trace stays out of user messages | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/core/transaction_validator_test.dart` | rejects empty and oversized input; rejects invalid amount and confidence | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/daily_input_reset_test.dart` | next-day resume resets the input view while preserving SQLite history | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/data/gateway_contract_test.dart` | matches deployed Gateway role/text and bearer contract; exposes authentication and quota errors without exposing tokens; accepts Gemini fenced category JSON | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/data/openai_compatible_ai_provider_test.dart` | parses category JSON from the Cloudflare Gateway response; returns null when AI is disabled | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/data/openai_phase12_hardening_test.dart` | production Gateway provider does not require the legacy local AI toggle; disabled AI does not call network; enabled AI rejects insecure endpoint; provider rejects oversized response | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/data/source_alignment_test.dart` | release comparison detects build-only upgrades and preserves historical tags; release comparison rejects malformed or ambiguous versions; initial categories and repaired legacy categories use identical defaults; editing a restored transaction retains history foreign keys | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/data/sqlite_transaction_repository_phase12_test.dart` | saveAll persists multiple transactions atomically; saveAll rejects duplicate IDs before changing database | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/data_database_test.dart` | production database instances share one connection and screen close cannot close it; custom database instances remain isolated for tests; defaults missing after a partial restore are added without replacing user data; typed categories persist, reuse normalized names and learn for the user; creates schema and seeds system categories; saves, reads, updates and soft deletes transactions; learns user category corrections and preserves history; category learning resolves exact user mapping before fallback | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/domain/ai_category_fallback_test.dart` | provider errors and non-finite confidence leave local capture available; accepts a valid category suggestion above threshold; rejects unknown category; rejects low confidence suggestion | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/domain/backup_models_test.dart` | backup snapshot round-trips through JSON; rejects an unsupported backup version | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/domain/billing_subscription_models_test.dart` | catalog exposes four tiers without granting paid entitlements; subscription service defaults every new user to Free; canonical Play catalog exposes no external checkout methods | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/domain/daily_expenses_test.dart` | daily range includes empty days, aggregates expenses and excludes income; one-day comparison crosses year boundary without changing selected total | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/domain/ocr/receipt_image_preprocessor_test.dart` | preprocesses a receipt image into OCR-friendly JPEG bytes; rejects empty image input; rejects unsupported image bytes | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/domain/parsing/money_amount_parser_test.dart` | recognizes common Indonesian thousand formats; recognizes million formats and decimals; recognizes multiple amounts in one input; recognizes billion and Indonesian grouped number | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/domain/report_insights_test.dart` | insights derive cash flow, zero-day average, peak and repeat totals from selected data; single-day caption compares two bars while period total excludes prior day | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/domain/selected_period_test.dart` | recognizes one day, arbitrary ranges, full months and leap years; includes the entire last selected day and excludes next day; previous and next preserve month boundaries across years | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/domain/speech/speech_recognition_test.dart` | speech result preserves transcript, final flag and confidence | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/domain/spoken_money_test.dart` | speech word numbers are transactions and preserve numeric text | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/domain/update_service_test.dart` | passes current version to update provider | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/navigation_back_test.dart` | system back returns backup to settings, settings to input, reports to input | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/period_calendar_test.dart` | opening an existing month or year does not silently change its filter; filter opens calendar directly and highlights a selected range; calendar supports a full month and full year | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/play_release_test.dart` | invalid account, expired and client-only purchase cannot grant AI; Play Free profile never sends financial data to pilot gateway; deletion waits for queued backup and blocks new uploads; Drive deletion preserves other profiles, removes deleted learning and custom categories; local deletion removes only selected user and keeps database open | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/play_store_screenshots_test.dart` | capture actual Spenva screens with demo finances | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/spenva_device_regression_test.dart` | currency, negative balance and provider answers use one format; segmented and cumulative voice preserve both foods without duplicate amounts; salary and income aliases parse locally including mixed expenses; local greeting uses device hour and only available display name; sign in stays usable on small screens with large text; million totals stay complete at large text and PDF saves or shares by choice | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/subscription_quota_test.dart` | logout clears only the Play purchase cache and still signs out after storage failure; offline Play profile cannot start account authentication from a quota gate; pilot quota layer does not initialize billing or change the existing flow; final catalog exposes correct prices, six products and independent resource limits; successful local voice settlement is idempotent and never touches AI credits; failed scan releases the shared scan reservation only once; free preserves core reports while paid plans enable automation and comparison | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `test/widget_test.dart` | shows login when there is no session | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `tooling/android/test_configure_android_ci.py` | test_existing_queries_receive_speech_without_losing_existing_intents; test_kotlin_plugins_precede_property_initialization_and_configuration_is_idempotent; test_groovy_template_keeps_one_release_signing_block | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
+| `tooling/play/test_check_bundle.py` | test_reads_real_elf64_load_alignment; test_empty_profile_cannot_be_published; test_configured_billing_requires_independent_verification; test_free_infrastructure_does_not_require_paid_ai_when_personal_ai_is_disabled; test_unpaid_education_requires_data_boundary_review | Tetap: skenario berbeda; normal/Play/capture dipisahkan. Hasil executable lihat VALIDATION. |
 
-Physical Android acceptance: update existing install without uninstall; Google login/restart/logout from Settings/Backup; text and segmented Indonesian speech; camera/file/gallery OCR and cancellation/denied permission; review/edit and category learning; report periods/large nominal/font; PDF save/share; UTF-8 export/restore; Drive silent/manual/automatic/deletion; pilot Gateway refresh; Play-distributed app signing/OAuth; quota and billing lifecycle only once backend/products are activated.
+## File yang dihapus/disatukan
 
-Publication profile still intentionally records missing identity/contact/URLs/Console/closed-test approvals. Wrangler feedback KV is a deployment placeholder. This source audit does not turn a disabled/unconfigured external service into a running production service. Keep checkout and cloud features visibly unavailable where configuration is absent; local core remains usable. Do not claim zero external gates or production-ready.
-
-## Cleanup decisions
-
-Only the redundant source pointer is removed from tracked current source. Brand source vectors, bundled raster images/fonts/licenses, server tests, release validator and historical evidence are retained because they support regeneration or validation. Generated caches are excluded by gitignore. Repository manifest is rebuilt from staged source and tested in CI; it is never a deletion whitelist.
-
-## Source inventory
-
-Inventory records each tracked path and purpose. Inclusion is not a claim that a plugin works on a physical device. File roles are paired with source-level findings and executable tests above.
-
-| Path | Role |
+| File | Keputusan |
 |---|---|
-| `.gitattributes` | Project metadata/tooling |
-| `.github/workflows/build_android.yml` | CI workflow |
-| `.github/workflows/finchat_audit_validation.yml` | CI workflow |
-| `.github/workflows/flutter_test.yml` | CI workflow |
-| `.github/workflows/play_store.yml` | CI workflow |
-| `.github/workflows/release.yml` | CI workflow |
-| `.gitignore` | Project metadata/tooling |
-| `Ai start here.md` | Product/source documentation |
-| `CHANGELOG.md` | Product/source documentation |
-| `README.md` | Product/source documentation |
-| `UPDATE_GITHUB.bat` | Project metadata/tooling |
-| `analysis_options.yaml` | Project metadata/tooling |
-| `assets/brand/GOOGLE_ASSET_SOURCE.txt` | Bundled product asset/config/license |
-| `assets/brand/android_foreground.png` | Bundled product asset/config/license |
-| `assets/brand/android_foreground.svg` | Bundled product asset/config/license |
-| `assets/brand/android_icon.png` | Bundled product asset/config/license |
-| `assets/brand/android_icon.svg` | Bundled product asset/config/license |
-| `assets/brand/google-g.png` | Bundled product asset/config/license |
-| `assets/brand/header.png` | Bundled product asset/config/license |
-| `assets/brand/header.svg` | Bundled product asset/config/license |
-| `assets/brand/mark.png` | Bundled product asset/config/license |
-| `assets/brand/mark.svg` | Bundled product asset/config/license |
-| `assets/brand/sign_in.png` | Bundled product asset/config/license |
-| `assets/brand/sign_in.svg` | Bundled product asset/config/license |
-| `assets/config/subscription_plans.json` | Bundled product asset/config/license |
-| `assets/fonts/DejaVuSans-Bold.ttf` | Bundled product asset/config/license |
-| `assets/fonts/DejaVuSans.ttf` | Bundled product asset/config/license |
-| `assets/fonts/GoogleSans-Medium.ttf` | Bundled product asset/config/license |
-| `assets/fonts/GoogleSans-OFL.txt` | Bundled product asset/config/license |
-| `assets/fonts/LICENSE.txt` | Bundled product asset/config/license |
-| `assets/legal/privacy_id.txt` | Bundled product asset/config/license |
-| `docs/AI_CONTRACT.md` | Product/source documentation |
-| `docs/ARCHITECTURE.md` | Product/source documentation |
-| `docs/AUDIT_0.3.2+11.md` | Product/source documentation |
-| `docs/AUDIT_0.3.2+12.md` | Product/source documentation |
-| `docs/AUDIT_0.3.2+13.md` | Product/source documentation |
-| `docs/AUDIT_0.3.2+14.md` | Product/source documentation |
-| `docs/AUDIT_0.3.2+15.md` | Product/source documentation |
-| `docs/AUDIT_0.3.2+16.md` | Product/source documentation |
-| `docs/BUGFIX_0.3.2+6_DATABASE_AI.md` | Product/source documentation |
-| `docs/FINCHAT_MASTER_CONTEXT.md` | Product/source documentation |
-| `docs/FULL_REPOSITORY_AUDIT.md` | Product/source documentation |
-| `docs/GOOGLE_ACCOUNT_AND_DRIVE_SETUP.md` | Product/source documentation |
-| `docs/IMPLEMENTATION_STATUS.md` | Product/source documentation |
-| `docs/MULTI_USER_AI_AND_MONETIZATION.md` | Product/source documentation |
-| `docs/PHASES.md` | Product/source documentation |
-| `docs/PHASE_11_12_IMPLEMENTATION_HISTORY.md` | Product/source documentation |
-| `docs/PHASE_11_7_E2E_MATRIX.md` | Product/source documentation |
-| `docs/PHASE_12_COMPLETION_REPORT.md` | Product/source documentation |
-| `docs/PHASE_12_HARDENING_MATRIX.md` | Product/source documentation |
-| `docs/PRD.md` | Product/source documentation |
-| `docs/ROADMAP_AUDIT.md` | Product/source documentation |
-| `docs/SPENVA_CANONICAL_SOURCE.md` | Product/source documentation |
-| `docs/UPDATE_RELEASE.md` | Product/source documentation |
-| `docs/VOICE_INPUT.md` | Product/source documentation |
-| `docs/history/AI_HANDOFF_HISTORY.md` | Product/source documentation |
-| `docs/playstore/DATA_SAFETY.md` | Product/source documentation |
-| `docs/playstore/LAUNCH.md` | Product/source documentation |
-| `docs/playstore/LISTING_ID.md` | Product/source documentation |
-| `docs/playstore/PLANS.md` | Product/source documentation |
-| `docs/playstore/SUBSCRIPTION.md` | Product/source documentation |
-| `docs/playstore/VALIDATION.md` | Product/source documentation |
-| `docs/playstore/feature-graphic.png` | Project metadata/tooling |
-| `docs/playstore/publication-profile.json` | Project metadata/tooling |
-| `docs/playstore/store-icon.png` | Project metadata/tooling |
-| `docs/privacy/index.html` | Project metadata/tooling |
-| `integration_test/phase_11_end_to_end_test.dart` | Regression/integration coverage |
-| `lib/application/ai/ai_secure_config_service.dart` | Application orchestration |
-| `lib/application/ai/financial_qa_service.dart` | Application orchestration |
-| `lib/application/ai/question_period.dart` | Application orchestration |
-| `lib/application/auth/google_auth_service.dart` | Application orchestration |
-| `lib/application/auth/google_id_token_session.dart` | Application orchestration |
-| `lib/application/auth/google_sign_in_coordinator.dart` | Application orchestration |
-| `lib/application/backup/automatic_backup_service.dart` | Application orchestration |
-| `lib/application/backup/backup_preference_service.dart` | Application orchestration |
-| `lib/application/backup/backup_service.dart` | Application orchestration |
-| `lib/application/backup/google_drive_auth_service.dart` | Application orchestration |
-| `lib/application/billing/generated_plans.dart` | Application orchestration |
-| `lib/application/billing/monetization_config.dart` | Application orchestration |
-| `lib/application/billing/payment_gateway.dart` | Application orchestration |
-| `lib/application/billing/plan_catalog.dart` | Application orchestration |
-| `lib/application/billing/play_billing_service.dart` | Application orchestration |
-| `lib/application/billing/quota_service.dart` | Application orchestration |
-| `lib/application/billing/subscription_service.dart` | Application orchestration |
-| `lib/application/ocr/receipt_ocr_service.dart` | Application orchestration |
-| `lib/application/ocr/receipt_transaction_parser.dart` | Application orchestration |
-| `lib/application/privacy/account_data_service.dart` | Application orchestration |
-| `lib/application/privacy/data_operation_gate.dart` | Application orchestration |
-| `lib/application/privacy/drive_data_deletion.dart` | Application orchestration |
-| `lib/application/reports/report_pdf_service.dart` | Application orchestration |
-| `lib/application/reports/report_service.dart` | Application orchestration |
-| `lib/application/session/session_manager.dart` | Application orchestration |
-| `lib/application/speech/voice_input_service.dart` | Application orchestration |
-| `lib/application/transactions/input_intent.dart` | Application orchestration |
-| `lib/application/transactions/local_transaction_parser.dart` | Application orchestration |
-| `lib/application/transactions/transaction_intelligence_service.dart` | Application orchestration |
-| `lib/application/update/update_service.dart` | Application orchestration |
-| `lib/core/constants/app_constants.dart` | Shared core/app bootstrap |
-| `lib/core/errors/app_failure.dart` | Shared core/app bootstrap |
-| `lib/core/errors/input_failure_message.dart` | Shared core/app bootstrap |
-| `lib/core/formatting/rupiah.dart` | Shared core/app bootstrap |
-| `lib/core/release/play_release_config.dart` | Shared core/app bootstrap |
-| `lib/core/validation/transaction_validator.dart` | Shared core/app bootstrap |
-| `lib/data/ai/openai_compatible_ai_provider.dart` | Data/provider implementation |
-| `lib/data/backup/google_drive_backup_provider.dart` | Data/provider implementation |
-| `lib/data/local/database_schema.dart` | Data/provider implementation |
-| `lib/data/local/finchat_database.dart` | Data/provider implementation |
-| `lib/data/ocr/image_receipt_preprocessor.dart` | Data/provider implementation |
-| `lib/data/ocr/mlkit_receipt_ocr_provider.dart` | Data/provider implementation |
-| `lib/data/repositories/in_memory_session_repository.dart` | Data/provider implementation |
-| `lib/data/repositories/sqlite_category_repository.dart` | Data/provider implementation |
-| `lib/data/repositories/sqlite_transaction_repository.dart` | Data/provider implementation |
-| `lib/data/session/secure_session_repository.dart` | Data/provider implementation |
-| `lib/data/speech/speech_to_text_provider.dart` | Data/provider implementation |
-| `lib/data/update/github_release_update_provider.dart` | Data/provider implementation |
-| `lib/domain/ai/ai_category_fallback.dart` | Domain contract/model |
-| `lib/domain/ai/financial_ai_provider.dart` | Domain contract/model |
-| `lib/domain/auth/google_auth_result.dart` | Domain contract/model |
-| `lib/domain/backup/backup_models.dart` | Domain contract/model |
-| `lib/domain/billing/subscription_models.dart` | Domain contract/model |
-| `lib/domain/entities/category_entity.dart` | Domain contract/model |
-| `lib/domain/entities/category_mapping.dart` | Domain contract/model |
-| `lib/domain/entities/session.dart` | Domain contract/model |
-| `lib/domain/entities/transaction_entity.dart` | Domain contract/model |
-| `lib/domain/ocr/receipt_image_preprocessor.dart` | Domain contract/model |
-| `lib/domain/ocr/receipt_ocr.dart` | Domain contract/model |
-| `lib/domain/parsing/money_amount_parser.dart` | Domain contract/model |
-| `lib/domain/parsing/spoken_money_normalizer.dart` | Domain contract/model |
-| `lib/domain/parsing/voice_transaction_normalizer.dart` | Domain contract/model |
-| `lib/domain/reports/daily_expenses.dart` | Domain contract/model |
-| `lib/domain/reports/report_insights.dart` | Domain contract/model |
-| `lib/domain/reports/report_models.dart` | Domain contract/model |
-| `lib/domain/reports/selected_period.dart` | Domain contract/model |
-| `lib/domain/repositories/category_repository.dart` | Domain contract/model |
-| `lib/domain/repositories/session_repository.dart` | Domain contract/model |
-| `lib/domain/repositories/transaction_repository.dart` | Domain contract/model |
-| `lib/domain/services/category_learning_service.dart` | Domain contract/model |
-| `lib/domain/speech/speech_recognition.dart` | Domain contract/model |
-| `lib/domain/speech/transcript_buffer.dart` | Domain contract/model |
-| `lib/domain/update/app_update.dart` | Domain contract/model |
-| `lib/main.dart` | Shared core/app bootstrap |
-| `lib/presentation/navigation/app_router.dart` | Presentation |
-| `lib/presentation/screens/backup_screen.dart` | Presentation |
-| `lib/presentation/screens/chat_screen.dart` | Presentation |
-| `lib/presentation/screens/financial_qa_screen.dart` | Presentation |
-| `lib/presentation/screens/login_screen.dart` | Presentation |
-| `lib/presentation/screens/privacy_screen.dart` | Presentation |
-| `lib/presentation/screens/receipt_review_screen.dart` | Presentation |
-| `lib/presentation/screens/report_screen.dart` | Presentation |
-| `lib/presentation/screens/settings_screen.dart` | Presentation |
-| `lib/presentation/screens/splash_screen.dart` | Presentation |
-| `lib/presentation/screens/subscription_screen.dart` | Presentation |
-| `lib/presentation/widgets/period_filter.dart` | Presentation |
-| `lib/presentation/widgets/spenva_brand.dart` | Presentation |
-| `pubspec.yaml` | Project metadata/tooling |
-| `server/play-billing/README.md` | Product/source documentation |
-| `server/play-billing/meter.mjs` | Subscription server contract/test/config |
-| `server/play-billing/meter.test.mjs` | Subscription server contract/test/config |
-| `server/play-billing/package.json` | Subscription server contract/test/config |
-| `server/play-billing/plans.generated.mjs` | Subscription server contract/test/config |
-| `server/play-billing/worker.mjs` | Subscription server contract/test/config |
-| `server/play-billing/worker.test.mjs` | Subscription server contract/test/config |
-| `server/play-billing/wrangler.jsonc` | Subscription server contract/test/config |
-| `test/application/automatic_backup_service_test.dart` | Regression/integration coverage |
-| `test/application/backup_audit_regression_test.dart` | Regression/integration coverage |
-| `test/application/backup_preference_service_test.dart` | Regression/integration coverage |
-| `test/application/backup_service_test.dart` | Regression/integration coverage |
-| `test/application/backup_snapshot_validation_test.dart` | Regression/integration coverage |
-| `test/application/cloud_acknowledgement_test.dart` | Regression/integration coverage |
-| `test/application/drive_silent_auth_test.dart` | Regression/integration coverage |
-| `test/application/financial_qa_service_test.dart` | Regression/integration coverage |
-| `test/application/google_id_token_session_test.dart` | Regression/integration coverage |
-| `test/application/input_intent_test.dart` | Regression/integration coverage |
-| `test/application/ocr/receipt_ocr_service_test.dart` | Regression/integration coverage |
-| `test/application/ocr/receipt_transaction_parser_test.dart` | Regression/integration coverage |
-| `test/application/question_period_test.dart` | Regression/integration coverage |
-| `test/application/report_pdf_service_test.dart` | Regression/integration coverage |
-| `test/application/report_service_test.dart` | Regression/integration coverage |
-| `test/application/session_manager_google_test.dart` | Regression/integration coverage |
-| `test/application/session_manager_test.dart` | Regression/integration coverage |
-| `test/application/speech/voice_input_service_test.dart` | Regression/integration coverage |
-| `test/application/transaction_entry_flow_test.dart` | Regression/integration coverage |
-| `test/application/transaction_intelligence_service_test.dart` | Regression/integration coverage |
-| `test/application/transactions/local_transaction_parser_test.dart` | Regression/integration coverage |
-| `test/chat_composer_timeline_test.dart` | Regression/integration coverage |
-| `test/core/input_failure_message_test.dart` | Regression/integration coverage |
-| `test/core/transaction_validator_test.dart` | Regression/integration coverage |
-| `test/daily_input_reset_test.dart` | Regression/integration coverage |
-| `test/data/gateway_contract_test.dart` | Regression/integration coverage |
-| `test/data/openai_compatible_ai_provider_test.dart` | Regression/integration coverage |
-| `test/data/openai_phase12_hardening_test.dart` | Regression/integration coverage |
-| `test/data/sqlite_transaction_repository_phase12_test.dart` | Regression/integration coverage |
-| `test/data_database_test.dart` | Regression/integration coverage |
-| `test/domain/ai_category_fallback_test.dart` | Regression/integration coverage |
-| `test/domain/backup_models_test.dart` | Regression/integration coverage |
-| `test/domain/billing_subscription_models_test.dart` | Regression/integration coverage |
-| `test/domain/daily_expenses_test.dart` | Regression/integration coverage |
-| `test/domain/ocr/receipt_image_preprocessor_test.dart` | Regression/integration coverage |
-| `test/domain/parsing/money_amount_parser_test.dart` | Regression/integration coverage |
-| `test/domain/report_insights_test.dart` | Regression/integration coverage |
-| `test/domain/selected_period_test.dart` | Regression/integration coverage |
-| `test/domain/speech/speech_recognition_test.dart` | Regression/integration coverage |
-| `test/domain/spoken_money_test.dart` | Regression/integration coverage |
-| `test/domain/update_service_test.dart` | Regression/integration coverage |
-| `test/navigation_back_test.dart` | Regression/integration coverage |
-| `test/period_calendar_test.dart` | Regression/integration coverage |
-| `test/play_release_test.dart` | Regression/integration coverage |
-| `test/play_store_screenshots_test.dart` | Regression/integration coverage |
-| `test/spenva_device_regression_test.dart` | Regression/integration coverage |
-| `test/subscription_quota_test.dart` | Regression/integration coverage |
-| `test/widget_test.dart` | Regression/integration coverage |
-| `tooling/android/configure_android_ci.py` | Android/build/release tooling |
-| `tooling/android/proguard-rules.pro` | Android/build/release tooling |
-| `tooling/android/test_configure_android_ci.py` | Android/build/release tooling |
-| `tooling/check_repository.py` | Android/build/release tooling |
-| `tooling/play/check_bundle.py` | Android/build/release tooling |
-| `tooling/play/configure_play.py` | Android/build/release tooling |
-| `tooling/play/generate_subscription.py` | Android/build/release tooling |
-| `tooling/play/render_legal.py` | Android/build/release tooling |
-| `tooling/play/test_check_bundle.py` | Android/build/release tooling |
-| `tooling/play/write_profile.py` | Android/build/release tooling |
-| `tooling/repository_manifest.txt` | Android/build/release tooling |
+| `lib/application/billing/payment_gateway.dart` | Dihapus: external payment placeholder tidak direferensikan app/test; tidak ada checkout aktif hilang. |
+| `lib/core/errors/app_failure.dart` | Dihapus: hierarchy tidak digunakan; UserFacingException/inputFailureMessage tetap aktif. |
+| `lib/presentation/screens/financial_qa_screen.dart` | Dihapus: route QA lama tidak direferensikan; QA aktif tetap di ChatScreen. |
+| `lib/domain/parsing/voice_transaction_normalizer.dart` | Dihapus setelah fungsi dipindah ke spoken_money_normalizer; seluruh import/test diperbarui. |
+
+Dokumen historis yang dikeluarkan seluruhnya tercantum pada indeks arsip. Main dan staging sesudah merge harus memiliki tree yang sama; histori branch lama tidak boleh disalin ke source current.

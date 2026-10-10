@@ -11,7 +11,7 @@ import 'package:finchat/presentation/screens/report_screen.dart';
 import 'package:finchat/presentation/widgets/spenva_brand.dart';
 import 'package:finchat/core/formatting/rupiah.dart';
 import 'package:finchat/domain/speech/transcript_buffer.dart';
-import 'package:finchat/domain/parsing/voice_transaction_normalizer.dart';
+import 'package:finchat/domain/parsing/spoken_money_normalizer.dart';
 import 'package:finchat/application/transactions/local_transaction_parser.dart';
 
 void main() {

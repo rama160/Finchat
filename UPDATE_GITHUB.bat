@@ -4,7 +4,7 @@ cd /d "%~dp0"
 
 title FinChat - GitHub Update and Cleanup
 set "REMOTE_URL=https://github.com/rama160/Finchat"
-set "BRANCH=spenva-source-of-truth"
+set "BRANCH=main"
 set "COMMIT_MESSAGE=%~1"
 if "%COMMIT_MESSAGE%"=="" set "COMMIT_MESSAGE=FinChat audit cleanup and repository sync"
 
