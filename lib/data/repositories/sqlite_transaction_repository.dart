@@ -129,8 +129,9 @@ class SqliteTransactionRepository implements TransactionRepository {
 
   @override
   Future<void> delete(String id) async {
-    if (id.trim().isEmpty)
+    if (id.trim().isEmpty) {
       throw ArgumentError.value(id, 'id', 'must not be empty');
+    }
     final db = await database.database;
     await db.update(
       'transactions',
