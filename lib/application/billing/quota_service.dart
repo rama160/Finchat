@@ -32,12 +32,12 @@ class SubscriptionQuotaService {
       // cloud AI and paid services always use the normal server ledger.
       if (PlayReleaseConfig.billingConfigured &&
           accountLinked &&
-          (resource == 'voice' || resource == 'ocr')) {
+          (resource == 'voice' || resource == 'ocr' || resource == 'pdf')) {
         final state = await service!.quotaRequest('state');
         final access = state['testingAccess'];
         if (access is Map<String, dynamic> &&
             access['enabled'] == true &&
-            access['localInput'] == true) {
+            (resource == 'pdf' ? access['enabled'] == true : access['localInput'] == true)) {
           return QuotaLease(resource, id, service, enforced: false);
         }
       }
