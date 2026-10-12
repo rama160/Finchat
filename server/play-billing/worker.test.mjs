@@ -184,3 +184,35 @@ test('tester grants are admin-only and persisted on the primary quota object',as
   assert.equal(reserve.status,200);
   assert.equal(quota.values.get('meter').used.voice,0);
 });
+
+
+test('Alpha rejects malformed operations, retains AI gate and revokes without clearing usage',async()=> {
+  const q=fakeQuota(), options={...env,ADMIN_TOKEN:'private-admin',QUOTA:q.binding};
+  const freeRequest=async(path,body={})=>{const r=await request(path,body);r.headers.delete('X-Play-Purchase-Token');return r;};
+  const admin=enabled=>handle(new Request('https://test/v1/admin/testing-access',{method:'POST',headers:{Authorization:'Bearer private-admin'},body:JSON.stringify({account,enabled})}),options,network());
+  await handle(await freeRequest('/v1/quota/reserve',{resource:'voice',operationId:'before_alpha'}),options,network());
+  await admin(true);
+  assert.equal((await handle(await freeRequest('/v1/quota/reserve',{resource:'voice',operationId:'bad'}),options,network())).status,400);
+  assert.equal((await handle(await freeRequest('/v1/quota/reserve',{resource:'ai',operationId:'alpha_ai_test'}),options,network())).status,403);
+  assert.equal((await handle(await freeRequest('/v1/ai/chat'),options,network())).status,503);
+  await handle(await freeRequest('/v1/quota/settle',{operationId:'before_alpha',success:false}),options,network());
+  assert.equal(q.values.get('meter').used.voice,0);
+  for(const resource of ['voice','ocr','pdf'])assert.equal((await handle(await freeRequest('/v1/quota/reserve',{resource,operationId:'alpha_'+resource}),options,network())).status,200);
+  await admin(false);
+  const state=await (await handle(await freeRequest('/v1/quota/state'),options,network())).json();
+  assert.deepEqual(state.testingAccess,{enabled:false,localInput:false});
+  assert.equal(state.used.voice,0);
+  for(let i=0;i<10;i++)assert.equal((await handle(await freeRequest('/v1/quota/reserve',{resource:'voice',operationId:'production_'+i}),options,network())).status,200);
+  assert.equal((await handle(await freeRequest('/v1/quota/reserve',{resource:'voice',operationId:'production_over'}),options,network())).status,429);
+});
+
+test('Alpha grant is isolated from another Google subject',async()=> {
+  const accounts=new Map();
+  const binding={idFromName:x=>x,get:id=>{if(!accounts.has(id))accounts.set(id,fakeQuota());return accounts.get(id).binding.get();}};
+  const options={...env,ADMIN_TOKEN:'private-admin',QUOTA:binding};
+  await handle(new Request('https://test/v1/admin/testing-access',{method:'POST',headers:{Authorization:'Bearer private-admin'},body:JSON.stringify({account,enabled:true})}),options,network());
+  const other=await request('/v1/quota/state',{}, {sub:'production-subject'});other.headers.delete('X-Play-Purchase-Token');
+  const state=await (await handle(other,options,network())).json();
+  assert.equal(state.testingAccess.enabled,false);
+  assert.equal(state.limits.voice,10);
+});
