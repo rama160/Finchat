@@ -1,6 +1,6 @@
 # Spesifikasi produk Spenva
 
-**Versi sumber: 0.3.5+20**
+**Versi sumber: 0.3.6+21**
 
 Spenva adalah pencatat keuangan pribadi Android dengan interaksi chat dan sumber data lokal. Bukan bank, layanan transfer, pinjaman atau trading.
 

@@ -1,6 +1,6 @@
 # Audit setiap file — penyelarasan source
 
-**Versi sumber: 0.3.5+20**
+**Versi sumber: 0.3.6+21**
 
 Audit ulang 10 Oktober 2026. Baseline main `91252bddf4a4eadaa99dafe095f72c2e04a4bab1` masih0.3.2+10; staging audit sebelumnya `452d85c49e4177558e46cc243b6fef121e919aa2` adalah0.3.4+19. Ini sebab versi yang terlihat pengguna berbeda. Perbaikan sudah digabung melalui PR #4 ke main pada commit `678f08da89e9b39b170376032387d6c46a95dafc`. Remote pubspec dan AppConstants dibaca ulang: keduanya0.3.5+20; tree main identik dengan hasil audit. Bukti rinci ada di VALIDATION.
 

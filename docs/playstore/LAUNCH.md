@@ -1,6 +1,6 @@
 # Persiapan publikasi Play
 
-**Versi sumber: 0.3.5+20**
+**Versi sumber: 0.3.6+21**
 
 AAB dapat lulus teknis sementara aplikasi belum siap publikasi. Daftar di bawah adalah **9 blocker profile repository**, bukan daftar seluruh kebijakan Google. Nilai saat ini dibaca oleh tooling/play/check_bundle.py dari publication-profile.json dan environment build.
 

@@ -1,6 +1,6 @@
 # Status dan keputusan canonical
 
-**Versi sumber: 0.3.5+20**
+**Versi sumber: 0.3.6+21**
 
 ## Sumber dan identitas
 

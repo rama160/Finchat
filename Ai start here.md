@@ -1,6 +1,6 @@
 # AI START HERE — Spenva / FinChat
 
-**Versi sumber: 0.3.5+20**
+**Versi sumber: 0.3.6+21**
 
 Repository `rama160/Finchat`. Target akhir dan sumber utama pengguna: **main**. Branch `spenva-source-of-truth` hanya staging integrasi; sesudah CI hijau gabungkan ke main agar tampilan default GitHub, ZIP dan `pubspec.yaml` benar-benar sama. Jangan menyatakan pembaruan main selesai sebelum membaca ulang remote main.
 

@@ -1,6 +1,6 @@
 # Input suara
 
-**Versi sumber: 0.3.5+20**
+**Versi sumber: 0.3.6+21**
 
 SpeechToTextProvider mengadaptasi speech_to_text ke kontrak SpeechRecognitionProvider. VoiceInputService mengelola initialize/listen/stop/cancel, generation callback dan transcript buffer. TranscriptBuffer mempertahankan partial/final/cumulative/segmented text tanpa mengulang transaksi.
 

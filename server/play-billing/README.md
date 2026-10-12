@@ -1,6 +1,6 @@
 # Spenva subscription dan quota server
 
-**Versi sumber: 0.3.5+20**
+**Versi sumber: 0.3.6+21**
 
 
 Separate Worker from the existing finchat-ai-gateway. Prepared source, not deployed. Run Node24 `node --test` or `npm test` for all backend tests. Upstream tests are simulations, not evidence of real Play purchases. Catalog, prices, quotas and AI level are generated from assets/config/subscription_plans.json; regenerate with tooling/play/generate_subscription.py, and validate with --check.

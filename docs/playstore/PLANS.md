@@ -1,6 +1,6 @@
 # Paket Spenva
 
-**Versi sumber: 0.3.5+20**
+**Versi sumber: 0.3.6+21**
 
 <!-- GENERATED from assets/config/subscription_plans.json; do not edit manually. -->
 
