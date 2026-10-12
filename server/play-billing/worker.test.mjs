@@ -169,3 +169,18 @@ test('stale token from another signed-out account leaves Free available but cann
  const verify=await handle(await request('/v1/purchases/verify',{purchaseToken:'other-account-token'}),options,net);
  assert.equal(verify.status,403);assert.equal(q.values.has('purchase'),false);
 });
+
+test('tester grants are admin-only and persisted on the primary quota object',async()=> {
+  const quota=fakeQuota();
+  const denied=await handle(new Request('https://test/v1/admin/testing-access',{method:'POST',body:JSON.stringify({account,enabled:true})}),{...env,QUOTA:quota.binding},network());
+  assert.equal(denied.status,401);
+  const admin=await handle(new Request('https://test/v1/admin/testing-access',{method:'POST',headers:{Authorization:'Bearer private-admin'},body:JSON.stringify({account,enabled:true})}),{...env,ADMIN_TOKEN:'private-admin',QUOTA:quota.binding},network());
+  assert.equal(admin.status,200);
+  assert.deepEqual(await admin.json(),{enabled:true});
+  const state=await handle(await request('/v1/quota/state'),{...env,QUOTA:quota.binding},network());
+  assert.equal(state.status,200);
+  assert.equal((await state.json()).testingAccess.enabled,true);
+  const reserve=await handle(await request('/v1/quota/reserve',{resource:'voice',operationId:'tester_op_123'}),{...env,QUOTA:quota.binding},network());
+  assert.equal(reserve.status,200);
+  assert.equal(quota.values.get('meter').used.voice,0);
+});
