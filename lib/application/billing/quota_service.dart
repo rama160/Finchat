@@ -25,7 +25,24 @@ class SubscriptionQuotaService {
     if (PlayReleaseConfig.isPlay && !accountLinked) throw const UserFacingException('Masuk dengan Google untuk memakai kuota Voice, Scan dan PDF. Teks dan laporan dasar tetap tersedia offline.');
     final id = '${DateTime.now().microsecondsSinceEpoch}_${Random.secure().nextInt(1 << 30)}';
     final service = PlayReleaseConfig.isPlay ? billing ?? PlayBillingService.instance : billing;
-    if (PlayReleaseConfig.isPlay) await service!.quotaRequest('reserve', resource: resource, operationId: id);
+    if (PlayReleaseConfig.isPlay) {
+      // A test entitlement is granted only by the authenticated backend.
+      // Never trust a build flag, a local preference, or a client-side tier.
+      // This applies only to on-device speech recognition and receipt OCR;
+      // cloud AI and paid services always use the normal server ledger.
+      if (PlayReleaseConfig.billingConfigured &&
+          accountLinked &&
+          (resource == 'voice' || resource == 'ocr')) {
+        final state = await service!.quotaRequest('state');
+        final access = state['testingAccess'];
+        if (access is Map<String, dynamic> &&
+            access['enabled'] == true &&
+            access['localInput'] == true) {
+          return QuotaLease(resource, id, service, enforced: false);
+        }
+      }
+      await service!.quotaRequest('reserve', resource: resource, operationId: id);
+    }
     return QuotaLease(resource, id, service, enforced: PlayReleaseConfig.isPlay);
   }
 }
