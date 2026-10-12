@@ -1,6 +1,6 @@
 # Materi listing Bahasa Indonesia
 
-**Versi sumber: 0.3.5+20**
+**Versi sumber: 0.3.6+21**
 
 Status draf. Tinjau kemampuan build Play yang benar-benar aktif sebelum menempel ke Console; saat endpoint kuota belum dikonfigurasi, jangan menjanjikan Voice/Scan/PDF/AI sudah tersedia.
 

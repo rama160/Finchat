@@ -1,6 +1,6 @@
 # Kontrak AI dan jawaban lokal
 
-**Versi sumber: 0.3.5+20**
+**Versi sumber: 0.3.6+21**
 
 AI adalah jalur read-only opsional. Jawaban angka selalu berangkat dari ReportService/SQLite. FinancialQaService menjawab lokal total, saldo, jumlah transaksi, kategori terbesar, kata kunci/nota dan saran hemat sederhana. Constraint yang tidak didukung tidak boleh diam-diam dibuang lalu diberi total global.
 

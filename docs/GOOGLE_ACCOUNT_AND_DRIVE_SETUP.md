@@ -1,6 +1,6 @@
 # Google login dan Drive
 
-**Versi sumber: 0.3.5+20**
+**Versi sumber: 0.3.6+21**
 
 Google login menggunakan web OAuth client ID sebagai serverClientId dan Android OAuth client dengan package `com.finchat.finchat` serta SHA-1 signing certificate yang sesuai. Default client ID lama dipertahankan. Override build melalui GitHub secret FINCHAT_GOOGLE_SERVER_CLIENT_ID; jangan menggunakan Android client ID sebagai server audience.
 

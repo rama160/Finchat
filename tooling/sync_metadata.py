@@ -22,7 +22,7 @@ def outputs():
     release = re.sub(r"default: 'v[^']+'", f"default: 'v{value}'", release)
     result['.github/workflows/release.yml'] = release
     for path in [ROOT / 'README.md', ROOT / 'Ai start here.md', *sorted((ROOT / 'docs').glob('*.md')), *sorted((ROOT / 'docs/playstore').glob('*.md')), ROOT / 'server/play-billing/README.md']:
-        if path.name in {'CHANGELOG.md', 'FULL_REPOSITORY_AUDIT.md', 'VALIDATION.md'}: continue
+        if path.name == 'CHANGELOG.md': continue
         text = path.read_text()
         if re.search(r'^\*\*Versi sumber: .*?\*\*$', text, re.M):
             result[str(path.relative_to(ROOT))] = re.sub(r'^\*\*Versi sumber: .*?\*\*$', f'**Versi sumber: {value}**', text, flags=re.M)

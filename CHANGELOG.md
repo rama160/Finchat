@@ -2,6 +2,11 @@
 
 Versi aktif dan bukti tes terdapat pada entri terbaru dan [VALIDATION](docs/playstore/VALIDATION.md). Entri lama adalah riwayat; keterangan branch/versi/status lama tidak berlaku sebagai panduan source saat ini.
 
+## 0.3.6+21 — 12 Oktober 2026
+
+- Naikkan versionCode ke 21 untuk pembaruan Closed Testing; sinkronkan metadata runtime, release dan header dokumentasi dari pubspec.
+- Perbaiki kegagalan CI source consistency akibat app_constants.dart dan dokumen versi lama. Workflow fitur, signing, database dan kebijakan kuota dipertahankan.
+
 ## 0.3.5+20 — 12 Oktober 2026: verifikasi backend dan Alpha
 
 - PR #5: akses testing Voice/OCR/PDF berasal dari backend terautentikasi; grant per Google subject pada Durable Object QUOTA utama, admin-only dan dapat dicabut. Production tetap memakai kuota normal; personal AI tetap nonaktif.

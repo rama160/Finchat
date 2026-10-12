@@ -1,6 +1,6 @@
 # Spenva — pencatat keuangan pribadi
 
-**Versi sumber: 0.3.5+20**
+**Versi sumber: 0.3.6+21**
 
 Sumber utama repository dan ZIP adalah branch **main**. `spenva-source-of-truth` adalah branch integrasi audit menuju main; bukan sumber kedua yang harus disalin manual. Panduan masuk: [Ai start here.md](Ai%20start%20here.md). Spesifikasi saat ini: [PRD](docs/PRD.md), [arsitektur](docs/ARCHITECTURE.md), [status canonical](docs/SPENVA_CANONICAL_SOURCE.md).
 

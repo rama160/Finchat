@@ -1,6 +1,6 @@
 # Langganan dan kuota
 
-**Versi sumber: 0.3.5+20**
+**Versi sumber: 0.3.6+21**
 
 Katalog, harga, produk dan kuota hanya berasal dari [subscription_plans.json](../../assets/config/subscription_plans.json). [PLANS](PLANS.md) adalah tabel generated; bukan salinan angka manual. Nama publik Free/Plus/Pro/Max; enum internal basic/unlimited tetap kompatibel. Google Play ProductDetails menentukan harga yang benar-benar dibayar pengguna.
 

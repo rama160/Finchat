@@ -1,8 +1,12 @@
 # Validasi runtime dan build saat ini
 
-**Versi sumber: 0.3.5+20**
+**Versi sumber: 0.3.6+21**
 
 Runtime, aset, dependency lock dan workflow diuji sebelum integrasi pada `570ef1a1c7597393e0e84786539f4fa12f84a350`, lalu seluruh workflow dijalankan ulang dan lulus dari **main** commit `678f08da89e9b39b170376032387d6c46a95dafc` (10 Oktober 2026). Commit final sesudahnya merapikan catatan bukti/audit serta memperluas daftar cleanup eksplisit BAT agar file usang dari overlay ZIP tidak masuk kembali; tidak mengganti runtime, dependensi atau workflow build. Daftar cleanup 28 path diperiksa statis, semuanya memang tidak ada pada source current; file lain tidak dihapus. Eksekusi BAT native Windows belum diuji. Integrasi ke sumber utama **main** melalui [PR #4](https://github.com/rama160/Finchat/pull/4). Gunakan main untuk ZIP/build harian. Hasil +19 dan branch lama bukan sertifikasi versi ini.
+
+## Validasi versi 0.3.6+21
+
+Perubahan +21 hanya versi rilis dan metadata dari pubspec; runtime fitur, dependency lock, signing dan schema tetap. Bukti +20 di bawah adalah riwayat dan tidak mengesahkan bundle +21. CI PR #6 harus menjalankan analyzer, Flutter tests, backend/tooling, native integration serta signed AAB/16 KB sebelum digunakan untuk Closed Testing.
 
 ## Verifikasi backend dan Alpha — 12 Oktober 2026
 

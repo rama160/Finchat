@@ -1,6 +1,6 @@
 # Sinkronisasi, build dan release
 
-**Versi sumber: 0.3.5+20**
+**Versi sumber: 0.3.6+21**
 
 ## Sumber dan versi
 

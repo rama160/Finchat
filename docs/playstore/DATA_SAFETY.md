@@ -1,7 +1,7 @@
 # Data Safety dan akses reviewer
 
 
-**Versi sumber: 0.3.5+20**
+**Versi sumber: 0.3.6+21**
 
 This is an implementation-informed draft, not a completed Console declaration. The publisher must reconcile it with current Google SDK disclosures, backend hosting/logging, voice recognizer providers and actual release configuration. Data sent off-device can be collected even if ephemeral. Do not tick “no data collected” simply because the primary database is local.
 
