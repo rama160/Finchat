@@ -2,6 +2,13 @@
 
 Versi aktif dan bukti tes terdapat pada entri terbaru dan [VALIDATION](docs/playstore/VALIDATION.md). Entri lama adalah riwayat; keterangan branch/versi/status lama tidak berlaku sebagai panduan source saat ini.
 
+## 0.3.5+20 — 12 Oktober 2026: verifikasi backend dan Alpha
+
+- PR #5: akses testing Voice/OCR/PDF berasal dari backend terautentikasi; grant per Google subject pada Durable Object QUOTA utama, admin-only dan dapat dicabut. Production tetap memakai kuota normal; personal AI tetap nonaktif.
+- Tolak ID reservasi malformed sebelum bypass Alpha; tetap selesaikan reservasi lama saat akun beralih ke Alpha agar refund kegagalan tidak terlewat.
+- Tambahkan regresi revocation, isolasi akun Production, AI tetap tertutup dan pending settlement: backend 49 tes lulus.
+- Endpoint Play default menunjuk Worker billing dedicated; binding KV aktual tersedia. Deploy fix berhasil; health dan penolakan akses diuji live. Login Google/penyimpanan/grant akun nyata belum terverifikasi; detail serta CI runtime ada di VALIDATION.
+
 ## 0.3.5+20 — 10 Oktober 2026
 
 - Selaraskan main/default GitHub/ZIP dengan source yang diuji; BAT kembali menargetkan main.
