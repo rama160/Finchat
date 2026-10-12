@@ -2,7 +2,11 @@ from pathlib import Path
 import json,os
 out=Path('build/play');out.mkdir(parents=True,exist_ok=True)
 keys=['SPENVA_PUBLISHER','SPENVA_SUPPORT_EMAIL','SPENVA_PRIVACY_URL','SPENVA_DELETION_URL','SPENVA_BILLING_ENDPOINT']
-defines={key:os.getenv(key,'').strip() for key in keys};defines['FINCHAT_DISTRIBUTION']='play'
+defines={key:os.getenv(key,'').strip() for key in keys}
+# Public endpoint only; never embed Cloudflare admin or Publisher credentials.
+if not defines['SPENVA_BILLING_ENDPOINT']:
+    defines['SPENVA_BILLING_ENDPOINT']='https://spenva-play-billing.finchat-ai-gateway.workers.dev'
+defines['FINCHAT_DISTRIBUTION']='play'
 client_id=os.getenv('FINCHAT_GOOGLE_SERVER_CLIENT_ID','').strip()
 if client_id:defines['FINCHAT_GOOGLE_SERVER_CLIENT_ID']=client_id
 (out/'defines.json').write_text(json.dumps(defines,indent=2))

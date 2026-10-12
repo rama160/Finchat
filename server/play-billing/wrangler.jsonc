@@ -9,6 +9,6 @@
   },
   "durable_objects": {"bindings":[{"name":"QUOTA","class_name":"Quota"}]},
   "migrations":[{"tag":"v1","new_sqlite_classes":["Quota"]}],
-  "kv_namespaces":[{"binding":"FEEDBACK","id":"REPLACE_WITH_NEW_FEEDBACK_KV_ID"}],
+  "kv_namespaces":[{"binding":"FEEDBACK","id":"6a117aeaa8544ff98a20b9a22a95e7c7"}],
   "observability":{"enabled":false}
 }

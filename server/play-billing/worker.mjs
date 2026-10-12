@@ -70,6 +70,10 @@ export class Quota {
   constructor(state) { this.state=state; }
   async fetch(request) {
     const input=await request.json();
+    if(input.action==='testing') {
+      if (typeof input.enabled === 'boolean') await this.state.storage.put('testingAccess', input.enabled);
+      return json({enabled: await this.state.storage.get('testingAccess') === true});
+    }
     if(input.action==='token') {
       if(input.token) {
         await this.state.storage.put('purchase',input.token);
@@ -154,6 +158,12 @@ export async function handle(request,env,net=fetch) {
   try {
     const path=new URL(request.url).pathname;
     if(path==='/health' && request.method==='GET') return json({service:'spenva-play',version:1});
+    if(path==='/v1/admin/testing-access' && request.method==='POST') {
+      if (!env.ADMIN_TOKEN || request.headers.get('Authorization') !== 'Bearer '+env.ADMIN_TOKEN) throw new Fault(401,'admin_required');
+      const body=await readBody(request);
+      if (typeof body.account !== 'string' || !/^[a-f0-9]{64}$/.test(body.account) || typeof body.enabled !== 'boolean') throw new Fault(400,'invalid_testing_access');
+      return objectCall(env,body.account,{action:'testing',enabled:body.enabled});
+    }
     if(path==='/v1/admin/usage' && request.method==='GET') {
       if(!env.ADMIN_TOKEN || request.headers.get('Authorization')!=='Bearer '+env.ADMIN_TOKEN)throw new Fault(401,'admin_required');
       const account=new URL(request.url).searchParams.get('account');
@@ -198,9 +208,12 @@ export async function handle(request,env,net=fetch) {
       if(!['state','reserve','settle','event'].includes(action))throw new Fault(404,'not_found');
       if(body.resource==='ai')throw new Fault(403,'ai_server_only');
       if(action==='reserve' && !['voice','ocr','pdf'].includes(body.resource))throw new Fault(400,'invalid_resource');
+      if(action==='reserve' && (typeof body.operationId!=='string' || !/^[a-zA-Z0-9_-]{8,100}$/.test(body.operationId)))throw new Fault(400,'invalid_resource_or_operation');
       const entitlement=await accountEntitlement(request,account,env,net);
+      const testingAccess=(await (await objectCall(env,account,{action:'testing'})).json()).enabled===true;
+      if (testingAccess && action==='reserve') return json({ok:true,testingAccess:{enabled:true,localInput:true}});
       const result=await objectCall(env,account,{action,entitlement,resource:body.resource,operationId:body.operationId,success:body.success,event:body.event,count:body.count});
-      if(action==='state' && result.ok)return json({...await result.json(),personalAiEnabled:env.PAID_AI_CONFIRMED==='true',educationAiEnabled:env.UNPAID_EDUCATION_ENABLED==='true',entitlement});
+      if(action==='state' && result.ok)return json({...await result.json(),personalAiEnabled:env.PAID_AI_CONFIRMED==='true',educationAiEnabled:env.UNPAID_EDUCATION_ENABLED==='true',entitlement,testingAccess:{enabled:testingAccess,localInput:testingAccess}});
       return result;
     }
     if(path==='/v1/ai/chat') {

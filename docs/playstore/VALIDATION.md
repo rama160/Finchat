@@ -4,6 +4,18 @@
 
 Runtime, aset, dependency lock dan workflow diuji sebelum integrasi pada `570ef1a1c7597393e0e84786539f4fa12f84a350`, lalu seluruh workflow dijalankan ulang dan lulus dari **main** commit `678f08da89e9b39b170376032387d6c46a95dafc` (10 Oktober 2026). Commit final sesudahnya merapikan catatan bukti/audit serta memperluas daftar cleanup eksplisit BAT agar file usang dari overlay ZIP tidak masuk kembali; tidak mengganti runtime, dependensi atau workflow build. Daftar cleanup 28 path diperiksa statis, semuanya memang tidak ada pada source current; file lain tidak dihapus. Eksekusi BAT native Windows belum diuji. Integrasi ke sumber utama **main** melalui [PR #4](https://github.com/rama160/Finchat/pull/4). Gunakan main untuk ZIP/build harian. Hasil +19 dan branch lama bukan sertifikasi versi ini.
 
+## Verifikasi backend dan Alpha — 12 Oktober 2026
+
+Runtime PR #5: `2d5dad92d9d44974e90d798c27ef1433222bfe75`. Source tetap 0.3.5+20; signing, application ID, schema SQLite, katalog harga dan kuota Production tidak diubah. Catatan 10 Oktober di bawah adalah bukti historis sebelum perubahan Alpha.
+
+- Audit seluruh 205 tracked paths: metadata/generated/import/link/inventory konsisten; tidak ditemukan file byte-identical, conflict marker atau output/keystore tracked.
+- Backend lokal: **49 tes lulus**, mencakup Google JWT signature/issuer/audience/expiry, kuota, feedback/deletion, admin-only grant, pencabutan Alpha, isolasi Google subject Production, operasi malformed dan penyelesaian reservasi yang dibuat sebelum Alpha. Tooling Android 3 dan bundle validator 5 lulus.
+- Live Worker: `/health` 200 JSON `{service: spenva-play, version: 1}`; POST quota/state tanpa token 401 `authentication_required`, token invalid 401 `invalid_identity`; admin/testing-access tanpa izin 401 `admin_required`; feedback dan quota/reserve tanpa token 401. Respons JSON sesuai parser error Flutter.
+- Deploy perbaikan Worker berhasil: deployment `08eed9cbedd04dfdb225082d831a2ae9`, 12 Oktober 2026 14:44 UTC. Binding QUOTA tetap namespace yang sama; FEEDBACK dan secret ADMIN_TOKEN dipertahankan dan diperiksa ulang. Personal AI dan education AI tetap false.
+- CI runtime terbaru: [Flutter](https://github.com/rama160/Finchat/actions/runs/38265023650) dan [Play AAB + native integration](https://github.com/rama160/Finchat/actions/runs/38265023566). Baca conclusion run dan artifact untuk hasil final; AAB dari SHA sebelumnya tidak mengesahkan perubahan ini.
+- **Belum diverifikasi live:** login Google sah, reserve/settle dengan akun tester, read-after-write Durable Object/KV dan grant Alpha akun nyata. Koneksi Cloudflare mengonfirmasi keberadaan secret, tetapi tidak menyediakan nilainya atau Google ID token/subject tester. Jangan memakai email sebagai `hash(sub)`, token mock, atau mengganti secret agar tes tampak lulus. Aktivasi membutuhkan operator dengan ADMIN_TOKEN dan account ID SHA-256 dari Google subject yang terverifikasi, lalu uji `/v1/quota/state` dengan login Google asli. Jangan kirim token/secret ke chat atau repository.
+- Grant endpoint: POST `/v1/admin/testing-access`, admin bearer, body `{account: <64 hex SHA-256 Google sub>, enabled: true}`; pencabutan memakai `enabled: false`. State tester mengembalikan `testingAccess.enabled/localInput`; user lain tetap false. Voice/OCR/PDF tester tidak memotong kuota; cloud AI tetap kebijakan server. Tidak ada aktivasi pembelian subscription atau publikasi Play.
+
 ## Hasil executable
 
 | Pemeriksaan | Hasil | Bukti |

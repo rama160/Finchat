@@ -4,6 +4,10 @@
 
 Audit ulang 10 Oktober 2026. Baseline main `91252bddf4a4eadaa99dafe095f72c2e04a4bab1` masih0.3.2+10; staging audit sebelumnya `452d85c49e4177558e46cc243b6fef121e919aa2` adalah0.3.4+19. Ini sebab versi yang terlihat pengguna berbeda. Perbaikan sudah digabung melalui PR #4 ke main pada commit `678f08da89e9b39b170376032387d6c46a95dafc`. Remote pubspec dan AppConstants dibaca ulang: keduanya0.3.5+20; tree main identik dengan hasil audit. Bukti rinci ada di VALIDATION.
 
+## Pemeriksaan lanjutan — 12 Oktober 2026
+
+Seluruh 205 tracked paths diperiksa ulang untuk metadata/generated/import/link/inventory, byte-identical duplicate dan conflict marker: lulus, tidak ada duplicate/conflict. Perubahan runtime PR #5 mencakup quota_service.dart, worker.mjs, worker.test.mjs, wrangler.jsonc dan write_profile.py; fingerprint tabel lama di bawah adalah snapshot 10 Oktober. Backend 49 tes lulus dan tooling Android/bundle 3/5 lulus. Alpha memerlukan grant admin per hash Google subject; revocation dan isolasi Production diuji. Operasi malformed ditolak sebelum bypass dan settlement reservasi lama tetap diproses. Deploy, bukti live, CI dan batas verifikasi akun nyata dicatat di [VALIDATION](playstore/VALIDATION.md). Tidak ada perubahan schema/signing atau penghapusan data.
+
 ## Gap dan keputusan
 
 | Gap | Perbaikan | Bukti yang wajib |

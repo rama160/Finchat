@@ -18,7 +18,7 @@
 | Paket | Free/Plus/Pro/Max, harga/kuota generated dari satu JSON | Katalog tampil; server/product Play belum diaktifkan |
 | Privasi | Penghapusan akun aktif lokal dan opsi Drive/server; profiling lain dipertahankan | Salinan ekspor/perangkat lain dan pembatalan subscription perlu tindakan terpisah |
 
-Harga/kuota lengkap: [PLANS](playstore/PLANS.md). Tidak ada QRIS/GoPay/checkout eksternal untuk langganan digital. Play Billing adalah jalur pembayaran yang disiapkan. Tidak ada aktivasi otomatis backend atau personal AI.
+Harga/kuota lengkap: [PLANS](playstore/PLANS.md). Tidak ada QRIS/GoPay/checkout eksternal untuk langganan digital. Play Billing adalah jalur pembayaran yang disiapkan. Worker billing sudah tersedia dan diverifikasi health/penolakan akses pada 12 Oktober 2026; personal AI tetap nonaktif. Backend menyediakan grant Alpha per Google subject melalui admin, tetapi grant akun tester nyata dan verifikasi Google/penyimpanan live masih menunggu identitas serta autentikasi operator yang sah. Bukti dan batas hasil ada di VALIDATION.
 
 ## Sumber tunggal dan batas modul
 
