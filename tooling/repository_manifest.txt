@@ -142,6 +142,7 @@ server/play-billing/plans.generated.mjs
 server/play-billing/worker.mjs
 server/play-billing/worker.test.mjs
 server/play-billing/wrangler.jsonc
+site/delete-account/index.html
 site/index.html
 site/privacy/index.html
 site/terms/index.html
